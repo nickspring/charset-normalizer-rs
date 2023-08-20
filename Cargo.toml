@@ -1,0 +1,10 @@
+[package]
+name = "charset-normalizer-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+encoding = "0.2.33"
+lazy_static = "1.4.0"
+maplit = "1.0.2"
+regex = "1.9.3"
