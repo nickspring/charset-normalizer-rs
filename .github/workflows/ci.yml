@@ -22,8 +22,20 @@ jobs:
       run: rustup component add clippy && cargo clippy
   tests:
     name: ✅ Tests
+    needs:
+      - lint
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Run tests
       run: cargo test --verbose
+  perfomance:
+    name: ⚡ Performance & 📈 Coverage
+    needs:
+      - lint
+      - tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run performance & coverage tool
+      run: cargo run --bin performance --features performance --release
