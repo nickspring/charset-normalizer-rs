@@ -1,0 +1,28 @@
+name: Continuous Delivery
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+' # Trigger when a new tag is pushed following SemVer pattern
+
+jobs:
+  pre_flight_check:
+    name: Preflight Checks
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: [pre_flight_check]
+    name: Publish to Crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login
+        run: cargo login ${TOKEN}
+        with:
+          env:
+            TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Publish
+        run: cargo publish
