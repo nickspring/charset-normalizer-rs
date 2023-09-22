@@ -1,6 +1,7 @@
 [package]
 name = "charset-normalizer-rs"
 version = "1.0.0"
+authors = ["Nikolay Yarovoy <nikolay.yarovoy@gmail.com>"]
 edition = "2021"
 
 [dependencies]
