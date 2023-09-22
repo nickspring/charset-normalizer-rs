@@ -51,7 +51,7 @@ Chardet's performance on larger file (1MB+) can be very poor. Expect huge differ
 
 ## ✨ Installation
 
-Using pip:
+Using cargo:
 
 ```sh
 cargo add charset-normalizer-rs
@@ -147,7 +147,7 @@ I **don't care** about the **originating charset** encoding, because **two diffe
 produce **two identical rendered string.**
 What I want is to get readable text, the best I can. 
 
-In a way, **I'm brute forcing text decoding.** How cool is that ? 😎
+In a way, **I'm brute forcing text decoding.** How cool is that? 😎
 
 ## 🍰 How
 
@@ -156,7 +156,7 @@ In a way, **I'm brute forcing text decoding.** How cool is that ? 😎
   - Extract matches with the lowest mess detected.
   - Additionally, we measure coherence / probe for a language.
 
-**Wait a minute**, what is noise/mess and coherence according to **YOU ?**
+**Wait a minute**, what is noise/mess and coherence according to **YOU?**
 
 *Noise :* I opened hundred of text files, **written by humans**, with the wrong encoding table. **I observed**, then
 **I established** some ground rules about **what is obvious** when **it seems like** a mess.
