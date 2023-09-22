@@ -1,8 +1,0 @@
-# ignore tests & benches
-/tests/**
-/src/tests/**
-/benches/**
-/CONTRIBUTING.md
-/CODE_OF_CONDUCT.md
-/.github/**
-.gitattributes

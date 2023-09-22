@@ -1,6 +1,6 @@
 [package]
 name = "charset-normalizer-rs"
-version = "1.0.3"
+version = "1.0.4"
 authors = ["Nikolay Yarovoy <nikolay.yarovoy@gmail.com>"]
 edition = "2021"
 description = "Truly universal encoding detector in pure Rust - port of Python version"
@@ -10,6 +10,15 @@ readme = "README.md"
 repository = "https://github.com/nickspring/charset-normalizer-rs"
 keywords = ["encoding", "charset", "detector", "conversion", "normalizer"]
 categories = ["encoding", "internationalization", "localization"]
+exclude = [
+    "/tests/**",
+    "/src/tests/**",
+    "/benches/**",
+    "/CONTRIBUTING.md",
+    "/CODE_OF_CONDUCT.md",
+    "/.github/**",
+    ".gitattributes"
+]
 
 [dependencies]
 blake3 = "1.4.1"
