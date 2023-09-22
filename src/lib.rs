@@ -12,6 +12,11 @@
 //! In Rust version only encoding from [WhatWG standard](https://encoding.spec.whatwg.org) are supported.
 //! Python version supports more encodings, but a lot of them are old almost unused ones.
 //!
+//! # Performance:
+//!
+//! This library in comparison to Python version is more faster (2-3 times faster then MYPYC version of charset-normalizer, 4-6 times faster than usual Python version).
+//! All measurements are approximated.
+//!
 //! # Library:
 //!
 //! Library offers two main methods:
