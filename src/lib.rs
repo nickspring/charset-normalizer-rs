@@ -14,7 +14,7 @@
 //!
 //! # Performance:
 //!
-//! This library in comparison to Python version is more faster (2-3 times faster then MYPYC version of charset-normalizer, 4-6 times faster than usual Python version).
+//! This library in comparison to Python version is more faster (2-3 times faster, than MYPYC version of charset-normalizer, 4-6 times faster, than usual Python version).
 //! All measurements are approximated.
 //!
 //! # Library:

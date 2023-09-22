@@ -1,60 +1,58 @@
-<h1 align="center">Charset Detection, for Everyone 👋</h1>
+# Charset Normalizer
+[![charset-normalizer-rs on docs.rs][docsrs-image]][docsrs]
+[![charset-normalizer-rs on crates.io][crates-image]][crates]
 
-<p align="center">
-  <sup>The Real First Universal Charset Detector, Rust version</sup><br>
-</p>
+[docsrs-image]: https://docs.rs/charset-normalizer-rs/badge.svg
+[docsrs]: https://docs.rs/charset-normalizer-rs
+[crates-image]: https://img.shields.io/crates/v/charset-normalizer-rs.svg
+[crates]: https://crates.io/crates/charset-normalizer-rs/
 
-> A library that helps you read text from an unknown charset encoding.<br /> Motivated by original Python version of `charset-normalizer`,
-> I'm trying to resolve the issue by taking a new approach.
-> All IANA character set names for which the Rust `encoding` library provides codecs are supported.
+A library that helps you read text from an unknown charset encoding.<br /> Motivated by original Python version of `charset-normalizer`,
+I'm trying to resolve the issue by taking a new approach.
+All IANA character set names for which the Rust `encoding` library provides codecs are supported.
 
 This project is port of original Pyhon version of [Charset Normalizer](https://github.com/Ousret/charset_normalizer).
 The biggest difference between Python and Rust versions - number of supported encodings as each langauge has own encoding / decoding library.
 In Rust version only encoding from [WhatWG standard](https://encoding.spec.whatwg.org) are supported. 
 Python version supports more encodings, but a lot of them are old almost unused ones.
 
-| Feature                                          | [Chardet](https://github.com/chardet/chardet) |                                           Charset Normalizer                                           | [cChardet](https://github.com/PyYoshi/cChardet) |
-|--------------------------------------------------|:---------------------------------------------:|:------------------------------------------------------------------------------------------------------:|:-----------------------------------------------:|
-| `Fast`                                           |                     ❌<br>                     |                                                 ✅<br>                                                  |                     ✅ <br>                      |
-| `Universal**`                                    |                       ❌                       |                                                   ✅                                                    |                        ❌                        |
-| `Reliable` **without** distinguishable standards |                       ❌                       |                                                   ✅                                                    |                        ✅                        |
-| `Reliable` **with** distinguishable standards    |                       ✅                       |                                                   ✅                                                    |                        ✅                        |
-| `License`                                        |           LGPL-2.1<br>_restrictive_           |                                                  MIT                                                   |            MPL-1.1<br>_restrictive_             |
-| `Native Python`                                  |                       ✅                       |                                                   ✅                                                    |                        ❌                        |
-| `Detect spoken language`                         |                       ❌                       |                                                   ✅                                                    |                       N/A                       |
-| `UnicodeDecodeError Safety`                      |                       ❌                       |                                                   ✅                                                    |                        ❌                        |
-| `Whl Size`                                       |                   193.6 kB                    |                                                 40 kB                                                  |                     ~200 kB                     |
-| `Supported Encoding`                             |                      33                       | 🎉 [90](https://charset-normalizer.readthedocs.io/en/latest/user/support.html#supported-encodings) |                       40                        |
-
-*\*\* : They are clearly using specific code for a specific encoding even if covering most of used one*<br> 
-
 ## ⚡ Performance
 
-This package offer better performance than its counterpart Chardet. Here are some numbers.
+This package offer better performance than Python version (2 times faster, than MYPYC version of charset-normalizer, 4 times faster than usual Python version).
+However, in comparison with `chardet` and `chardetng` packages it is slower but more accurate (I guess because it process whole file chunk by chunk). 
+Here are some numbers.
 
-| Package                                       | Accuracy | Mean per file (ms) | File per sec (est) |
-|-----------------------------------------------|:--------:|:------------------:|:------------------:|
-| [chardet](https://github.com/chardet/chardet) |   86 %   |       200 ms       |     5 file/sec     |
-| charset-normalizer                            | **98 %** |     **10 ms**      |    100 file/sec    |
+| Package                                                                                     |  Accuracy  | Mean per file (ms) | File per sec (est) |
+|---------------------------------------------------------------------------------------------|:----------:|:------------------:|:------------------:|
+| [chardet](https://crates.io/crates/chardet)                                                 |    79 %    |       2.2 ms       |    450 file/sec    |
+| [chardetng](https://crates.io/crates/chardetng)                                             |    78 %    |       1.6 ms       |    625 file/sec    |
+| charset-normalizer-rs                                                                       | **96.8 %** |      **4 ms**      |    250 file/sec    |
+| [charset-normalizer](https://github.com/Ousret/charset_normalizer) (Python + MYPYC version) |  **98 %**  |      **8 ms**      |    125 file/sec    |
 
-| Package                                       | 99th percentile | 95th percentile | 50th percentile |
-|-----------------------------------------------|:---------------:|:---------------:|:---------------:|
-| [chardet](https://github.com/chardet/chardet) |     1200 ms     |     287 ms      |      23 ms      |
-| charset-normalizer                            |     100 ms      |      50 ms      |      5 ms       |
+| Package                                                                                     | 99th percentile | 95th percentile | 50th percentile |
+|---------------------------------------------------------------------------------------------|:---------------:|:---------------:|:---------------:|
+| [chardet](https://crates.io/crates/chardet)                                                 |      8 ms       |      2 ms       |     0.2 ms      |
+| [chardetng](https://crates.io/crates/chardetng)                                             |      14 ms      |      5 ms       |     0.5 ms      |
+| charset-normalizer-rs                                                                       |      28 ms      |      14 ms      |     1.6 ms      |
+| [charset-normalizer](https://github.com/Ousret/charset_normalizer) (Python + MYPYC version) |      94 ms      |      37 ms      |      3 ms       |
 
-Chardet's performance on larger file (1MB+) can be very poor. Expect huge difference on large payload.
+Stats are generated using 400+ files using default parameters. These results might change at any time. 
+The dataset can be updated to include more files. The actual delays heavily depends on your CPU capabilities. 
+The factors should remain the same. Rust version dataset has been reduced as number of supported encodings is lower than in Python version.
 
-> Stats are generated using 400+ files using default parameters. These results might change at any time. 
-> The dataset can be updated to include more files. The actual delays heavily depends on your CPU capabilities. 
-> The factors should remain the same.
-> Rust version dataset has been reduced as number of supported encodings is lower than in Python version.
+There is a still possibility to speed up library, so I'll appreciate any contributions.
 
 ## ✨ Installation
 
-Using cargo:
+Library installation:
 
-```sh
+```console
 cargo add charset-normalizer-rs
+```
+
+Binary CLI tool installation:
+```console
+cargo install charset-normalizer-rs
 ```
 
 ## 🚀 Basic Usage
@@ -62,7 +60,8 @@ cargo add charset-normalizer-rs
 ### CLI
 This package comes with a CLI, which supposes to be compatible with Python version CLI tool.
 
-```
+```console
+normalizer -h
 Usage: normalizer [OPTIONS] <FILES>...
 
 Arguments:
@@ -119,24 +118,38 @@ normalizer ./data/sample.1.fr.srt
 }
 ```
 
-### Python
-*Just print out normalized text*
-```python
-from charset_normalizer import from_path
+### Rust
 
-results = from_path('./my_subtitle.srt')
+Library offers two main methods. First one is `from_bytes`, which processes text using bytes as input parameter:
+```rust
+use charset_normalizer_rs::from_bytes;
 
-print(str(results.best()))
+fn test_from_bytes() {
+    let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None);
+    let best_guess = result.get_best();
+    assert_eq!(
+        best_guess.unwrap().encoding(),
+        "gb18030",
+    );
+}
+test_from_bytes();
 ```
 
-*Upgrade your code without effort*
-```python
-from charset_normalizer import detect
+`from_path` processes text using filename as input parameter:
+```rust
+use std::path::PathBuf;
+use charset_normalizer_rs::from_path;
+
+fn test_from_path() {
+    let result = from_path(&PathBuf::from("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
+    let best_guess = result.get_best();
+    assert_eq!(
+        best_guess.unwrap().encoding(),
+        "big5",
+    );
+}
+test_from_path();
 ```
-
-The above code will behave the same as **chardet**. We ensure that we offer the best (reasonable) BC result possible.
-
-See the docs for advanced usage : [readthedocs.io](https://charset-normalizer.readthedocs.io/en/latest/)
 
 ## 😇 Why
 
@@ -178,7 +191,7 @@ Feel free to check [issues page](https://github.com/nickspring/charset-normalize
 
 ## 📝 License
 
-Copyright © [Nikolay Yarovoy @nickspring](https://github.com/nickspring) - porting to Rust.
+Copyright © [Nikolay Yarovoy @nickspring](https://github.com/nickspring) - porting to Rust. <br />
 Copyright © [Ahmed TAHRI @Ousret](https://github.com/Ousret) - original Python version and some parts of this document.<br />
 This project is [MIT](https://github.com/nickspring/charset-normalizer-rs/blob/master/LICENSE) licensed.
 
