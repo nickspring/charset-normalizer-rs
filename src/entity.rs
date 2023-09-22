@@ -427,13 +427,21 @@ impl<'a> Iterator for CharsetMatchesIter<'a> {
 
 #[derive(Clone)]
 pub struct NormalizerSettings {
+    /// How many steps (chunks) should be used from file
     pub steps: usize,
+    /// Each chunk size
     pub chunk_size: usize,
+    /// Mess ration threshold
     pub threshold: OrderedFloat<f32>,
+    /// Specify probing encodings exactly
     pub include_encodings: Vec<String>,
+    /// Exclude these encodings from probing
     pub exclude_encodings: Vec<String>,
+    /// Allow try to find charset in the text
     pub preemptive_behaviour: bool,
+    /// Language detector threshold
     pub language_threshold: OrderedFloat<f32>,
+    /// Allow fallback to ASCII / UTF-8
     pub enable_fallback: bool,
 }
 
@@ -467,7 +475,9 @@ pub struct PerformanceArgs {
 
 // Struct to save result of each test in performance app
 pub struct PerformanceResult {
+    /// Performance test duration
     pub duration: Duration,
+    /// Is result accurate?
     pub correct: bool,
 }
 
@@ -516,15 +526,25 @@ pub struct CLINormalizerArgs {
 
 #[derive(Default, Debug, Serialize)]
 pub struct CLINormalizerResult {
+    /// Path to analysed file
     pub path: PathBuf,
+    /// Guessed encoding
     pub encoding: Option<String>,
+    /// Possible aliases of guessed encoding
     pub encoding_aliases: Vec<String>,
+    /// Alternative possible encodings
     pub alternative_encodings: Vec<String>,
+    /// Most probably language
     pub language: String,
+    /// Found alphabets
     pub alphabets: Vec<String>,
+    /// Does it has SIG or BOM mark?
     pub has_sig_or_bom: bool,
+    /// Chaos (mess) level
     pub chaos: f32,
+    /// Coherence (language detection) level
     pub coherence: f32,
+    /// Path to decoded data
     pub unicode_path: Option<PathBuf>,
     pub is_preferred: bool,
 }

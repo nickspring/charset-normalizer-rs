@@ -1,3 +1,128 @@
+//! charset-normalizer-rs
+//! ======================
+//!
+//! The Real First Universal Charset Detector, Rust version.
+//! Motivated by original Python version of `charset-normalizer`,
+//!
+//! This library helps read text from an unknown charset encoding.
+//! All IANA character set names for which the Rust `encoding` library provides codecs are supported.
+//!
+//! This project is port of original Pyhon version of [Charset Normalizer](https://github.com/Ousret/charset_normalizer).
+//! The biggest difference between Python and Rust versions - number of supported encodings as each langauge has own encoding / decoding library.
+//! In Rust version only encoding from [WhatWG standard](https://encoding.spec.whatwg.org) are supported.
+//! Python version supports more encodings, but a lot of them are old almost unused ones.
+//!
+//! # Library:
+//!
+//! Library offers two main methods:
+//!
+//! * from_bytes - process text using bytes as input parameter
+//! * from_path - process text using filenam as input parameter
+//!
+//! ## Examples:
+//!
+//! ```rust
+//! use charset_normalizer_rs::from_bytes;
+//!
+//! fn test_from_bytes() {
+//!     let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None);
+//!     let best_guess = result.get_best();
+//!     assert_eq!(
+//!         best_guess.unwrap().encoding(),
+//!         "gb18030",
+//!     );
+//! }
+//! test_from_bytes();
+//! ```
+//!
+//! ```rust
+//! use std::path::PathBuf;
+//! use charset_normalizer_rs::from_path;
+//!
+//! fn test_from_path() {
+//!     let result = from_path(&PathBuf::from("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
+//!     let best_guess = result.get_best();
+//!     assert_eq!(
+//!         best_guess.unwrap().encoding(),
+//!         "big5",
+//!     );
+//! }
+//! test_from_path();
+//! ```
+//!
+//! # CLI tool:
+//!
+//! Binary CLI tool is included within this package. It has similar to Python version input parameters and output data.
+//!
+//! ## Installation:
+//!
+//! ```shell
+//! cargo install charset-normalizer-rs
+//! ```
+//!
+//! ## Usage:
+//!
+//! ```shell
+//! normalizer -h
+//!
+//! usage: normalizer [-h] [-v] [-a] [-n] [-m] [-r] [-f] [-t THRESHOLD] [--version] files [files ...]
+//!
+//! The Real First Universal Charset Detector. Discover originating encoding used on text file. Normalize text to unicode.
+//!
+//! positional arguments:
+//!   files                 File(s) to be analysed
+//!
+//! options:
+//!   -h, --help            show this help message and exit
+//!   -v, --verbose         Display complementary information about file if any. Stdout will contain logs about the detection process.
+//!   -a, --with-alternative
+//!                         Output complementary possibilities if any. Top-level JSON WILL be a list.
+//!   -n, --normalize       Permit to normalize input file. If not set, program does not write anything.
+//!   -m, --minimal         Only output the charset detected to STDOUT. Disabling JSON output.
+//!   -r, --replace         Replace file when trying to normalize it instead of creating a new one.
+//!   -f, --force           Replace file without asking if you are sure, use this flag with caution.
+//!   -t THRESHOLD, --threshold THRESHOLD
+//!                         Define a custom maximum amount of chaos allowed in decoded content. 0. <= chaos <= 1.
+//!   --version             Show version information and exit.
+//! ```
+//!
+//! ## Example:
+//!
+//! ```shell
+//! normalizer src/tests/data/samples/sample-chinese.txt
+//! ```
+//!
+//! This will produce such JSON output:
+//!
+//! ```json
+//! {
+//!     "path": ".../src/tests/data/samples/sample-chinese.txt",
+//!     "encoding": "big5",
+//!     "encoding_aliases": [
+//!         "big5_tw",
+//!         "csbig5",
+//!         "x_mac_trad_chinese"
+//!     ],
+//!     "alternative_encodings": [
+//!         "big5hkscs",
+//!         "cp950"
+//!     ],
+//!     "language": "Chinese",
+//!     "alphabets": [
+//!         "Basic Latin",
+//!         "CJK Compatibility Forms",
+//!         "CJK Symbols and Punctuation",
+//!         "CJK Unified Ideographs",
+//!         "Control character",
+//!         "Halfwidth and Fullwidth Forms"
+//!     ],
+//!     "has_sig_or_bom": false,
+//!     "chaos": 0.0,
+//!     "coherence": 12.21,
+//!     "unicode_path": null,
+//!     "is_preferred": true
+//! }
+//! ```
 use crate::cd::{
     coherence_ratio, encoding_languages, mb_encoding_languages, merge_coherence_ratios,
 };
