@@ -13,7 +13,6 @@ categories = ["encoding", "internationalization", "localization"]
 exclude = [
     "/tests/**",
     "/src/tests/**",
-    "/benches/**",
     "/CONTRIBUTING.md",
     "/CODE_OF_CONDUCT.md",
     "/.github/**",
