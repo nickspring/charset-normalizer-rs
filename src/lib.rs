@@ -16,8 +16,8 @@
 //!
 //! Library offers two main methods:
 //!
-//! * from_bytes - process text using bytes as input parameter
-//! * from_path - process text using filenam as input parameter
+//! * `from_bytes` processes text using bytes as input parameter
+//! * `from_path` processes text using filename as input parameter
 //!
 //! ## Examples:
 //!

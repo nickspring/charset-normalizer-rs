@@ -1,6 +1,6 @@
 [package]
 name = "charset-normalizer-rs"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Nikolay Yarovoy <nikolay.yarovoy@gmail.com>"]
 edition = "2021"
 description = "Truly universal encoding detector in pure Rust - port of Python version"
