@@ -4,7 +4,6 @@ version = "1.0.0"
 authors = ["Nikolay Yarovoy <nikolay.yarovoy@gmail.com>"]
 edition = "2021"
 description = "Truly universal encoding detector in pure Rust - port of Python version"
-license = "MIT"
 license-file = "LICENSE"
 documentation = ""
 readme = "README.md"
@@ -14,7 +13,7 @@ categories = ["encoding", "internationalization", "localization"]
 
 [dependencies]
 blake3 = "1.4.1"
-cache-macro = { git = "https://github.com/nickspring/cache-macro-stable-rust.git", version = "0.4.1" }
+cache-macro-stable-rust = "0.4.1"
 chardet = { version = "0.2.4", optional = true }
 chardetng = { version = "0.1.17", optional = true }
 clap = { version = "4.4.2", features = ["derive"] }

@@ -13,7 +13,7 @@ use unic::char::property::EnumeratedCharProperty;
 use unic::ucd::normal::decompose_canonical;
 use unic::ucd::{GeneralCategory, Name};
 
-use cache_macro::cache;
+use cache_macro_stable_rust::cache;
 use lru_cache::LruCache;
 
 // Utils module

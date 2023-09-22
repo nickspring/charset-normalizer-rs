@@ -3,7 +3,7 @@ use crate::assets::*;
 use crate::consts::TOO_SMALL_SEQUENCE;
 use crate::entity::*;
 use crate::utils::*;
-use cache_macro::cache;
+use cache_macro_stable_rust::cache;
 use counter::Counter;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::DecoderTrap;

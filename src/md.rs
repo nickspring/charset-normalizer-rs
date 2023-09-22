@@ -6,7 +6,7 @@ use crate::utils::{
     is_katakana, is_latin, is_punctuation, is_separator, is_suspiciously_successive_range,
     is_symbol, is_thai, is_unprintable, remove_accent, round_float, unicode_range,
 };
-use cache_macro::cache;
+use cache_macro_stable_rust::cache;
 use log::trace;
 use lru_cache::LruCache;
 use ordered_float::OrderedFloat;

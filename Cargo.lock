@@ -156,9 +156,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 
 [[package]]
-name = "cache-macro"
+name = "cache-macro-stable-rust"
 version = "0.4.1"
-source = "git+https://github.com/nickspring/cache-macro-stable-rust.git#5231ae62ea5256f153e97a925e5f98da142c5b37"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b42b66d245a5f4655e4c698a317045b2bed82275f6f42c1682ffcbd096827adc"
 dependencies = [
  "lazy_static",
  "proc-macro2 0.4.30",
@@ -210,7 +211,7 @@ version = "1.0.0"
 dependencies = [
  "assert_cmd",
  "blake3",
- "cache-macro",
+ "cache-macro-stable-rust",
  "chardet",
  "chardetng",
  "clap 4.4.2",
