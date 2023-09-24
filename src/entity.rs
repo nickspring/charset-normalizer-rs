@@ -178,7 +178,7 @@ impl CharsetMatch {
                 blake3::hash(
                     obj.decoded_payload
                         .as_ref()
-                        .unwrap_or(&String::new())
+                        .unwrap_or(&String::default())
                         .as_bytes()
                 )
             );
@@ -310,7 +310,7 @@ impl CharsetMatch {
     }
     // Returns sorted list of unicode ranges (if exists)
     pub fn unicode_ranges(&self) -> Vec<String> {
-        let mut ranges: Vec<String> = range_scan(self.decoded_payload().unwrap_or(""))
+        let mut ranges: Vec<String> = range_scan(self.decoded_payload().unwrap_or_default())
             .iter()
             .cloned()
             .collect();
@@ -341,7 +341,7 @@ pub struct CharsetMatchesIter<'a> {
 impl CharsetMatches {
     // Initialization method
     pub fn new(items: Option<Vec<CharsetMatch>>) -> Self {
-        let mut items = items.unwrap_or(vec![]);
+        let mut items = items.unwrap_or_default();
         CharsetMatches::resort(&mut items);
         CharsetMatches { items }
     }
