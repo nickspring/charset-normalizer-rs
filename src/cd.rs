@@ -55,19 +55,18 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
 
 // Return inferred languages used with a unicode range.
 pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Language> {
-    let mut languages = vec![];
     if primary_range.is_empty() {
-        return languages;
+        return vec![];
     }
-    for (language, characters, _, _) in LANGUAGES.iter() {
-        for character in characters.chars() {
-            if unicode_range(&character).unwrap_or("") == primary_range {
-                languages.push(language);
-                break;
-            }
-        }
-    }
-    languages
+    LANGUAGES
+        .iter()
+        .filter_map(|(language, characters, _, _)| {
+            characters
+                .chars()
+                .find(|&character| unicode_range(&character).unwrap_or("") == primary_range)
+                .map(|_| language)
+        })
+        .collect()
 }
 
 // Single-byte encoding language association.
