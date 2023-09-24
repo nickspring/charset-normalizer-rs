@@ -189,8 +189,8 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
         *score = result.score.max(*score);
     }
     index
-        .iter()
-        .map(|(&language, &score)| CoherenceMatch { language, score })
+        .into_iter()
+        .map(|(language, score)| CoherenceMatch { language, score })
         .collect()
 }
 
