@@ -55,19 +55,18 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
 
 // Return inferred languages used with a unicode range.
 pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Language> {
-    let mut languages = vec![];
     if primary_range.is_empty() {
-        return languages;
+        return vec![];
     }
-    for (language, characters, _, _) in LANGUAGES.iter() {
-        for character in characters.chars() {
-            if unicode_range(&character).unwrap_or("") == primary_range {
-                languages.push(language);
-                break;
-            }
-        }
-    }
-    languages
+    LANGUAGES
+        .iter()
+        .filter_map(|(language, characters, _, _)| {
+            characters
+                .chars()
+                .find(|&character| unicode_range(&character).unwrap_or_default() == primary_range)
+                .map(|_| language)
+        })
+        .collect()
 }
 
 // Single-byte encoding language association.
@@ -75,7 +74,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // This function does the correspondence.
 #[cache(LruCache : LruCache::new(128))]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
-    let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or(vec![]);
+    let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or_default();
     let mut primary_range: Option<&str> = None;
 
     for specified_range in unicode_ranges {
@@ -190,8 +189,8 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
         *score = result.score.max(*score);
     }
     index
-        .iter()
-        .map(|(&language, &score)| CoherenceMatch { language, score })
+        .into_iter()
+        .map(|(language, score)| CoherenceMatch { language, score })
         .collect()
 }
 
@@ -229,7 +228,7 @@ pub(crate) fn coherence_ratio(
     include_languages: Option<Vec<&'static Language>>,
 ) -> Result<CoherenceMatches, String> {
     let threshold = f32::from(threshold.unwrap_or(OrderedFloat(0.1)));
-    let mut include_languages = include_languages.unwrap_or(vec![]);
+    let mut include_languages = include_languages.unwrap_or_default();
     let ignore_non_latin =
         include_languages.len() == 1 && include_languages.first() == Some(&&Language::Unknown);
     if ignore_non_latin {

@@ -18,9 +18,9 @@ lazy_static! {
 
     pub static ref MAX_PROCESSED_BYTES: usize = 500_000;
     pub static ref TOO_SMALL_SEQUENCE: usize = 32;
-    pub static ref TOO_BIG_SEQUENCE: usize = 10e6 as usize;
+    pub static ref TOO_BIG_SEQUENCE: usize = 1_000_000; // 10E6
 
-    pub(crate) static ref UTF8_MAXIMAL_ALLOCATION: usize = 1112064;
+    pub(crate) static ref UTF8_MAXIMAL_ALLOCATION: usize = 1_112_064;
     pub(crate) static ref UNICODE_RANGES_COMBINED: Vec<(&'static str, Range<u32>)> = vec![
         ("Control character", 0..31 + 1),
         ("Basic Latin", 32..127 + 1),
