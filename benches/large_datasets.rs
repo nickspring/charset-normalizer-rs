@@ -4,7 +4,7 @@ use criterion::BenchmarkId;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::path::PathBuf;
 
-fn bench_foo(paths: &Vec<String>) {
+fn bench_foo(paths: &[String]) {
     for path in paths {
         let _ = from_path(&PathBuf::from(path), None);
     }
