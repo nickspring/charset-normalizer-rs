@@ -140,7 +140,7 @@ use crate::utils::{
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
-use std::fs::File;
+use std::fs::{metadata, File};
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -169,7 +169,7 @@ pub mod utils;
 pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> CharsetMatches {
     // init settings with default values if it's None and recheck include_encodings and
     // exclude_encodings settings
-    let mut settings = settings.unwrap_or(NormalizerSettings::default());
+    let mut settings = settings.unwrap_or_default();
     if !settings.include_encodings.is_empty() {
         settings.include_encodings = settings
             .include_encodings
@@ -623,15 +623,12 @@ pub fn from_path(
     settings: Option<NormalizerSettings>,
 ) -> Result<CharsetMatches, String> {
     // read file
-    let file = File::open(path);
-    if file.is_err() {
-        return Err(String::from("Error opening file"));
-    }
+    let mut file = File::open(path).map_err(|e| format!("Error opening file: {e}"))?;
+    let file_size = metadata(path).map(|m| m.len()).unwrap_or_default();
 
-    let mut buffer = Vec::new();
-    if file.unwrap().read_to_end(&mut buffer).is_err() {
-        return Err(String::from("Error reading from file"));
-    }
+    let mut buffer = Vec::with_capacity(file_size as usize);
+    file.read_to_end(&mut buffer)
+        .map_err(|e| format!("Error reading from file: {e}"))?;
 
     // calculate
     Ok(from_bytes(&buffer, settings))
