@@ -5,7 +5,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn bench_foo(paths: &Vec<String>) {
     for path in paths {
-        let _ = from_path(path, None);
+        let _ = from_path(&path.into(), None);
     }
 }
 
