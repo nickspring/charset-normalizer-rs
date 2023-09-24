@@ -2,10 +2,11 @@ use charset_normalizer_rs::from_path;
 use charset_normalizer_rs::utils::get_large_test_datasets;
 use criterion::BenchmarkId;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use std::path::PathBuf;
 
 fn bench_foo(paths: &Vec<String>) {
     for path in paths {
-        let _ = from_path(&path.into(), None);
+        let _ = from_path(&PathBuf::from(path), None);
     }
 }
 
