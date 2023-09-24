@@ -63,7 +63,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
         .filter_map(|(language, characters, _, _)| {
             characters
                 .chars()
-                .find(|&character| unicode_range(&character).unwrap_or("") == primary_range)
+                .find(|&character| unicode_range(&character).unwrap_or_default() == primary_range)
                 .map(|_| language)
         })
         .collect()
@@ -74,7 +74,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // This function does the correspondence.
 #[cache(LruCache : LruCache::new(128))]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
-    let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or(vec![]);
+    let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or_default();
     let mut primary_range: Option<&str> = None;
 
     for specified_range in unicode_ranges {
@@ -228,7 +228,7 @@ pub(crate) fn coherence_ratio(
     include_languages: Option<Vec<&'static Language>>,
 ) -> Result<CoherenceMatches, String> {
     let threshold = f32::from(threshold.unwrap_or(OrderedFloat(0.1)));
-    let mut include_languages = include_languages.unwrap_or(vec![]);
+    let mut include_languages = include_languages.unwrap_or_default();
     let ignore_non_latin =
         include_languages.len() == 1 && include_languages.first() == Some(&&Language::Unknown);
     if ignore_non_latin {
