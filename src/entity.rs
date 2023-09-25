@@ -312,7 +312,7 @@ impl CharsetMatch {
             .iter()
             .cloned()
             .collect();
-        ranges.sort();
+        ranges.sort_unstable();
         ranges
     }
 }
@@ -377,7 +377,7 @@ impl CharsetMatches {
     }
     // Resort items by relevancy (for internal use)
     fn resort(items: &mut [CharsetMatch]) {
-        items.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        items.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
     }
     // iterator
     pub fn iter_mut(&mut self) -> CharsetMatchesIterMut {
