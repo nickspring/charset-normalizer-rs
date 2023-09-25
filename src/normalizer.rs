@@ -154,12 +154,12 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     // print out results
     if args.minimal {
         for path in &args.files {
-            let full_path = &fs::canonicalize(path).unwrap();
+            let full_path = fs::canonicalize(path).unwrap();
             println!(
                 "{}",
                 results
                     .iter()
-                    .filter(|&r| &r.path == full_path)
+                    .filter(|r| r.path == full_path)
                     .map(|r| r.encoding.clone().unwrap_or("undefined".to_string()))
                     .collect::<Vec<_>>()
                     .join(", ")
