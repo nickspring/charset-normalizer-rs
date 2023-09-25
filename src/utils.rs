@@ -28,8 +28,8 @@ fn in_category(
     ranges_partial: &[&str],
 ) -> bool {
     // unicode category part
-    let category = GeneralCategory::of(*character).abbr_name().to_string();
-    if categories_exact.contains(&&*category)
+    let category = GeneralCategory::of(*character).abbr_name();
+    if categories_exact.contains(&category)
         || categories_partial.iter().any(|&cp| category.contains(cp))
     {
         return true;
