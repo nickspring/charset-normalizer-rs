@@ -176,13 +176,8 @@ pub fn main() {
     }
 
     // run normalizer
-    let exit_code = match normalizer(&args) {
-        Err(e) => {
-            eprintln!("{}", e);
-            1
-        }
-        Ok(code) => code,
-    };
-
-    process::exit(exit_code);
+    match normalizer(&args) {
+        Err(e) => panic!("{e}"),
+        Ok(exit_code) => process::exit(exit_code),
+    }
 }
