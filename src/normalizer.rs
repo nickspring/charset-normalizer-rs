@@ -11,12 +11,8 @@ use std::{fs, process};
 
 fn write_str_to_file(filename: &PathBuf, content: &str) -> std::io::Result<()> {
     // Open the file for writing, creating it if it doesn't exist.
-    let mut file = File::create(filename)?;
+    File::create(filename)?.write_all(content.as_bytes())
 
-    // Write the content to the file.
-    file.write_all(content.as_bytes())?;
-
-    Ok(())
 }
 
 fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
