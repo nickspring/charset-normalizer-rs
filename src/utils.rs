@@ -45,11 +45,13 @@ fn in_category(
 
 // check if character description contains at least one of patterns
 fn in_description(character: &char, patterns: &[&str]) -> bool {
-    if let Some(description) = Name::of(*character) {
-        let description = format!("{}", description);
-        return patterns.iter().any(|&s| description.contains(s));
-    }
-    false
+    Name::of(*character)
+        .map(|description| {
+            patterns
+                .iter()
+                .any(|&s| description.to_string().contains(s))
+        })
+        .unwrap_or(false)
 }
 
 #[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
