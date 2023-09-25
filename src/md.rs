@@ -483,7 +483,7 @@ pub(crate) fn mess_ratio(
         Box::<ArchaicUpperLowerPlugin>::default(),
     ];
 
-    let length = decoded_sequence.chars().count() + 1;
+    let length = decoded_sequence.chars().count();
     let mut mean_mess_ratio: f32 = 0.0;
     let intermediary_mean_mess_ratio_calc: u64 = match length {
         0..=511 => 32,
@@ -501,7 +501,7 @@ pub(crate) fn mess_ratio(
         }
 
         if (index > 0 && index as u64 % intermediary_mean_mess_ratio_calc == 0)
-            || index == (length - 1)
+            || index == (length)
         {
             mean_mess_ratio = detectors.iter().map(|x| x.ratio()).sum();
             if mean_mess_ratio >= maximum_threshold {
