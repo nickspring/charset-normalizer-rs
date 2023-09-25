@@ -86,8 +86,8 @@ fn test_alpha_unicode_split() {
     for input in tests {
         let mut layers = alpha_unicode_split(input.0);
         let mut expected = input.1.clone();
-        layers.sort();
-        expected.sort();
+        layers.sort_unstable();
+        expected.sort_unstable();
         assert_eq!(layers, expected);
     }
 }
@@ -166,8 +166,8 @@ fn test_merge_coherence_ratios() {
         },
     ];
     let mut output = merge_coherence_ratios(&input);
-    output.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
-    expected_output.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+    output.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+    expected_output.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
     assert_eq!(output, expected_output);
 }
 

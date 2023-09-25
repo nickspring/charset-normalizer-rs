@@ -49,7 +49,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
         .filter(|(&name, &value)| (value as f32 / character_count as f32) >= 0.15)
         .map(|(&name, &value)| name)
         .collect();
-    result.sort();
+    result.sort_unstable();
     Ok(result)
 }
 
@@ -131,7 +131,7 @@ pub(crate) fn alphabet_languages(
         }
     }
     // reverse sort
-    languages.sort_by(|&a, &b| b.1.partial_cmp(&a.1).unwrap());
+    languages.sort_unstable_by(|&a, &b| b.1.partial_cmp(&a.1).unwrap());
     languages.iter().map(|&lang| lang.0).collect()
 }
 
@@ -214,7 +214,7 @@ pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> Coheren
         })
         .collect();
 
-    merge.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+    merge.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
     merge
 }
 
@@ -276,6 +276,6 @@ pub(crate) fn coherence_ratio(
         }
     }
     results = filter_alt_coherence_matches(&results);
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+    results.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
     Ok(results)
 }

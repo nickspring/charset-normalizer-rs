@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 // Calculate percentile
 fn calc_percentile(results: &Vec<PerformanceResult>, percentile: f64) -> Duration {
     let mut sorted_data: Vec<Duration> = results.iter().map(|r| r.duration).collect();
-    sorted_data.sort();
+    sorted_data.sort_unstable();
     let index = ((percentile / 100.0) * sorted_data.len() as f64) as usize;
     sorted_data[index]
 }
