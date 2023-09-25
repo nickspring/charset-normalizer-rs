@@ -361,9 +361,6 @@ impl CharsetMatches {
     }
     // Simply return the first match. Strict equivalent to matches[0].
     pub fn get_best(&self) -> Option<&CharsetMatch> {
-        if self.items.is_empty() {
-            return None;
-        }
         self.items.first()
     }
     // Retrieve a single item either by its position or encoding name (alias may be used here).
