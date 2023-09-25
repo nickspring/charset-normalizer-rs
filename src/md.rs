@@ -485,12 +485,10 @@ pub(crate) fn mess_ratio(
 
     let length = decoded_sequence.chars().count() + 1;
     let mut mean_mess_ratio: f32 = 0.0;
-    let intermediary_mean_mess_ratio_calc: u64 = if length < 512 {
-        32
-    } else if length <= 1024 {
-        64
-    } else {
-        128
+    let intermediary_mean_mess_ratio_calc: u64 = match length {
+        0..=511 => 32,
+        512..=1024 => 64,
+        _ => 128,
     };
     let new_sequence = decoded_sequence.to_string() + "\n";
 
