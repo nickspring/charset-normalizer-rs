@@ -490,10 +490,12 @@ pub(crate) fn mess_ratio(
         511..=1023 => 64,
         _ => 128,
     };
-    let new_sequence = decoded_sequence.to_string() + "\n";
-
     // Traverse through chars and detectors
-    for (index, ch) in new_sequence.chars().enumerate() {
+    for (index, ch) in decoded_sequence
+        .chars()
+        .chain(std::iter::once('\n'))
+        .enumerate()
+    {
         for detector in &mut *detectors {
             if detector.eligible(&ch) {
                 detector.feed(&ch);
