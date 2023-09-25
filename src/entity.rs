@@ -203,10 +203,8 @@ impl CharsetMatch {
         }
         vec![]
     }
+    // byte_order_mark
     pub fn bom(&self) -> bool {
-        self.has_sig_or_bom
-    }
-    pub fn byte_order_mark(&self) -> bool {
         self.has_sig_or_bom
     }
     pub fn encoding(&self) -> &str {
