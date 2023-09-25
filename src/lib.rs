@@ -569,7 +569,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         ));
 
         if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana.to_string()))
-            || encoding_iana == sig_encoding.clone().unwrap_or(String::new())
+            || encoding_iana == sig_encoding.clone().unwrap_or_default()
         {
             debug!(
                 "Encoding detection: {} is most likely the one.",
