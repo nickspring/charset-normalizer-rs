@@ -188,12 +188,7 @@ pub fn main() {
 
     // run normalizer
     match normalizer(&args) {
-        Err(e) => {
-            eprintln!("{}", e);
-            process::exit(1);
-        }
-        Ok(exit_code) => {
-            process::exit(exit_code);
-        }
+        Err(e) => panic!("{e}"),
+        Ok(exit_code) => process::exit(exit_code)
     }
 }
