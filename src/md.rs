@@ -485,7 +485,7 @@ pub(crate) fn mess_ratio(
 
     let length = decoded_sequence.chars().count();
     let mut mean_mess_ratio: f32 = 0.0;
-    let intermediary_mean_mess_ratio_calc: u64 = match length {
+    let intermediary_mean_mess_ratio_calc: usize = match length {
         0..=511 => 32,
         512..=1024 => 64,
         _ => 128,
@@ -500,8 +500,8 @@ pub(crate) fn mess_ratio(
             }
         }
 
-        if (index > 0 && index as u64 % intermediary_mean_mess_ratio_calc == 0)
-            || index == (length)
+        if (index > 0 && index.rem_euclid(intermediary_mean_mess_ratio_calc) == 0)
+            || index == length
         {
             mean_mess_ratio = detectors.iter().map(|x| x.ratio()).sum();
             if mean_mess_ratio >= maximum_threshold {
