@@ -6,14 +6,7 @@ use env_logger::Env;
 use ordered_float::OrderedFloat;
 use std::fs::File;
 use std::io::Write;
-use std::path::PathBuf;
 use std::{fs, process};
-
-fn write_str_to_file(filename: &PathBuf, content: &str) -> std::io::Result<()> {
-    // Open the file for writing, creating it if it doesn't exist.
-    File::create(filename)?.write_all(content.as_bytes())
-
-}
 
 fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     if args.replace && !args.normalize {
@@ -137,9 +130,9 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                     results[0].unicode_path = Some(full_path.clone());
 
                     // replace file contents
-                    if let Err(err) =
-                        write_str_to_file(full_path, best_guess.decoded_payload().unwrap())
-                    {
+                    if let Err(err) = File::create(full_path).and_then(|mut file| {
+                        file.write_all(best_guess.decoded_payload().unwrap().as_bytes())
+                    }) {
                         return Err(err.to_string());
                     }
                 }
@@ -185,6 +178,6 @@ pub fn main() {
     // run normalizer
     match normalizer(&args) {
         Err(e) => panic!("{e}"),
-        Ok(exit_code) => process::exit(exit_code)
+        Ok(exit_code) => process::exit(exit_code),
     }
 }
