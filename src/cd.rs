@@ -154,9 +154,7 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
                     break;
                 }
             }
-            if layer_target_range.is_none() {
-                layer_target_range = Some(character_range);
-            }
+            layer_target_range.get_or_insert(character_range);
 
             let layer = layers
                 .entry(layer_target_range.unwrap())
