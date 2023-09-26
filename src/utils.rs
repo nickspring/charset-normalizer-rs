@@ -28,8 +28,8 @@ fn in_category(
     ranges_partial: &[&str],
 ) -> bool {
     // unicode category part
-    let category = GeneralCategory::of(*character).abbr_name().to_string();
-    if categories_exact.contains(&&*category)
+    let category = GeneralCategory::of(*character).abbr_name();
+    if categories_exact.contains(&category)
         || categories_partial.iter().any(|&cp| category.contains(cp))
     {
         return true;
@@ -45,11 +45,13 @@ fn in_category(
 
 // check if character description contains at least one of patterns
 fn in_description(character: &char, patterns: &[&str]) -> bool {
-    if let Some(description) = Name::of(*character) {
-        let description = format!("{}", description);
-        return patterns.iter().any(|&s| description.contains(s));
-    }
-    false
+    Name::of(*character)
+        .map(|description| {
+            patterns
+                .iter()
+                .any(|&s| description.to_string().contains(s))
+        })
+        .unwrap_or(false)
 }
 
 #[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]

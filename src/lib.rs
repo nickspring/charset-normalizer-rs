@@ -135,8 +135,8 @@ use crate::consts::{IANA_SUPPORTED, MAX_PROCESSED_BYTES, TOO_BIG_SEQUENCE, TOO_S
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSettings};
 use crate::md::mess_ratio;
 use crate::utils::{
-    any_specified_encoding, concatenate_slices, decode, iana_name, identify_sig_or_bom,
-    is_cp_similar, is_multi_byte_encoding, round_float, should_strip_sig_or_bom,
+    any_specified_encoding, decode, iana_name, identify_sig_or_bom, is_cp_similar,
+    is_multi_byte_encoding, round_float, should_strip_sig_or_bom,
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
@@ -415,9 +415,14 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 } else {
                     &[]
                 };
-                let cut_bytes_vec = concatenate_slices(cut_bytes_vec, &bytes[offset..offset_end]);
-                let cut_bytes = cut_bytes_vec.as_slice();
-                decode(cut_bytes, encoding_iana, DecoderTrap::Strict, false, false)
+                let cut_bytes_slice = &[cut_bytes_vec, &bytes[offset..offset_end]].concat();
+                decode(
+                    cut_bytes_slice,
+                    encoding_iana,
+                    DecoderTrap::Strict,
+                    false,
+                    false,
+                )
             };
 
             // ascii in encodings means windows-1252 codepage with supports diacritis
@@ -564,7 +569,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         ));
 
         if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana.to_string()))
-            || encoding_iana == sig_encoding.clone().unwrap_or(String::new())
+            || encoding_iana == sig_encoding.clone().unwrap_or_default()
         {
             debug!(
                 "Encoding detection: {} is most likely the one.",

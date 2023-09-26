@@ -154,13 +154,11 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
                     break;
                 }
             }
-            if layer_target_range.is_none() {
-                layer_target_range = Some(character_range);
-            }
+            layer_target_range.get_or_insert(character_range);
 
             let layer = layers
                 .entry(layer_target_range.unwrap())
-                .or_insert(String::from(""));
+                .or_insert_with(String::new);
             *layer += &ch.to_lowercase().to_string();
         }
     }
@@ -252,7 +250,7 @@ pub(crate) fn coherence_ratio(
         };
 
         let popular_character_ordered_as_string: String =
-            popular_character_ordered.clone().iter().copied().collect();
+            popular_character_ordered.iter().copied().collect();
 
         // Convert the String into a &str
         for language in languages {

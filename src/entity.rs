@@ -203,10 +203,8 @@ impl CharsetMatch {
         }
         vec![]
     }
+    // byte_order_mark
     pub fn bom(&self) -> bool {
-        self.has_sig_or_bom
-    }
-    pub fn byte_order_mark(&self) -> bool {
         self.has_sig_or_bom
     }
     pub fn encoding(&self) -> &str {
@@ -363,9 +361,6 @@ impl CharsetMatches {
     }
     // Simply return the first match. Strict equivalent to matches[0].
     pub fn get_best(&self) -> Option<&CharsetMatch> {
-        if self.items.is_empty() {
-            return None;
-        }
         self.items.first()
     }
     // Retrieve a single item either by its position or encoding name (alias may be used here).

@@ -6,18 +6,7 @@ use env_logger::Env;
 use ordered_float::OrderedFloat;
 use std::fs::File;
 use std::io::Write;
-use std::path::PathBuf;
 use std::{fs, process};
-
-fn write_str_to_file(filename: &PathBuf, content: &str) -> std::io::Result<()> {
-    // Open the file for writing, creating it if it doesn't exist.
-    let mut file = File::create(filename)?;
-
-    // Write the content to the file.
-    file.write_all(content.as_bytes())?;
-
-    Ok(())
-}
 
 fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     if args.replace && !args.normalize {
@@ -141,9 +130,9 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                     results[0].unicode_path = Some(full_path.clone());
 
                     // replace file contents
-                    if let Err(err) =
-                        write_str_to_file(full_path, best_guess.decoded_payload().unwrap())
-                    {
+                    if let Err(err) = File::create(full_path).and_then(|mut file| {
+                        file.write_all(best_guess.decoded_payload().unwrap().as_bytes())
+                    }) {
                         return Err(err.to_string());
                     }
                 }
@@ -154,12 +143,12 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     // print out results
     if args.minimal {
         for path in &args.files {
-            let full_path = &fs::canonicalize(path).unwrap();
+            let full_path = fs::canonicalize(path).unwrap();
             println!(
                 "{}",
                 results
                     .iter()
-                    .filter(|&r| &r.path == full_path)
+                    .filter(|r| r.path == full_path)
                     .map(|r| r.encoding.clone().unwrap_or("undefined".to_string()))
                     .collect::<Vec<_>>()
                     .join(", ")
@@ -188,12 +177,7 @@ pub fn main() {
 
     // run normalizer
     match normalizer(&args) {
-        Err(e) => {
-            eprintln!("{}", e);
-            process::exit(1);
-        }
-        Ok(exit_code) => {
-            process::exit(exit_code);
-        }
+        Err(e) => panic!("{e}"),
+        Ok(exit_code) => process::exit(exit_code),
     }
 }
