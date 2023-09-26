@@ -100,7 +100,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                                 format!("{}.{}.{}", split.0, best_guess.encoding(), split.1)
                             }
                         };
-                        full_path.set_file_name(&filename);
+                        full_path.set_file_name(filename);
                     } else if !args.force
                         && !Confirm::new()
                             .with_prompt(format!(
