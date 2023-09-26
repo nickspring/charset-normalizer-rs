@@ -9,20 +9,13 @@ use std::io::Write;
 use std::{fs, process};
 
 fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
-    if args.replace && !args.normalize {
-        return Err(String::from(
-            "Use --replace in addition of --normalize only.",
-        ));
-    }
-
-    if args.force && !args.replace {
-        return Err(String::from("Use --force in addition of --replace only."));
-    }
-
-    if args.threshold < 0.0 || args.threshold > 1.0 {
-        return Err(String::from(
-            "--threshold VALUE should be between 0. AND 1.",
-        ));
+    match (args.replace, args.normalize, args.force, args.threshold) {
+        (true, false, _, _) => return Err("Use --replace in addition to --normalize only.".into()),
+        (false, _, true, _) => return Err("Use --force in addition to --replace only.".into()),
+        (_, _, _, threshold) if threshold < 0.0 || threshold > 1.0 => {
+            return Err("--threshold VALUE should be between 0.0 and 1.0.".into())
+        }
+        _ => {}
     }
 
     let mut results: Vec<CLINormalizerResult> = vec![];
@@ -39,21 +32,16 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
             None => {
                 results.push(CLINormalizerResult {
                     path: full_path.clone(),
-                    encoding: None,
-                    encoding_aliases: vec![],
-                    alternative_encodings: vec![],
                     language: "Unknown".to_string(),
-                    alphabets: vec![],
-                    has_sig_or_bom: false,
                     chaos: format!("{:.1}", 1.0),
                     coherence: format!("{:.1}", 0.0),
-                    unicode_path: None,
                     is_preferred: true,
+                    ..Default::default()
                 });
                 eprintln!(
                     "Unable to identify originating encoding for {:?}. {}",
                     full_path,
-                    if settings.threshold < OrderedFloat(1.0) {
+                    if args.threshold < 1.0 {
                         "Maybe try increasing maximum amount of chaos."
                     } else {
                         ""
@@ -108,12 +96,12 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                     if !args.replace {
                         let filename = full_path.file_name().unwrap().to_str().unwrap();
                         let filename = match filename.rsplit_once('.') {
-                            None => filename.to_string() + &*format!(".{}", best_guess.encoding()),
+                            None => format!("{}.{}", filename, best_guess.encoding()),
                             Some(split) => {
                                 format!("{}.{}.{}", split.0, best_guess.encoding(), split.1)
                             }
                         };
-                        full_path.set_file_name(&filename);
+                        full_path.set_file_name(filename);
                     } else if !args.force
                         && !Confirm::new()
                             .with_prompt(format!(

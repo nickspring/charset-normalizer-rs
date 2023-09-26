@@ -424,7 +424,7 @@ pub(crate) fn is_suspiciously_successive_range(
     range_b: Option<&'static str>,
 ) -> bool {
     // both arguments should not be None
-    if [range_a, range_b].iter().any(|x| x.is_none()) {
+    if range_a.is_none() || range_b.is_none() {
         return true;
     }
     let range_a = range_a.unwrap();
@@ -450,11 +450,9 @@ pub(crate) fn is_suspiciously_successive_range(
     let set_a: HashSet<_> = range_a.split_whitespace().collect();
     let set_b: HashSet<_> = range_b.split_whitespace().collect();
 
-    let common: HashSet<_> = set_a.intersection(&set_b).cloned().collect();
-    if common
-        .difference(&*UNICODE_SECONDARY_RANGE_KEYWORD)
-        .next()
-        .is_some()
+    if set_a
+        .intersection(&set_b)
+        .any(|&elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
     {
         return false;
     }
@@ -504,22 +502,13 @@ pub(crate) fn get_language_data(language: &Language) -> Result<(&'static str, bo
     Err(String::from("Language wasn't found"))
 }
 
-// Concatenate &[u8]
-pub(crate) fn concatenate_slices<'a>(slice1: &'a [u8], slice2: &'a [u8]) -> Vec<u8> {
-    let mut result = Vec::with_capacity(slice1.len() + slice2.len());
-    result.extend_from_slice(slice1);
-    result.extend_from_slice(slice2);
-    result
-}
-
 // Get large datasets
 fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
     if dir.is_dir() {
         for entry in fs::read_dir(dir).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
+            let path = entry.unwrap().path();
 
             if path.is_dir() {
                 // Recursively collect files in subdirectories
@@ -536,26 +525,39 @@ fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
 
 // Get large datasets
 pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("src/tests/data/largesets/");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
-    if fs::metadata(&path).is_err() || !fs::metadata(&path).unwrap().is_dir() {
-        return Err(format!("Cannot to find large datasets at {:?}", &path));
-    }
-
-    let large_sets = collect_large_sets(&path);
-    let mut result: Vec<(String, Vec<String>)> = vec![];
-    for set in &large_sets {
-        let path = set.to_str().unwrap();
-        let encoding: Vec<&str> = path.split('/').collect();
-        let encoding: Vec<String> = encoding[encoding.len() - 2]
-            .split(',')
-            .map(|s| s.to_string())
-            .collect();
-        if encoding.len() == 1 && encoding.first().unwrap() == "largesets" {
-            continue;
+    match fs::metadata(&path) {
+        Ok(metadata) if metadata.is_dir() => {
+            return Ok(collect_large_sets(&path)
+                .iter()
+                .map(|set| {
+                    let path = set.to_str().unwrap();
+                    let encoding: Vec<&str> = path.split('/').collect();
+                    let encoding: Vec<String> = encoding[encoding.len() - 2]
+                        .split(',')
+                        .map(|s| s.to_string())
+                        .collect();
+                    if encoding.len() == 1 && encoding.first().unwrap() == "largesets" {
+                        None // None is ignored by filter_map
+                    } else {
+                        Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
+                    }
+                })
+                .filter_map(|x| x)
+                .collect::<Vec<(String, Vec<String>)>>());
         }
-        result.push((path.to_string(), encoding));
+        Ok(metadata) => {
+            return Err(format!(
+                "Path exists but not a directory: {:?} metadata: {:?}",
+                &path, metadata
+            ))
+        }
+        Err(err) => {
+            return Err(format!(
+                "Cannot find large datasets at {:?} error: {}",
+                &path, err
+            ))
+        }
     }
-    Ok(result)
 }
