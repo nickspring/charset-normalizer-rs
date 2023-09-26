@@ -430,7 +430,7 @@ pub(crate) fn is_suspiciously_successive_range(
     range_b: Option<&'static str>,
 ) -> bool {
     // both arguments should not be None
-    if [range_a, range_b].iter().any(|x| x.is_none()) {
+    if range_a.is_none() || range_b.is_none() {
         return true;
     }
     let range_a = range_a.unwrap();
