@@ -550,8 +550,8 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
     }
 
     let large_sets = collect_large_sets(&path);
-    let mut result: Vec<(String, Vec<String>)> = vec![];
-    for set in &large_sets {
+    let mut result: Vec<(String, Vec<String>)> = Vec::with_capacity(large_sets.len());
+    for set in large_sets.iter() {
         let path = set.to_str().unwrap();
         let encoding: Vec<&str> = path.split('/').collect();
         let encoding: Vec<String> = encoding[encoding.len() - 2]
