@@ -51,7 +51,7 @@ fn test_empty_but_with_bom_or_sig() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().byte_order_mark(),
+            best_guess.unwrap().bom(),
             true,
             "The BOM/SIG property should return True. Input: {:?}",
             &input
@@ -112,7 +112,7 @@ fn test_content_with_bom_or_sig() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().byte_order_mark(),
+            best_guess.unwrap().bom(),
             true,
             "The BOM/SIG property should return True. Input: {:?}",
             &input

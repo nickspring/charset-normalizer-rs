@@ -45,8 +45,8 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                     language: "Unknown".to_string(),
                     alphabets: vec![],
                     has_sig_or_bom: false,
-                    chaos: 1.0,
-                    coherence: 0.0,
+                    chaos: format!("{:.1}", 1.0),
+                    coherence: format!("{:.1}", 0.0),
                     unicode_path: None,
                     is_preferred: true,
                 });
@@ -80,8 +80,8 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                         language: format!("{}", m.most_probably_language()),
                         alphabets: m.unicode_ranges(),
                         has_sig_or_bom: m.bom(),
-                        chaos: m.chaos_percents(),
-                        coherence: m.coherence_percents(),
+                        chaos: format!("{:.1}", m.chaos_percents()),
+                        coherence: format!("{:.1}", m.coherence_percents()),
                         unicode_path: None,
                         is_preferred: true,
                     };

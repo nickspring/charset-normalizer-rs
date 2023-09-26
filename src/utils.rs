@@ -405,12 +405,6 @@ fn decode_to(
     }
 }
 
-// Round float to specified precision
-pub fn round_float(val: f32, precision: u8) -> f32 {
-    let mult = 10.0f32.powf(precision as f32);
-    (val * mult).round() / mult
-}
-
 // Encode string to vec of bytes with specified encoding
 pub fn encode(
     input: &str,
