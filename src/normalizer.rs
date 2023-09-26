@@ -9,20 +9,13 @@ use std::io::Write;
 use std::{fs, process};
 
 fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
-    if args.replace && !args.normalize {
-        return Err(String::from(
-            "Use --replace in addition of --normalize only.",
-        ));
-    }
-
-    if args.force && !args.replace {
-        return Err(String::from("Use --force in addition of --replace only."));
-    }
-
-    if args.threshold < 0.0 || args.threshold > 1.0 {
-        return Err(String::from(
-            "--threshold VALUE should be between 0. AND 1.",
-        ));
+    match (args.replace, args.normalize, args.force, args.threshold) {
+        (true, false, _, _) => return Err("Use --replace in addition to --normalize only.".into()),
+        (false, _, true, _) => return Err("Use --force in addition to --replace only.".into()),
+        (_, _, _, threshold) if threshold < 0.0 || threshold > 1.0 => {
+            return Err("--threshold VALUE should be between 0.0 and 1.0.".into())
+        }
+        _ => {}
     }
 
     let mut results: Vec<CLINormalizerResult> = vec![];
