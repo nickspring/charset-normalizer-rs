@@ -40,7 +40,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                 eprintln!(
                     "Unable to identify originating encoding for {:?}. {}",
                     full_path,
-                    if settings.threshold < OrderedFloat(1.0) {
+                    if args.threshold < 1.0 {
                         "Maybe try increasing maximum amount of chaos."
                     } else {
                         ""
