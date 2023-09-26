@@ -95,7 +95,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                     if !args.replace {
                         let filename = full_path.file_name().unwrap().to_str().unwrap();
                         let filename = match filename.rsplit_once('.') {
-                            None => filename.to_string() + &*format!(".{}", best_guess.encoding()),
+                            None => format!("{}.{}", filename, best_guess.encoding()),
                             Some(split) => {
                                 format!("{}.{}.{}", split.0, best_guess.encoding(), split.1)
                             }
