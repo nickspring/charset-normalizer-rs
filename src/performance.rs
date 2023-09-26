@@ -2,7 +2,7 @@ use chardetng::EncodingDetector;
 use charset_normalizer_rs::consts::CHARDET_CORRESPONDENCE;
 use charset_normalizer_rs::entity::{PerformanceArgs, PerformanceResult};
 use charset_normalizer_rs::from_bytes;
-use charset_normalizer_rs::utils::{get_large_test_datasets, round_float};
+use charset_normalizer_rs::utils::get_large_test_datasets;
 use clap::Parser;
 use encoding::label::encoding_from_whatwg_label;
 use log::trace;
@@ -34,10 +34,8 @@ fn calc_stat(results: &Vec<PerformanceResult>) -> (Duration, Duration, f32) {
         let num_durations = durations.len() as u32;
 
         // Accuracy
-        let accuracy = round_float(
-            100.0 * results.iter().filter(|r| r.correct).count() as f32 / num_durations as f32,
-            1,
-        );
+        let accuracy =
+            100.0 * results.iter().filter(|r| r.correct).count() as f32 / num_durations as f32;
 
         (total_duration, total_duration / num_durations, accuracy)
     }
@@ -160,14 +158,11 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
             } else {
                 // compare speed in %
                 println!(
-                    "   --> Faster than charset-normalizer-rs by {:?} times",
-                    round_float(
-                        our_total_time.as_secs_f32() / total_duration.as_secs_f32(),
-                        1
-                    ),
+                    "   --> Faster than charset-normalizer-rs by {:.1} times",
+                    our_total_time.as_secs_f32() / total_duration.as_secs_f32(),
                 );
             }
-            println!("   --> Accuracy: {:?}%", accuracy);
+            println!("   --> Accuracy: {:.1}%", accuracy);
             println!("   --> Total time: {:?}", total_duration);
             println!("   --> Avg time: {:?}", mean_duration);
             for p in [50.0, 95.0, 99.0] {

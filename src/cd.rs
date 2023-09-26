@@ -208,7 +208,7 @@ pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> Coheren
         .iter()
         .map(|(&lang, scores)| CoherenceMatch {
             language: lang,
-            score: round_float(scores.iter().sum::<f32>() / (scores.len() as f32), 4),
+            score: scores.iter().sum::<f32>() / (scores.len() as f32),
         })
         .collect();
 
@@ -265,7 +265,7 @@ pub(crate) fn coherence_ratio(
 
             results.push(CoherenceMatch {
                 language,
-                score: round_float(ratio, 4),
+                score: ratio,
             });
 
             if sufficient_match_count >= 3 {

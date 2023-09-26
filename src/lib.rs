@@ -136,7 +136,7 @@ use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSe
 use crate::md::mess_ratio;
 use crate::utils::{
     any_specified_encoding, decode, iana_name, identify_sig_or_bom, is_cp_similar,
-    is_multi_byte_encoding, round_float, should_strip_sig_or_bom,
+    is_multi_byte_encoding, should_strip_sig_or_bom,
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
@@ -149,6 +149,7 @@ mod cd;
 pub mod consts;
 pub mod entity;
 mod md;
+mod tests;
 pub mod utils;
 
 // Given a raw bytes sequence, return the best possibles charset usable to render str objects.
@@ -491,7 +492,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         } else {
             md_ratios.iter().sum::<f32>() / (md_ratios.len() as f32)
         };
-        let mean_mess_ratio_percent = round_float(mean_mess_ratio * 100.0, 3);
+        let mean_mess_ratio_percent = mean_mess_ratio * 100.0;
 
         if mean_mess_ratio >= *settings.threshold || early_stop_count >= max_chunk_gave_up {
             tested_but_soft_failure.push(encoding_iana);
