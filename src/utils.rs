@@ -510,14 +510,6 @@ pub(crate) fn get_language_data(language: &Language) -> Result<(&'static str, bo
     Err(String::from("Language wasn't found"))
 }
 
-// Concatenate &[u8]
-pub(crate) fn concatenate_slices<'a>(slice1: &'a [u8], slice2: &'a [u8]) -> Vec<u8> {
-    let mut result = Vec::with_capacity(slice1.len() + slice2.len());
-    result.extend_from_slice(slice1);
-    result.extend_from_slice(slice2);
-    result
-}
-
 // Get large datasets
 fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
