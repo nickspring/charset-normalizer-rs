@@ -542,8 +542,7 @@ fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
 
 // Get large datasets
 pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("src/tests/data/largesets/");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
     if fs::metadata(&path).is_err() || !fs::metadata(&path).unwrap().is_dir() {
         return Err(format!("Cannot to find large datasets at {:?}", &path));
