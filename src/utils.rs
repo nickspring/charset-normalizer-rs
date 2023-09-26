@@ -456,11 +456,9 @@ pub(crate) fn is_suspiciously_successive_range(
     let set_a: HashSet<_> = range_a.split_whitespace().collect();
     let set_b: HashSet<_> = range_b.split_whitespace().collect();
 
-    let common: HashSet<_> = set_a.intersection(&set_b).cloned().collect();
-    if common
-        .difference(&*UNICODE_SECONDARY_RANGE_KEYWORD)
-        .next()
-        .is_some()
+    if set_a
+        .intersection(&set_b)
+        .any(|&elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
     {
         return false;
     }
