@@ -11,8 +11,7 @@ repository = "https://github.com/nickspring/charset-normalizer-rs"
 keywords = ["encoding", "charset", "detector", "conversion", "normalizer"]
 categories = ["encoding", "internationalization", "localization"]
 exclude = [
-    "/tests/**",
-    "/src/tests/**",
+    "/src/tests/data/**",
     "/CONTRIBUTING.md",
     "/CODE_OF_CONDUCT.md",
     "/.github/**",

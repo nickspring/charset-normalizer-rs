@@ -2,11 +2,11 @@ use chardetng::EncodingDetector;
 use charset_normalizer_rs::consts::CHARDET_CORRESPONDENCE;
 use charset_normalizer_rs::entity::{PerformanceArgs, PerformanceResult};
 use charset_normalizer_rs::from_bytes;
-use charset_normalizer_rs::utils::{get_large_test_datasets, round_float};
+use charset_normalizer_rs::utils::get_large_test_datasets;
 use clap::Parser;
 use encoding::label::encoding_from_whatwg_label;
 use log::trace;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::Read;
 use std::process;
@@ -34,10 +34,8 @@ fn calc_stat(results: &Vec<PerformanceResult>) -> (Duration, Duration, f32) {
         let num_durations = durations.len() as u32;
 
         // Accuracy
-        let accuracy = round_float(
-            100.0 * results.iter().filter(|r| r.correct).count() as f32 / num_durations as f32,
-            1,
-        );
+        let accuracy =
+            100.0 * results.iter().filter(|r| r.correct).count() as f32 / num_durations as f32;
 
         (total_duration, total_duration / num_durations, accuracy)
     }
@@ -57,7 +55,9 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
 
     // tested functions
     let mut performance_results: HashMap<&str, Vec<PerformanceResult>> = HashMap::new();
-    let mut tested_functions: HashMap<&str, Box<dyn Fn(&Vec<u8>) -> String>> = HashMap::new();
+
+    // we need BTreeMap as we need preserve keys order
+    let mut tested_functions: BTreeMap<&str, Box<dyn Fn(&Vec<u8>) -> String>> = BTreeMap::new();
 
     /////////////////////////////////////////////////////////////////
     // Tested functions (libraries)
@@ -65,7 +65,7 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
 
     // charset-normalizer-rs
     tested_functions.insert(
-        "charset-normalizer-rs",
+        "A) charset-normalizer-rs",
         Box::new(|bytes: &Vec<u8>| {
             if let Some(gb) = from_bytes(bytes, None).get_best() {
                 gb.encoding().to_string()
@@ -77,7 +77,7 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
 
     // chardet
     tested_functions.insert(
-        "chardet",
+        "B) chardet",
         Box::new(|bytes: &Vec<u8>| {
             let detected = &chardet::detect(bytes).0.to_ascii_lowercase();
             let alternative = CHARDET_CORRESPONDENCE.get(&detected.as_str());
@@ -93,7 +93,7 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
 
     // chardetng
     tested_functions.insert(
-        "chardetng",
+        "C) chardetng",
         Box::new(|bytes: &Vec<u8>| {
             let mut ed = EncodingDetector::new();
             ed.feed(bytes, true);
@@ -146,15 +146,23 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
 
     // Statistics
     let mut our_accuracy = 0.0;
+    let mut our_total_time: Duration = Duration::new(0, 0);
     for (&name, _) in &tested_functions {
         if let Some(results) = performance_results.get(name) {
             let (total_duration, mean_duration, accuracy) = calc_stat(results);
-            if name == "charset-normalizer-rs" {
-                our_accuracy = accuracy;
-            }
             println!("\n------------------------------");
             println!("--> {} Conclusions", name);
-            println!("   --> Accuracy: {:?}%", accuracy);
+            if name == "A) charset-normalizer-rs" {
+                our_accuracy = accuracy;
+                our_total_time = total_duration.clone();
+            } else {
+                // compare speed in %
+                println!(
+                    "   --> Faster than charset-normalizer-rs by {:.1} times",
+                    our_total_time.as_secs_f32() / total_duration.as_secs_f32(),
+                );
+            }
+            println!("   --> Accuracy: {:.1}%", accuracy);
             println!("   --> Total time: {:?}", total_duration);
             println!("   --> Avg time: {:?}", mean_duration);
             for p in [50.0, 95.0, 99.0] {

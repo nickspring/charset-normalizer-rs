@@ -2,7 +2,7 @@
 
 use crate::cd::{encoding_languages, mb_encoding_languages};
 use crate::consts::{IANA_SUPPORTED_ALIASES, TOO_BIG_SEQUENCE};
-use crate::utils::{decode, iana_name, is_multi_byte_encoding, range_scan, round_float};
+use crate::utils::{decode, iana_name, is_multi_byte_encoding, range_scan};
 use clap::Parser;
 use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
@@ -269,11 +269,11 @@ impl CharsetMatch {
     }
     // Return chaos in percents with rounding
     pub fn chaos_percents(&self) -> f32 {
-        round_float(self.chaos() * 100.0, 3)
+        self.chaos() * 100.0
     }
     // Return coherence in percents with rounding
     pub fn coherence_percents(&self) -> f32 {
-        round_float(self.coherence() * 100.0, 3)
+        self.coherence() * 100.0
     }
     // Most relevant language coherence
     pub fn coherence(&self) -> f32 {
@@ -534,9 +534,9 @@ pub struct CLINormalizerResult {
     /// Does it has SIG or BOM mark?
     pub has_sig_or_bom: bool,
     /// Chaos (mess) level
-    pub chaos: f32,
+    pub chaos: String,
     /// Coherence (language detection) level
-    pub coherence: f32,
+    pub coherence: String,
     /// Path to decoded data
     pub unicode_path: Option<PathBuf>,
     pub is_preferred: bool,
