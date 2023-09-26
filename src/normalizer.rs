@@ -32,16 +32,10 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
             None => {
                 results.push(CLINormalizerResult {
                     path: full_path.clone(),
-                    encoding: None,
-                    encoding_aliases: vec![],
-                    alternative_encodings: vec![],
                     language: "Unknown".to_string(),
-                    alphabets: vec![],
-                    has_sig_or_bom: false,
                     chaos: 1.0,
-                    coherence: 0.0,
-                    unicode_path: None,
                     is_preferred: true,
+                    ..Default::default()
                 });
                 eprintln!(
                     "Unable to identify originating encoding for {:?}. {}",
