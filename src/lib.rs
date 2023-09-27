@@ -295,16 +295,13 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
-        if !settings.include_encodings.is_empty()
+        if (!settings.include_encodings.is_empty()
             && !settings
                 .include_encodings
+                .contains(&encoding_iana.to_string()))
+            || settings
+                .exclude_encodings
                 .contains(&encoding_iana.to_string())
-        {
-            continue;
-        }
-        if settings
-            .exclude_encodings
-            .contains(&encoding_iana.to_string())
         {
             continue;
         }
