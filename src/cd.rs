@@ -32,11 +32,10 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
         if let Ok(chunk) = encoder.decode(&[i], DecoderTrap::Ignore) {
             if let Some(first_char) = chunk.chars().next() {
                 if let Some(range) = unicode_range(&first_char) {
-                    if is_unicode_range_secondary(range.to_string()) {
-                        continue;
+                    if !is_unicode_range_secondary(range.to_string()) {
+                        *result.entry(range).or_insert(0) += 1;
+                        character_count += 1;
                     }
-                    *result.entry(range).or_insert(0) +=1;
-                    character_count += 1;
                 }
             }
         }
