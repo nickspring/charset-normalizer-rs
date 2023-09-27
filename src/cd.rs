@@ -169,7 +169,7 @@ pub(crate) fn characters_popularity_compare(
 // We shall NOT return more than one "English" in CoherenceMatches because it is an alternative
 // of "English" (the same for Japan language). This function only keeps the best match.
 pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> CoherenceMatches {
-    let mut index: HashMap<&Language, f32> = HashMap::new();
+    let mut index: HashMap<&Language, f32> = HashMap::with_capacity(results.len());
     for result in results {
         let score = index.entry(result.language).or_insert(0.0);
         *score = result.score.max(*score);
@@ -183,7 +183,7 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
 // This function merge results previously given by the function coherence_ratio.
 // The return type is the same as coherence_ratio.
 pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> CoherenceMatches {
-    let mut index: HashMap<&Language, Vec<f32>> = HashMap::new();
+    let mut index: HashMap<&Language, Vec<f32>> = HashMap::with_capacity(results.len());
 
     for result in results {
         for sub_result in result {
