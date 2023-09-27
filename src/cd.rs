@@ -25,10 +25,11 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
         Some(p) => p,
         None => return Err("No decoder found for this encoding".to_string()),
     };
-    let mut result: HashMap<&str, u32> = HashMap::new();
+    let range = 0x40..0xFF; // utf8 range
+    let mut result: HashMap<&str, u32> = HashMap::with_capacity(range.len());
     let mut character_count: u32 = 0;
 
-    for i in 0x40..0xFF {
+    for i in range {
         if let Ok(chunk) = encoder.decode(&[i], DecoderTrap::Ignore) {
             if let Some(first_char) = chunk.chars().next() {
                 if let Some(range) = unicode_range(&first_char) {
