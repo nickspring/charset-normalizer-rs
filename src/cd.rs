@@ -185,11 +185,8 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
 pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> CoherenceMatches {
     let mut index: HashMap<&Language, Vec<f32>> = HashMap::with_capacity(results.len());
 
-    for result in results {
-        for sub_result in result {
-            let score = index.entry(sub_result.language).or_insert(vec![]);
-            score.push(sub_result.score);
-        }
+    for result in results.iter().flatten() {
+        index.entry(result.language).or_default().push(result.score);
     }
 
     let mut merge: Vec<CoherenceMatch> = index
