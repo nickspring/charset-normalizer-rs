@@ -40,9 +40,10 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
             }
         }
     }
+    let threshold = 0.15;
     let mut result: Vec<&str> = result
         .iter()
-        .filter(|(_, &value)| (value as f32 / character_count as f32) >= 0.15)
+        .filter(|(_, &value)| (value as f32 / character_count as f32) >= threshold)
         .map(|(&name, _)| name)
         .collect();
     result.sort_unstable();
