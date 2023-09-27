@@ -44,8 +44,8 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     }
     let mut result: Vec<&str> = result
         .iter()
-        .filter(|(&name, &value)| (value as f32 / character_count as f32) >= 0.15)
-        .map(|(&name, &value)| name)
+        .filter(|(_, &value)| (value as f32 / character_count as f32) >= 0.15)
+        .map(|(&name, _)| name)
         .collect();
     result.sort_unstable();
     Ok(result)
