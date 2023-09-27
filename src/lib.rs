@@ -262,13 +262,13 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
     // check bom & sig
     let (sig_encoding, sig_payload) = identify_sig_or_bom(bytes);
-    if sig_encoding.is_some() {
+    if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, &sig_payload) {
         trace!(
             "Detected a SIG or BOM mark on first {} byte(s). Priority +1 given for {}.",
-            sig_payload.unwrap().len(),
-            &sig_encoding.clone().unwrap(),
+            sig_pay.len(),
+            sig_enc,
         );
-        prioritized_encodings.push(sig_encoding.clone().unwrap());
+        prioritized_encodings.push(sig_enc.clone());
     }
 
     // add ascii & utf-8
