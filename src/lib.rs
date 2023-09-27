@@ -383,8 +383,8 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
         // main loop over chunks in our input
         // we go over bytes or chars - it depends on previous code
-        let sequence_length = if decoded_payload.is_some() {
-            decoded_payload.as_ref().unwrap_or(&"").chars().count()
+        let sequence_length = if let Some(payload) = decoded_payload.as_ref() {
+            payload.chars().count()
         } else {
             bytes_length
         };
