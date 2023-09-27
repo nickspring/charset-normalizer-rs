@@ -35,8 +35,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
                     if is_unicode_range_secondary(range.to_string()) {
                         continue;
                     }
-                    let range_count = result.entry(range).or_insert(0);
-                    *range_count += 1;
+                    *result.entry(range).or_insert(0) +=1;
                     character_count += 1;
                 }
             }
