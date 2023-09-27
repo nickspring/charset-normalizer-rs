@@ -546,17 +546,13 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
                 })
                 .collect::<Vec<(String, Vec<String>)>>());
         }
-        Ok(metadata) => {
-            Err(format!(
-                "Path exists but not a directory: {:?} metadata: {:?}",
-                &path, metadata
-            ))
-        }
-        Err(err) => {
-            Err(format!(
-                "Cannot find large datasets at {:?} error: {}",
-                &path, err
-            ))
-        }
+        Ok(metadata) => Err(format!(
+            "Path exists but not a directory: {:?} metadata: {:?}",
+            &path, metadata
+        )),
+        Err(err) => Err(format!(
+            "Cannot find large datasets at {:?} error: {}",
+            &path, err
+        )),
     }
 }
