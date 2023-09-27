@@ -71,9 +71,8 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // This function does the correspondence.
 #[cache(LruCache : LruCache::new(128))]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
-    let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or_default();
-    
-    match unicode_ranges
+    match encoding_unicode_range(&iana_name)
+        .unwrap_or_default()
         .iter()
         .find(|&&range| !range.contains("Latin"))
     {
