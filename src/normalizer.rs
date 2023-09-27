@@ -12,7 +12,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     match (args.replace, args.normalize, args.force, args.threshold) {
         (true, false, _, _) => return Err("Use --replace in addition to --normalize only.".into()),
         (false, _, true, _) => return Err("Use --force in addition to --replace only.".into()),
-        (_, _, _, threshold) if threshold < 0.0 || threshold > 1.0 => {
+        (_, _, _, threshold) if !(0.0..=1.0).contains(&threshold) => {
             return Err("--threshold VALUE should be between 0.0 and 1.0.".into())
         }
         _ => {}

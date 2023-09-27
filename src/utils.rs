@@ -531,7 +531,7 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
         Ok(metadata) if metadata.is_dir() => {
             return Ok(collect_large_sets(&path)
                 .iter()
-                .map(|set| {
+                .filter_map(|set| {
                     let path = set.to_str().unwrap();
                     let encoding: Vec<&str> = path.split('/').collect();
                     let encoding: Vec<String> = encoding[encoding.len() - 2]
@@ -544,20 +544,15 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
                         Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
                     }
                 })
-                .filter_map(|x| x)
                 .collect::<Vec<(String, Vec<String>)>>());
         }
-        Ok(metadata) => {
-            return Err(format!(
-                "Path exists but not a directory: {:?} metadata: {:?}",
-                &path, metadata
-            ))
-        }
-        Err(err) => {
-            return Err(format!(
-                "Cannot find large datasets at {:?} error: {}",
-                &path, err
-            ))
-        }
+        Ok(metadata) => Err(format!(
+            "Path exists but not a directory: {:?} metadata: {:?}",
+            &path, metadata
+        )),
+        Err(err) => Err(format!(
+            "Cannot find large datasets at {:?} error: {}",
+            &path, err
+        )),
     }
 }

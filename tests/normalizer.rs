@@ -23,7 +23,7 @@ fn test_cli_single_file() {
 #[test]
 fn test_cli_version_output_success() {
     let mut cmd = Command::cargo_bin("normalizer").unwrap();
-    cmd.args(&["--version"])
+    cmd.args(["--version"])
         .assert()
         .success()
         .code(predicate::eq(0))

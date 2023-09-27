@@ -19,35 +19,32 @@ use strsim::jaro;
 // Return associated unicode ranges in a single byte code page.
 pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, String> {
     if is_multi_byte_encoding(iana_name) {
-        return Err(String::from(
-            "Function not supported on multi-byte code page",
-        ));
+        return Err("Function not supported on multi-byte code page".to_string());
     }
-    let mut result: HashMap<&str, u32> = HashMap::new();
+    let encoder = encoding_from_whatwg_label(iana_name)
+        .ok_or("No decoder found for this encoding".to_string())?;
+
+    let range = 0x40..0xFF; // utf8 range
+    let mut result: HashMap<&str, u32> = HashMap::with_capacity(range.len());
     let mut character_count: u32 = 0;
 
-    if let Some(p) = encoding_from_whatwg_label(iana_name) {
-        for i in 0x40..0xFF {
-            if let Ok(chunk) = p.decode(&[i], DecoderTrap::Ignore) {
-                if let Some(first_char) = chunk.chars().next() {
-                    if let Some(range) = unicode_range(&first_char) {
-                        if is_unicode_range_secondary(range.to_string()) {
-                            continue;
-                        }
-                        let range_count = result.entry(range).or_insert(0);
-                        *range_count += 1;
+    for i in range {
+        if let Ok(chunk) = encoder.decode(&[i], DecoderTrap::Ignore) {
+            if let Some(first_char) = chunk.chars().next() {
+                if let Some(range) = unicode_range(&first_char) {
+                    if !is_unicode_range_secondary(range.to_string()) {
+                        *result.entry(range).or_insert(0) += 1;
                         character_count += 1;
                     }
                 }
             }
         }
-    } else {
-        return Err(String::from("No decoder found for this encoding"));
     }
+    let threshold = 0.15;
     let mut result: Vec<&str> = result
         .iter()
-        .filter(|(&name, &value)| (value as f32 / character_count as f32) >= 0.15)
-        .map(|(&name, &value)| name)
+        .filter(|(_, &value)| (value as f32 / character_count as f32) >= threshold)
+        .map(|(&name, _)| name)
         .collect();
     result.sort_unstable();
     Ok(result)
@@ -74,31 +71,22 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // This function does the correspondence.
 #[cache(LruCache : LruCache::new(128))]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
-    let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or_default();
-    let mut primary_range: Option<&str> = None;
-
-    for specified_range in unicode_ranges {
-        if !specified_range.contains("Latin") {
-            primary_range = Some(specified_range);
-            break;
-        }
+    match encoding_unicode_range(&iana_name)
+        .unwrap_or_default()
+        .iter()
+        .find(|&&range| !range.contains("Latin"))
+    {
+        Some(&range) => unicode_range_languages(range),
+        None => vec![&Language::Unknown],
     }
-
-    if primary_range.is_none() {
-        return vec![&Language::Unknown];
-    }
-
-    unicode_range_languages(primary_range.unwrap())
 }
 
 // Multi-byte encoding language association. Some code page are heavily linked to particular language(s).
 // This function does the correspondence.
 pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
-    let mut result = vec![];
-    if let Some(found) = ENCODING_TO_LANGUAGE.get(iana_name) {
-        result.push(found);
-    }
-    result
+    ENCODING_TO_LANGUAGE
+        .get(iana_name)
+        .map_or(vec![], |found| vec![found])
 }
 
 // Return associated languages associated to given characters
@@ -181,7 +169,7 @@ pub(crate) fn characters_popularity_compare(
 // We shall NOT return more than one "English" in CoherenceMatches because it is an alternative
 // of "English" (the same for Japan language). This function only keeps the best match.
 pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> CoherenceMatches {
-    let mut index: HashMap<&Language, f32> = HashMap::new();
+    let mut index: HashMap<&Language, f32> = HashMap::with_capacity(results.len());
     for result in results {
         let score = index.entry(result.language).or_insert(0.0);
         *score = result.score.max(*score);
@@ -195,13 +183,10 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
 // This function merge results previously given by the function coherence_ratio.
 // The return type is the same as coherence_ratio.
 pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> CoherenceMatches {
-    let mut index: HashMap<&Language, Vec<f32>> = HashMap::new();
+    let mut index: HashMap<&Language, Vec<f32>> = HashMap::with_capacity(results.len());
 
-    for result in results {
-        for sub_result in result {
-            let score = index.entry(sub_result.language).or_insert(vec![]);
-            score.push(sub_result.score);
-        }
+    for result in results.iter().flatten() {
+        index.entry(result.language).or_default().push(result.score);
     }
 
     let mut merge: Vec<CoherenceMatch> = index

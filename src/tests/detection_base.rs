@@ -5,7 +5,7 @@ use encoding::EncoderTrap;
 
 #[test]
 fn test_empty() {
-    let bytes: Vec<u8> = b"".iter().map(|x| *x).collect();
+    let bytes: Vec<u8> = b"".to_vec();
     let result = from_bytes(&bytes, None);
     let best_guess = result.get_best();
 
@@ -50,9 +50,8 @@ fn test_empty_but_with_bom_or_sig() {
             "The RAW property should contain the original payload given for detection. Input: {:?}",
             &input
         );
-        assert_eq!(
+        assert!(
             best_guess.unwrap().bom(),
-            true,
             "The BOM/SIG property should return True. Input: {:?}",
             &input
         );
@@ -111,9 +110,8 @@ fn test_content_with_bom_or_sig() {
             "Detection but with SIG/BOM is wrongly detected! Input: {:?}",
             &input
         );
-        assert_eq!(
+        assert!(
             best_guess.unwrap().bom(),
-            true,
             "The BOM/SIG property should return True. Input: {:?}",
             &input
         );
