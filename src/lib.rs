@@ -482,12 +482,10 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         }
 
         // process mean mess ratio
-        let mean_mess_ratio = if md_ratios.is_empty() {
-            0.0
-        } else {
-            md_ratios.iter().sum::<f32>() / (md_ratios.len() as f32)
+        let mean_mess_ratio = match md_ratios.is_empty() {
+            true => 0.0,
+            false => md_ratios.iter().sum::<f32>() / (md_ratios.len() as f32),
         };
-        let mean_mess_ratio_percent = mean_mess_ratio * 100.0;
 
         if mean_mess_ratio >= *settings.threshold || early_stop_count >= max_chunk_gave_up {
             tested_but_soft_failure.push(encoding_iana);
@@ -496,7 +494,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 Gave up {} time(s). Computed mean chaos is {} %.",
                 encoding_iana,
                 early_stop_count,
-                mean_mess_ratio_percent,
+                mean_mess_ratio * 100.0,
             );
             // Preparing those fallbacks in case we got nothing.
             if settings.enable_fallback
@@ -525,7 +523,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         trace!(
             "{} passed initial chaos probing. Mean measured chaos is {} %",
             encoding_iana,
-            mean_mess_ratio_percent,
+            mean_mess_ratio * 100.0,
         );
 
         // CD rations calc
