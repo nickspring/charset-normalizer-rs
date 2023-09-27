@@ -20,7 +20,10 @@ pub fn large_datasets(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     group.significance_level(0.1).sample_size(10);
     group.bench_with_input(BenchmarkId::new("large_datasets", ""), &paths, |b, s| {
-        b.iter(|| black_box(bench_foo(s)));
+        b.iter(|| {
+            bench_foo(s);
+            black_box(())
+        });
     });
 }
 

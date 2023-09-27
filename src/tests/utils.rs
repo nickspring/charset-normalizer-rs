@@ -173,7 +173,7 @@ fn test_is_unprintable() {
 fn test_is_multi_byte_encoding() {
     let tests = [("utf-8", true), ("ascii", false), ("euc-jp", true)];
     for test in &tests {
-        assert_eq!(is_multi_byte_encoding(&test.0), test.1);
+        assert_eq!(is_multi_byte_encoding(test.0), test.1);
     }
 }
 
@@ -187,7 +187,7 @@ fn test_identify_sig_or_bom() {
         (b"lol kek".as_slice(), None),
     ];
     for test in &tests {
-        assert_eq!(identify_sig_or_bom(&test.0).0, test.1);
+        assert_eq!(identify_sig_or_bom(test.0).0, test.1);
     }
 }
 
@@ -200,7 +200,7 @@ fn test_iana_name() {
         ("korean", Some("euc-kr")),
     ];
     for test in &tests {
-        assert_eq!(iana_name(&test.0), test.1);
+        assert_eq!(iana_name(test.0), test.1);
     }
 }
 
@@ -211,7 +211,7 @@ fn test_is_cp_similar() {
         ("iso-8859-14", "euc-kr", false),
     ];
     for test in &tests {
-        assert_eq!(is_cp_similar(&test.0, &test.1), test.2);
+        assert_eq!(is_cp_similar(test.0, test.1), test.2);
     }
 }
 
@@ -246,7 +246,7 @@ fn test_cp_similarity() {
         ("iso-8859-14", "euc-kr", 0.0, 0.0),        // eur-kr is multi-byte
     ];
     for test in &tests {
-        let sim = cp_similarity(&test.0, &test.1);
+        let sim = cp_similarity(test.0, test.1);
         assert!(
             sim >= test.2,
             "{} <-> {} found similarity is {}",
@@ -330,7 +330,7 @@ fn test_decode_wrong_chunks() {
             file.read_to_end(&mut buffer).expect("Cannot read file");
             for chunk in buffer.chunks(settings.chunk_size) {
                 let status = decode(
-                    &chunk,
+                    chunk,
                     sample.1.first().unwrap(),
                     DecoderTrap::Strict,
                     true,

@@ -60,7 +60,7 @@ fn test_misleading_large_sequence() {
     payload.extend("我没有埋怨，磋砣的只是一些时间。 磋砣的只是一些时间。".as_bytes());
 
     let result = from_bytes(&payload, None);
-    assert!(result.len() > 0, "No results");
+    assert!(!result.is_empty(), "No results");
     let best_guess = result.get_best();
     assert!(best_guess.is_some(), "Best guess is exists");
     assert_eq!(
