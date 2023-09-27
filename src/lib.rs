@@ -431,10 +431,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                     "LazyStr Loading: After MD chunk decode, code page {} \
                     does not fit given bytes sequence at ALL. {}",
                     encoding_iana,
-                    if decoded_chunk_result.is_err() {
-                        decoded_chunk_result.unwrap_err().to_string()
-                    } else {
-                        String::from("non-ascii")
+                    match decoded_chunk_result {
+                        Ok(_) => String::from("non-ascii"),
+                        Err(message) => message.to_string(),
                     },
                 );
                 early_stop_count = max_chunk_gave_up;
