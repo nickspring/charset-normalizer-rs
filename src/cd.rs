@@ -21,10 +21,9 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     if is_multi_byte_encoding(iana_name) {
         return Err("Function not supported on multi-byte code page".to_string());
     }
-    let encoder = match encoding_from_whatwg_label(iana_name) {
-        Some(p) => p,
-        None => return Err("No decoder found for this encoding".to_string()),
-    };
+    let encoder = encoding_from_whatwg_label(iana_name)
+        .ok_or("No decoder found for this encoding".to_string())?;
+
     let range = 0x40..0xFF; // utf8 range
     let mut result: HashMap<&str, u32> = HashMap::with_capacity(range.len());
     let mut character_count: u32 = 0;
