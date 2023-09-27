@@ -255,7 +255,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 "Detected declarative mark in sequence. Priority +1 given for {}.",
                 &enc
             );
-            specified_encoding = enc.clone();
+            specified_encoding = enc.to_string();
             prioritized_encodings.push(enc);
         }
     }
