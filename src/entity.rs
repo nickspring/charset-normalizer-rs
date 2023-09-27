@@ -321,7 +321,7 @@ impl CharsetMatch {
 // to the less one.
 /////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 pub struct CharsetMatches {
     items: Vec<CharsetMatch>,
 }
