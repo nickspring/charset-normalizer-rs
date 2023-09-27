@@ -338,9 +338,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
         );
-        if decoded_payload_result.is_ok() {
+        if let Ok(payload) = decoded_payload_result.as_ref() {
             if !is_too_large_sequence || is_multi_byte_decoder {
-                decoded_payload = Some(decoded_payload_result.as_ref().unwrap());
+                decoded_payload = Some(payload);
             }
         } else {
             trace!(
