@@ -383,7 +383,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
         // main loop over chunks in our input
         // we go over bytes or chars - it depends on previous code
-        let sequence_length = if let Some(payload) = decoded_payload.as_ref() {
+        let sequence_length = if let Some(payload) = decoded_payload {
             payload.chars().count()
         } else {
             bytes_length
@@ -412,7 +412,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 // Bytes processing
                 let offset_end = (offset + settings.chunk_size).min(sequence_length);
                 let cut_bytes_slice = if bom_or_sig_available && !strip_sig_or_bom {
-                    [&sig_payload.unwrap(), &bytes[offset..offset_end]].concat()
+                    [sig_payload.unwrap(), &bytes[offset..offset_end]].concat()
                 } else {
                     bytes[offset..offset_end].to_vec()
                 };
