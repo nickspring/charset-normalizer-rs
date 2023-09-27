@@ -19,30 +19,28 @@ use strsim::jaro;
 // Return associated unicode ranges in a single byte code page.
 pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, String> {
     if is_multi_byte_encoding(iana_name) {
-        return Err(String::from(
-            "Function not supported on multi-byte code page",
-        ));
+        return Err("Function not supported on multi-byte code page".to_string());
     }
+    let encoder = match encoding_from_whatwg_label(iana_name) {
+        Some(p) => p,
+        None => return Err("No decoder found for this encoding".to_string()),
+    };
     let mut result: HashMap<&str, u32> = HashMap::new();
     let mut character_count: u32 = 0;
 
-    if let Some(p) = encoding_from_whatwg_label(iana_name) {
-        for i in 0x40..0xFF {
-            if let Ok(chunk) = p.decode(&[i], DecoderTrap::Ignore) {
-                if let Some(first_char) = chunk.chars().next() {
-                    if let Some(range) = unicode_range(&first_char) {
-                        if is_unicode_range_secondary(range.to_string()) {
-                            continue;
-                        }
-                        let range_count = result.entry(range).or_insert(0);
-                        *range_count += 1;
-                        character_count += 1;
+    for i in 0x40..0xFF {
+        if let Ok(chunk) = encoder.decode(&[i], DecoderTrap::Ignore) {
+            if let Some(first_char) = chunk.chars().next() {
+                if let Some(range) = unicode_range(&first_char) {
+                    if is_unicode_range_secondary(range.to_string()) {
+                        continue;
                     }
+                    let range_count = result.entry(range).or_insert(0);
+                    *range_count += 1;
+                    character_count += 1;
                 }
             }
         }
-    } else {
-        return Err(String::from("No decoder found for this encoding"));
     }
     let mut result: Vec<&str> = result
         .iter()
