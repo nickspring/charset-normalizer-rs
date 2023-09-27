@@ -411,14 +411,13 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             } else {
                 // Bytes processing
                 let offset_end = (offset + settings.chunk_size).min(sequence_length);
-                let cut_bytes_vec = if bom_or_sig_available && !strip_sig_or_bom {
-                    sig_payload.unwrap()
+                let cut_bytes_slice = if bom_or_sig_available && !strip_sig_or_bom {
+                    [&sig_payload.unwrap(), &bytes[offset..offset_end]].concat()
                 } else {
-                    &[]
+                    bytes[offset..offset_end].to_vec()
                 };
-                let cut_bytes_slice = &[cut_bytes_vec, &bytes[offset..offset_end]].concat();
                 decode(
-                    cut_bytes_slice,
+                    &cut_bytes_slice,
                     encoding_iana,
                     DecoderTrap::Strict,
                     false,
