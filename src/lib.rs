@@ -255,26 +255,24 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 "Detected declarative mark in sequence. Priority +1 given for {}.",
                 &enc
             );
-            specified_encoding = enc.clone();
+            specified_encoding = enc.to_string();
             prioritized_encodings.push(enc);
         }
     }
 
     // check bom & sig
     let (sig_encoding, sig_payload) = identify_sig_or_bom(bytes);
-    if sig_encoding.is_some() {
+    if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, &sig_payload) {
         trace!(
             "Detected a SIG or BOM mark on first {} byte(s). Priority +1 given for {}.",
-            sig_payload.unwrap().len(),
-            &sig_encoding.clone().unwrap(),
+            sig_pay.len(),
+            sig_enc,
         );
-        prioritized_encodings.push(sig_encoding.clone().unwrap());
+        prioritized_encodings.push(sig_enc.clone());
     }
 
     // add ascii & utf-8
-    for enc in &["ascii", "utf-8"] {
-        prioritized_encodings.push(enc.to_string());
-    }
+    prioritized_encodings.extend(["ascii", "utf-8"].iter().map(|s| s.to_string()));
 
     // generate array of encodings for probing with prioritizing
     let mut iana_encodings = IANA_SUPPORTED.clone();
@@ -291,20 +289,17 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
     let mut fallback_ascii: Option<CharsetMatch> = None;
     let mut fallback_u8: Option<CharsetMatch> = None;
     let mut fallback_specified: Option<CharsetMatch> = None;
-    let mut results: CharsetMatches = CharsetMatches::new(None);
+    let mut results: CharsetMatches = CharsetMatches::default();
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
-        if !settings.include_encodings.is_empty()
+        if (!settings.include_encodings.is_empty()
             && !settings
                 .include_encodings
+                .contains(&encoding_iana.to_string()))
+            || settings
+                .exclude_encodings
                 .contains(&encoding_iana.to_string())
-        {
-            continue;
-        }
-        if settings
-            .exclude_encodings
-            .contains(&encoding_iana.to_string())
         {
             continue;
         }
@@ -338,9 +333,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
         );
-        if decoded_payload_result.is_ok() {
+        if let Ok(payload) = decoded_payload_result.as_ref() {
             if !is_too_large_sequence || is_multi_byte_decoder {
-                decoded_payload = Some(decoded_payload_result.as_ref().unwrap());
+                decoded_payload = Some(payload);
             }
         } else {
             trace!(
@@ -383,8 +378,8 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
         // main loop over chunks in our input
         // we go over bytes or chars - it depends on previous code
-        let sequence_length = if decoded_payload.is_some() {
-            decoded_payload.as_ref().unwrap_or(&"").chars().count()
+        let sequence_length = if let Some(payload) = decoded_payload {
+            payload.chars().count()
         } else {
             bytes_length
         };
@@ -411,14 +406,13 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             } else {
                 // Bytes processing
                 let offset_end = (offset + settings.chunk_size).min(sequence_length);
-                let cut_bytes_vec = if bom_or_sig_available && !strip_sig_or_bom {
-                    sig_payload.unwrap()
+                let cut_bytes_slice = if bom_or_sig_available && !strip_sig_or_bom {
+                    [sig_payload.unwrap(), &bytes[offset..offset_end]].concat()
                 } else {
-                    &[]
+                    bytes[offset..offset_end].to_vec()
                 };
-                let cut_bytes_slice = &[cut_bytes_vec, &bytes[offset..offset_end]].concat();
                 decode(
-                    cut_bytes_slice,
+                    &cut_bytes_slice,
                     encoding_iana,
                     DecoderTrap::Strict,
                     false,
@@ -435,10 +429,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                     "LazyStr Loading: After MD chunk decode, code page {} \
                     does not fit given bytes sequence at ALL. {}",
                     encoding_iana,
-                    if decoded_chunk_result.is_err() {
-                        decoded_chunk_result.unwrap_err().to_string()
-                    } else {
-                        String::from("non-ascii")
+                    match decoded_chunk_result {
+                        Ok(_) => String::from("non-ascii"),
+                        Err(message) => message.to_string(),
                     },
                 );
                 early_stop_count = max_chunk_gave_up;
@@ -487,12 +480,10 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         }
 
         // process mean mess ratio
-        let mean_mess_ratio = if md_ratios.is_empty() {
-            0.0
-        } else {
-            md_ratios.iter().sum::<f32>() / (md_ratios.len() as f32)
+        let mean_mess_ratio = match md_ratios.is_empty() {
+            true => 0.0,
+            false => md_ratios.iter().sum::<f32>() / (md_ratios.len() as f32),
         };
-        let mean_mess_ratio_percent = mean_mess_ratio * 100.0;
 
         if mean_mess_ratio >= *settings.threshold || early_stop_count >= max_chunk_gave_up {
             tested_but_soft_failure.push(encoding_iana);
@@ -501,7 +492,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 Gave up {} time(s). Computed mean chaos is {} %.",
                 encoding_iana,
                 early_stop_count,
-                mean_mess_ratio_percent,
+                mean_mess_ratio * 100.0,
             );
             // Preparing those fallbacks in case we got nothing.
             if settings.enable_fallback
@@ -530,7 +521,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         trace!(
             "{} passed initial chaos probing. Mean measured chaos is {} %",
             encoding_iana,
-            mean_mess_ratio_percent,
+            mean_mess_ratio * 100.0,
         );
 
         // CD rations calc
