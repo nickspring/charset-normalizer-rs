@@ -84,11 +84,9 @@ pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
 // Multi-byte encoding language association. Some code page are heavily linked to particular language(s).
 // This function does the correspondence.
 pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
-    let mut result = vec![];
-    if let Some(found) = ENCODING_TO_LANGUAGE.get(iana_name) {
-        result.push(found);
-    }
-    result
+    ENCODING_TO_LANGUAGE
+        .get(iana_name)
+        .map_or(vec![], |found| vec![found])
 }
 
 // Return associated languages associated to given characters
