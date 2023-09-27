@@ -291,7 +291,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
     let mut fallback_ascii: Option<CharsetMatch> = None;
     let mut fallback_u8: Option<CharsetMatch> = None;
     let mut fallback_specified: Option<CharsetMatch> = None;
-    let mut results: CharsetMatches = CharsetMatches::new(None);
+    let mut results: CharsetMatches = CharsetMatches::default();
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
