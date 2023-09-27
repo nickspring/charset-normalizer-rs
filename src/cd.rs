@@ -72,20 +72,14 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 #[cache(LruCache : LruCache::new(128))]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
     let unicode_ranges = encoding_unicode_range(&iana_name).unwrap_or_default();
-    let mut primary_range: Option<&str> = None;
-
-    for specified_range in unicode_ranges {
-        if !specified_range.contains("Latin") {
-            primary_range = Some(specified_range);
-            break;
-        }
+    
+    match unicode_ranges
+        .iter()
+        .find(|&&range| !range.contains("Latin"))
+    {
+        Some(&range) => unicode_range_languages(range),
+        None => vec![&Language::Unknown],
     }
-
-    if primary_range.is_none() {
-        return vec![&Language::Unknown];
-    }
-
-    unicode_range_languages(primary_range.unwrap())
 }
 
 // Multi-byte encoding language association. Some code page are heavily linked to particular language(s).
