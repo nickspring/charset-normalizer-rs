@@ -52,9 +52,6 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
 
 // Return inferred languages used with a unicode range.
 pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Language> {
-    if primary_range.is_empty() {
-        return vec![];
-    }
     LANGUAGES
         .iter()
         .filter_map(|(language, characters, _, _)| {
@@ -63,7 +60,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
                 .find(|&character| unicode_range(&character).unwrap_or_default() == primary_range)
                 .map(|_| language)
         })
-        .collect()
+        .collect::<Vec<&Language>>()
 }
 
 // Single-byte encoding language association.
