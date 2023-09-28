@@ -216,29 +216,28 @@ impl CharsetMatch {
     // Most probable language found in decoded sequence. If none were detected or inferred, the property will return
     // Language::Unknown
     pub fn most_probably_language(&self) -> &'static Language {
-        if self.coherence_matches.is_empty() {
-            // Trying to infer the language based on the given encoding
-            // Its either English or we should not pronounce ourselves in certain cases.
-            if self.suitable_encodings().contains(&String::from("ascii")) {
-                return &Language::English;
-            }
-
-            let languages = if is_multi_byte_encoding(&self.encoding) {
-                mb_encoding_languages(&self.encoding)
-            } else {
-                encoding_languages(self.encoding.clone())
-            };
-
-            if languages.is_empty() || languages.contains(&&Language::Unknown) {
-                return &Language::Unknown;
-            }
-
-            return languages.first().unwrap();
-        }
         self.coherence_matches
             .first()
             .map(|lang| lang.language)
-            .unwrap()
+            .unwrap_or_else(|| {
+                // Trying to infer the language based on the given encoding
+                // It's either English or we should not pronounce ourselves in certain cases.
+                if self.suitable_encodings().contains(&String::from("ascii")) {
+                    return &Language::English;
+                }
+
+                let languages = if is_multi_byte_encoding(&self.encoding) {
+                    mb_encoding_languages(&self.encoding)
+                } else {
+                    encoding_languages(self.encoding.clone())
+                };
+
+                if languages.is_empty() || languages.contains(&&Language::Unknown) {
+                    return &Language::Unknown;
+                }
+
+                languages.first().unwrap()
+            })
     }
     // Return the complete list of possible languages found in decoded sequence.
     // Usually not really useful. Returned list may be empty even if 'language' property return something != 'Unknown'.
