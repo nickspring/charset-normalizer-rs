@@ -225,17 +225,11 @@ impl CharsetMatch {
                 if self.suitable_encodings().contains(&String::from("ascii")) {
                     return &Language::English;
                 }
-
                 let languages = if is_multi_byte_encoding(&self.encoding) {
                     mb_encoding_languages(&self.encoding)
                 } else {
                     encoding_languages(self.encoding.clone())
                 };
-
-                if languages.contains(&&Language::Unknown) {
-                    return &Language::Unknown;
-                }
-
                 languages.first().unwrap_or(&&Language::Unknown)
             })
     }
