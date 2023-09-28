@@ -3,18 +3,17 @@
 use crate::assets::*;
 use crate::consts::*;
 use crate::entity::*;
+use ahash::{HashSet, HashSetExt};
+use cached::proc_macro::cached;
+use cached::SizedCache;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use unic::char::property::EnumeratedCharProperty;
 use unic::ucd::normal::decompose_canonical;
 use unic::ucd::{GeneralCategory, Name};
-
-use cache_macro_stable_rust::cache;
-use lru_cache::LruCache;
 
 // Utils module
 
@@ -54,22 +53,38 @@ fn in_description(character: &char, patterns: &[&str]) -> bool {
         .unwrap_or(false)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_punctuation(character: &char) -> bool {
     in_category(character, &[], &["P"], &["Punctuation"])
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_symbol(character: &char) -> bool {
     in_category(character, &[], &["N", "S"], &["Forms"])
 }
 
-//#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_emoticon(character: &char) -> bool {
     in_category(character, &[], &[], &["Emoticons"])
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_separator(character: &char) -> bool {
     if character.is_whitespace() || ['｜', '+', '<', '>'].contains(character) {
         return true;
@@ -77,7 +92,11 @@ pub(crate) fn is_separator(character: &char) -> bool {
     in_category(character, &["Po", "Pd", "Pc"], &["Z"], &[])
 }
 
-//#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_unprintable(character: &char) -> bool {
     !character.is_whitespace()
         && !character.is_ascii_graphic()
@@ -85,7 +104,11 @@ pub(crate) fn is_unprintable(character: &char) -> bool {
         && in_category(character, &["Cc"], &[], &["Control character"])
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_accentuated(character: &char) -> bool {
     let patterns = [
         "WITH GRAVE",
@@ -98,43 +121,66 @@ pub(crate) fn is_accentuated(character: &char) -> bool {
     in_description(character, &patterns)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_latin(character: &char) -> bool {
     let patterns = ["LATIN"];
     in_description(character, &patterns)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_cjk(character: &char) -> bool {
     let patterns = ["CJK"];
     in_description(character, &patterns)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_hiragana(character: &char) -> bool {
     let patterns = ["HIRAGANA"];
     in_description(character, &patterns)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_katakana(character: &char) -> bool {
     let patterns = ["KATAKANA"];
     in_description(character, &patterns)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_hangul(character: &char) -> bool {
     let patterns = ["HANGUL"];
     in_description(character, &patterns)
 }
 
-#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
+#[cached(
+    type = "SizedCache<char, bool>",
+    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    convert = r#"{ *character }"#
+)]
 pub(crate) fn is_thai(character: &char) -> bool {
     let patterns = ["THAI"];
     in_description(character, &patterns)
 }
 
-//#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
 pub(crate) fn is_case_variable(character: &char) -> bool {
     character.is_lowercase() != character.is_uppercase()
 }
@@ -146,7 +192,6 @@ pub(crate) fn is_unicode_range_secondary(range_name: String) -> bool {
 }
 
 // Retrieve the Unicode range official name from a single character
-//#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
 pub(crate) fn unicode_range(character: &char) -> Option<&'static str> {
     let char_code = *character as u32;
     for (name, range) in &*UNICODE_RANGES_COMBINED {
@@ -167,12 +212,10 @@ pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
     result
 }
 
-//#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
 pub(crate) fn is_ascii(character: &char) -> bool {
     character.is_ascii()
 }
 
-//#[cache(LruCache: LruCache::new(*UTF8_MAXIMAL_ALLOCATION))]
 pub(crate) fn remove_accent(ch: &char) -> char {
     let mut base_char = None;
     decompose_canonical(*ch, |c| {
@@ -418,7 +461,6 @@ pub fn encode(
 }
 
 // Determine if two Unicode range seen next to each other can be considered as suspicious.
-#[cache(LruCache: LruCache::new(1024))]
 pub(crate) fn is_suspiciously_successive_range(
     range_a: Option<&'static str>,
     range_b: Option<&'static str>,

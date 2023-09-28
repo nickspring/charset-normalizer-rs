@@ -3,15 +3,13 @@ use crate::assets::*;
 use crate::consts::TOO_SMALL_SEQUENCE;
 use crate::entity::*;
 use crate::utils::*;
-use cache_macro_stable_rust::cache;
+use ahash::{HashMap, HashMapExt, HashSet};
+use cached::proc_macro::cached;
 use counter::Counter;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::DecoderTrap;
-use lru_cache::LruCache;
 use ordered_float::OrderedFloat;
-use std::collections::{HashMap, HashSet};
 use strsim::jaro;
-use cached::proc_macro::cached;
 
 //
 // Coherence detection module
@@ -67,8 +65,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // Single-byte encoding language association.
 // Some code page are heavily linked to particular language(s).
 // This function does the correspondence.
-//#[cached]
-#[cache(LruCache : LruCache::new(128))]
+#[cached(size = 128)]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
     match encoding_unicode_range(&iana_name)
         .unwrap_or_default()
@@ -203,8 +200,7 @@ pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> Coheren
 // The main function. Detect ANY language that can be identified in given sequence.
 // The sequence will be analysed by layers.
 // A layer = Character extraction by alphabets/ranges.
-//#[cached]
-#[cache(LruCache: LruCache::new(2048))]
+#[cached(size = 2048)]
 pub(crate) fn coherence_ratio(
     decoded_sequence: String,
     threshold: Option<OrderedFloat<f32>>,

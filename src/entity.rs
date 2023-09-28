@@ -93,7 +93,6 @@ pub struct CharsetMatch {
     coherence_matches: CoherenceMatches,
 
     has_sig_or_bom: bool,
-    fingerprint: String,
 
     submatch: Vec<CharsetMatch>,
     decoded_payload: Option<String>,
@@ -113,7 +112,7 @@ impl Debug for CharsetMatch {
 
 impl PartialEq<Self> for CharsetMatch {
     fn eq(&self, other: &Self) -> bool {
-        self.encoding == other.encoding && self.fingerprint == other.fingerprint
+        self.encoding == other.encoding && self.decoded_payload == other.decoded_payload
     }
 }
 
@@ -156,29 +155,24 @@ impl CharsetMatch {
             has_sig_or_bom,
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from),
-            fingerprint: String::new(),
         };
 
         // decoded payload recalc
-        match &obj.decoded_payload {
-            None => {
-                if let Ok(res) = decode(
-                    &obj.payload,
-                    obj.encoding.as_str(),
-                    DecoderTrap::Strict,
-                    false,
-                    true,
-                ) {
-                    obj.decoded_payload =
-                        Some(res.strip_prefix('\u{feff}').unwrap_or(&res).to_string());
-                }
-            }
-            Some(payload) => {
-                obj.fingerprint = format!("{:?}", blake3::hash(payload.as_bytes().clone()));
+        if obj.decoded_payload.is_none() {
+            if let Ok(res) = decode(
+                &obj.payload,
+                obj.encoding.as_str(),
+                DecoderTrap::Strict,
+                false,
+                true,
+            ) {
+                obj.decoded_payload =
+                    Some(res.strip_prefix('\u{feff}').unwrap_or(&res).to_string());
             }
         }
         obj
     }
+
     // Add submatch
     pub fn add_submatch(&mut self, submatch: CharsetMatch) {
         self.submatch.push(submatch.clone());
@@ -278,12 +272,6 @@ impl CharsetMatch {
         self.decoded_payload.as_deref()
     }
 
-    // Retrieve the unique blake3 hash computed using the transformed (re-encoded) payload.
-    // Not the original one. Original Python version has sha256 algorithm
-    pub fn fingerprint(&self) -> &str {
-        &self.fingerprint
-    }
-
     // The complete list of encodings that output the exact SAME str result and therefore could be the originating
     // encoding. This list does include the encoding available in property 'encoding'.
     pub fn suitable_encodings(&self) -> Vec<String> {
@@ -335,7 +323,7 @@ impl CharsetMatches {
         // (conserve RAM usage)
         if item.payload.len() <= *TOO_BIG_SEQUENCE {
             for m in self.items.iter_mut() {
-                if m.fingerprint() == item.fingerprint()
+                if m.decoded_payload() == item.decoded_payload()
                     && m.mean_mess_ratio == item.mean_mess_ratio
                 {
                     m.add_submatch(item.clone());

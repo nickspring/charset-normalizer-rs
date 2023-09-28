@@ -1,7 +1,6 @@
 use crate::entity::Language;
+use ahash::HashMap;
 use lazy_static::lazy_static;
-use maplit::hashmap;
-use std::collections::HashMap;
 
 lazy_static! {
     pub static ref LANGUAGES: Vec<(Language, &'static str, bool, bool)> = vec![
@@ -52,14 +51,14 @@ lazy_static! {
    pub static ref LANGUAGE_SUPPORTED_COUNT: usize = LANGUAGES.len();
 
    // direct binding encoding to language
-   pub(crate) static ref ENCODING_TO_LANGUAGE: HashMap<&'static str, Language> = hashmap!{
-     "euc-kr" => Language::Korean,
-     "big5" => Language::Chinese,
-     "hz" => Language::Chinese,
-     "gbk" => Language::Chinese,
-     "gb18030" => Language::Chinese,
-     "euc-jp" => Language::Japanese,
-     "iso-2022-jp" => Language::Japanese,
-     "shift_jis" =>  Language::Japanese,
-   };
+   pub(crate) static ref ENCODING_TO_LANGUAGE: HashMap<&'static str, Language> = HashMap::from_iter([
+     ("euc-kr", Language::Korean),
+     ("big5", Language::Chinese),
+     ("hz", Language::Chinese),
+     ("gbk", Language::Chinese),
+     ("gb18030", Language::Chinese),
+     ("euc-jp", Language::Japanese),
+     ("iso-2022-jp", Language::Japanese),
+     ("shift_jis",  Language::Japanese),
+   ]);
 }
