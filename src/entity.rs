@@ -232,11 +232,11 @@ impl CharsetMatch {
                     encoding_languages(self.encoding.clone())
                 };
 
-                if languages.is_empty() || languages.contains(&&Language::Unknown) {
+                if languages.contains(&&Language::Unknown) {
                     return &Language::Unknown;
                 }
 
-                languages.first().unwrap()
+                languages.first().unwrap_or(&&Language::Unknown)
             })
     }
     // Return the complete list of possible languages found in decoded sequence.
