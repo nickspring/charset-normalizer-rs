@@ -11,6 +11,7 @@ use lru_cache::LruCache;
 use ordered_float::OrderedFloat;
 use std::collections::{HashMap, HashSet};
 use strsim::jaro;
+use cached::proc_macro::cached;
 
 //
 // Coherence detection module
@@ -66,6 +67,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // Single-byte encoding language association.
 // Some code page are heavily linked to particular language(s).
 // This function does the correspondence.
+//#[cached]
 #[cache(LruCache : LruCache::new(128))]
 pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
     match encoding_unicode_range(&iana_name)
@@ -201,6 +203,7 @@ pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> Coheren
 // The main function. Detect ANY language that can be identified in given sequence.
 // The sequence will be analysed by layers.
 // A layer = Character extraction by alphabets/ranges.
+//#[cached]
 #[cache(LruCache: LruCache::new(2048))]
 pub(crate) fn coherence_ratio(
     decoded_sequence: String,
