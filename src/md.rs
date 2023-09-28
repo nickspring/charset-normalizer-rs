@@ -6,9 +6,8 @@ use crate::utils::{
     is_katakana, is_latin, is_punctuation, is_separator, is_suspiciously_successive_range,
     is_symbol, is_thai, is_unprintable, remove_accent, unicode_range,
 };
-use cache_macro_stable_rust::cache;
+use cached::proc_macro::cached;
 use log::trace;
-use lru_cache::LruCache;
 use ordered_float::OrderedFloat;
 
 //
@@ -466,7 +465,7 @@ impl MessDetectorPlugin for ArchaicUpperLowerPlugin {
 }
 
 // Compute a mess ratio given a decoded bytes sequence. The maximum threshold does stop the computation earlier.
-#[cache(LruCache: LruCache::new(2048))]
+#[cached(size = 2048)]
 pub(crate) fn mess_ratio(
     decoded_sequence: String,
     maximum_threshold: Option<OrderedFloat<f32>>,

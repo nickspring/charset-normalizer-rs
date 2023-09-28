@@ -582,8 +582,8 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         } else if fallback_u8.is_some()
             && (fallback_ascii.is_none()
                 || (fallback_ascii.is_some()
-                    && fallback_u8.as_ref().unwrap().fingerprint()
-                        != fallback_ascii.as_ref().unwrap().fingerprint()))
+                    && fallback_u8.as_ref().unwrap().decoded_payload()
+                        != fallback_ascii.as_ref().unwrap().decoded_payload()))
         {
             fb = Some(fallback_u8.as_ref().unwrap());
         } else if fallback_ascii.is_some() {
