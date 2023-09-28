@@ -160,28 +160,22 @@ impl CharsetMatch {
         };
 
         // decoded payload recalc
-        if obj.decoded_payload.is_none() {
-            if let Ok(res) = decode(
-                &obj.payload,
-                obj.encoding.as_str(),
-                DecoderTrap::Strict,
-                false,
-                true,
-            ) {
-                obj.decoded_payload =
-                    Some(res.strip_prefix('\u{feff}').unwrap_or(&res).to_string());
+        match &obj.decoded_payload {
+            None => {
+                if let Ok(res) = decode(
+                    &obj.payload,
+                    obj.encoding.as_str(),
+                    DecoderTrap::Strict,
+                    false,
+                    true,
+                ) {
+                    obj.decoded_payload =
+                        Some(res.strip_prefix('\u{feff}').unwrap_or(&res).to_string());
+                }
             }
-        }
-        if obj.decoded_payload.is_some() {
-            obj.fingerprint = format!(
-                "{:?}",
-                blake3::hash(
-                    obj.decoded_payload
-                        .as_ref()
-                        .unwrap_or(&String::default())
-                        .as_bytes()
-                )
-            );
+            Some(payload) => {
+                obj.fingerprint = format!("{:?}", blake3::hash(payload.as_bytes().clone()));
+            }
         }
         obj
     }
