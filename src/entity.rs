@@ -198,10 +198,10 @@ impl CharsetMatch {
 
     // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
     pub fn encoding_aliases(&self) -> Vec<&'static str> {
-        if let Some(res) = IANA_SUPPORTED_ALIASES.get(&self.encoding.as_str()) {
-            return res.clone();
-        }
-        vec![]
+        IANA_SUPPORTED_ALIASES
+            .get(&self.encoding.as_str())
+            .cloned()
+            .unwrap_or_default()
     }
     // byte_order_mark
     pub fn bom(&self) -> bool {
