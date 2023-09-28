@@ -39,6 +39,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
             }
         }
     }
+
     let threshold = 0.15;
     let mut result: Vec<&str> = result
         .iter()

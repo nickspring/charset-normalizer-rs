@@ -315,6 +315,7 @@ lazy_static! {
         "Block",
         "Shapes",
         "Supplemental",
+        "Supplement",
         "Tags",
     ]);
 
