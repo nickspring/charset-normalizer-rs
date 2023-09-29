@@ -529,9 +529,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         // Most of the time its not relevant to run "language-detection" on it.
         let mut cd_ratios: Vec<CoherenceMatches> = vec![];
         if encoding_iana != "ascii" {
-            for chunk in &md_chunks {
+            for chunk in md_chunks {
                 if let Ok(chunk_coherence_matches) = coherence_ratio(
-                    chunk.to_string(),
+                    chunk,
                     Some(settings.language_threshold),
                     Some(target_languages.clone()),
                 ) {
