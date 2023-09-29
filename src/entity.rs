@@ -171,7 +171,7 @@ impl CharsetMatch {
     // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
     pub fn encoding_aliases(&self) -> Vec<&'static str> {
         IANA_SUPPORTED_ALIASES
-            .get(&self.encoding.as_str())
+            .get(self.encoding.as_str())
             .cloned()
             .unwrap_or_default()
     }
