@@ -1,8 +1,8 @@
 use ahash::{HashMap, HashSet};
+use core::ops::RangeInclusive;
 use encoding::all::encodings;
 use lazy_static::lazy_static;
 use regex::Regex;
-use core::ops::RangeInclusive;
 
 lazy_static! {
 
