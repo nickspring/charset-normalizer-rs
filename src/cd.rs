@@ -129,10 +129,7 @@ pub(crate) fn alphabet_languages(
 pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
     let mut layers: HashMap<&str, String> = HashMap::new();
 
-    for ch in decoded_sequence.chars() {
-        if !ch.is_alphabetic() {
-            continue;
-        }
+    for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
         if let Some(character_range) = unicode_range(&ch) {
             let mut layer_target_range: Option<&str> = None;
             for discovered_range in layers.keys() {
