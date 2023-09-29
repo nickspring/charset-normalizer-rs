@@ -441,10 +441,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
             // MD ratios calc
             md_chunks.push(decoded_chunk.clone());
-            md_ratios.push(mess_ratio(
-                decoded_chunk,
-                Some(settings.threshold),
-            ));
+            md_ratios.push(mess_ratio(decoded_chunk, Some(settings.threshold)));
             if md_ratios.last().unwrap() >= &settings.threshold {
                 early_stop_count += 1;
             }
