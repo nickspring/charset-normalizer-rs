@@ -245,7 +245,7 @@ impl CharsetMatch {
         self.coherence_matches
             .first()
             .map(|lang| lang.score)
-            .unwrap_or(0.0)
+            .unwrap_or_default()
     }
 
     // To recalc decoded_payload field
