@@ -438,7 +438,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 lazy_str_hard_failure = true;
                 break 'chunks_loop;
             }
-            let decoded_chunk = decoded_chunk_result.as_ref().unwrap();
+            let decoded_chunk = decoded_chunk_result.unwrap();
 
             // MD ratios calc
             md_chunks.push(decoded_chunk.to_string());
