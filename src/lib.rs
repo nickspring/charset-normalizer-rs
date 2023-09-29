@@ -441,9 +441,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             let decoded_chunk = decoded_chunk_result.unwrap();
 
             // MD ratios calc
-            md_chunks.push(decoded_chunk.to_string());
+            md_chunks.push(decoded_chunk.clone());
             md_ratios.push(mess_ratio(
-                decoded_chunk.to_string(),
+                decoded_chunk,
                 Some(settings.threshold),
             ));
             if md_ratios.last().unwrap() >= &settings.threshold {
