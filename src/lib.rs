@@ -397,8 +397,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             let decoded_chunk_result = if decoded_payload.is_some() {
                 // Chars processing
                 Ok(decoded_payload
-                    .as_ref()
-                    .unwrap_or(&"")
+                    .unwrap_or_default()
                     .chars()
                     .skip(offset)
                     .take(settings.chunk_size)
