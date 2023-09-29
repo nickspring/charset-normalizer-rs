@@ -57,7 +57,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                         encoding_aliases: m
                             .encoding_aliases()
                             .iter()
-                            .map(|s| s.to_string())
+                            .map(|s| (*s).to_string())
                             .collect(),
                         alternative_encodings: m
                             .suitable_encodings()

@@ -1,8 +1,11 @@
 #![allow(unused_variables)]
-use crate::assets::*;
+use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES};
 use crate::consts::TOO_SMALL_SEQUENCE;
-use crate::entity::*;
-use crate::utils::*;
+use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
+use crate::utils::{
+    get_language_data, is_accentuated, is_multi_byte_encoding, is_suspiciously_successive_range,
+    is_unicode_range_secondary, unicode_range,
+};
 use ahash::{HashMap, HashMapExt, HashSet};
 use cached::proc_macro::cached;
 use counter::Counter;
@@ -107,7 +110,7 @@ pub(crate) fn alphabet_languages(
         let language_characters_set: HashSet<_> = language_characters.chars().collect();
         let intersection: HashSet<_> = language_characters_set
             .intersection(&source_characters_set)
-            .cloned()
+            .copied()
             .collect();
 
         let ratio: f32 = intersection.len() as f32 / language_characters_set.len() as f32;
@@ -241,7 +244,8 @@ pub(crate) fn coherence_ratio(
 
             if ratio < threshold {
                 continue;
-            } else if ratio >= 0.8 {
+            }
+            if ratio >= 0.8 {
                 sufficient_match_count += 1;
             }
 
