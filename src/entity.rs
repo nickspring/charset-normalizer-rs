@@ -147,30 +147,20 @@ impl CharsetMatch {
         coherence_matches: &CoherenceMatches,
         decoded_payload: Option<&str>,
     ) -> Self {
-        let mut obj = CharsetMatch {
+        let decoded_payload = decoded_payload.map(String::from).or_else(|| {
+            decode(payload, encoding, DecoderTrap::Strict, false, true)
+                .ok()
+                .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
+        });
+        CharsetMatch {
             payload: Vec::from(payload),
             encoding: String::from(encoding),
             mean_mess_ratio,
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
-            decoded_payload: decoded_payload.map(String::from),
-        };
-
-        // decoded payload recalc
-        if obj.decoded_payload.is_none() {
-            if let Ok(res) = decode(
-                &obj.payload,
-                obj.encoding.as_str(),
-                DecoderTrap::Strict,
-                false,
-                true,
-            ) {
-                obj.decoded_payload =
-                    Some(res.strip_prefix('\u{feff}').unwrap_or(&res).to_string());
-            }
+            decoded_payload,
         }
-        obj
     }
 
     // Add submatch
