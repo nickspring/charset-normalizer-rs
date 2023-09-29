@@ -242,13 +242,10 @@ impl CharsetMatch {
     }
     // Most relevant language coherence
     pub fn coherence(&self) -> f32 {
-        if self.coherence_matches.is_empty() {
-            return 0.0;
-        }
         self.coherence_matches
             .first()
             .map(|lang| lang.score)
-            .unwrap()
+            .unwrap_or(0.0)
     }
 
     // To recalc decoded_payload field
