@@ -41,11 +41,11 @@
 //! ```
 //!
 //! ```rust
-//! use std::path::PathBuf;
+//! use std::path::Path;
 //! use charset_normalizer_rs::from_path;
 //!
 //! fn test_from_path() {
-//!     let result = from_path(&PathBuf::from("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
+//!     let result = from_path(Path::new("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
 //!     let best_guess = result.get_best();
 //!     assert_eq!(
 //!         best_guess.unwrap().encoding(),
@@ -142,7 +142,7 @@ use encoding::DecoderTrap;
 use log::{debug, trace};
 use std::fs::{metadata, File};
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub mod assets;
 mod cd;
@@ -612,7 +612,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 // Opening and reading given file path in binary mode.
 // Can return Error.
 pub fn from_path(
-    path: &PathBuf,
+    path: &Path,
     settings: Option<NormalizerSettings>,
 ) -> Result<CharsetMatches, String> {
     // read file
