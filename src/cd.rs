@@ -129,10 +129,7 @@ pub(crate) fn alphabet_languages(
 pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
     let mut layers: HashMap<&str, String> = HashMap::new();
 
-    for ch in decoded_sequence.chars() {
-        if !ch.is_alphabetic() {
-            continue;
-        }
+    for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
         if let Some(character_range) = unicode_range(&ch) {
             let mut layer_target_range: Option<&str> = None;
             for discovered_range in layers.keys() {
@@ -142,12 +139,10 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
                     break;
                 }
             }
-            layer_target_range.get_or_insert(character_range);
-
             let layer = layers
-                .entry(layer_target_range.unwrap())
-                .or_insert_with(String::new);
-            *layer += &ch.to_lowercase().to_string();
+                .entry(layer_target_range.get_or_insert(character_range))
+                .or_default();
+            layer.extend(ch.to_lowercase());
         }
     }
     layers.values().cloned().collect()
@@ -184,10 +179,10 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
 // The return type is the same as coherence_ratio.
 pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> CoherenceMatches {
     let mut index: HashMap<&Language, Vec<f32>> = HashMap::with_capacity(results.len());
-
-    for result in results.iter().flatten() {
-        index.entry(result.language).or_default().push(result.score);
-    }
+    results
+        .iter()
+        .flatten()
+        .for_each(|result| index.entry(result.language).or_default().push(result.score));
 
     let mut merge: Vec<CoherenceMatch> = index
         .iter()

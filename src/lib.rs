@@ -397,8 +397,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             let decoded_chunk_result = if decoded_payload.is_some() {
                 // Chars processing
                 Ok(decoded_payload
-                    .as_ref()
-                    .unwrap_or(&"")
+                    .unwrap_or_default()
                     .chars()
                     .skip(offset)
                     .take(settings.chunk_size)
@@ -406,13 +405,13 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
             } else {
                 // Bytes processing
                 let offset_end = (offset + settings.chunk_size).min(sequence_length);
-                let cut_bytes_slice = if bom_or_sig_available && !strip_sig_or_bom {
+                let cut_bytes_vec: Vec<u8> = if bom_or_sig_available && !strip_sig_or_bom {
                     [sig_payload.unwrap(), &bytes[offset..offset_end]].concat()
                 } else {
                     bytes[offset..offset_end].to_vec()
                 };
                 decode(
-                    &cut_bytes_slice,
+                    &cut_bytes_vec,
                     encoding_iana,
                     DecoderTrap::Strict,
                     false,
@@ -438,14 +437,11 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
                 lazy_str_hard_failure = true;
                 break 'chunks_loop;
             }
-            let decoded_chunk = decoded_chunk_result.as_ref().unwrap();
+            let decoded_chunk = decoded_chunk_result.unwrap();
 
             // MD ratios calc
-            md_chunks.push(decoded_chunk.to_string());
-            md_ratios.push(mess_ratio(
-                decoded_chunk.to_string(),
-                Some(settings.threshold),
-            ));
+            md_chunks.push(decoded_chunk.clone());
+            md_ratios.push(mess_ratio(decoded_chunk, Some(settings.threshold)));
             if md_ratios.last().unwrap() >= &settings.threshold {
                 early_stop_count += 1;
             }
@@ -529,9 +525,9 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
         // Most of the time its not relevant to run "language-detection" on it.
         let mut cd_ratios: Vec<CoherenceMatches> = vec![];
         if encoding_iana != "ascii" {
-            for chunk in &md_chunks {
+            for chunk in md_chunks {
                 if let Ok(chunk_coherence_matches) = coherence_ratio(
-                    chunk.to_string(),
+                    chunk,
                     Some(settings.language_threshold),
                     Some(target_languages.clone()),
                 ) {

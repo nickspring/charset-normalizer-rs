@@ -147,30 +147,19 @@ impl CharsetMatch {
         coherence_matches: &CoherenceMatches,
         decoded_payload: Option<&str>,
     ) -> Self {
-        let mut obj = CharsetMatch {
+        CharsetMatch {
             payload: Vec::from(payload),
             encoding: String::from(encoding),
             mean_mess_ratio,
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
-            decoded_payload: decoded_payload.map(String::from),
-        };
-
-        // decoded payload recalc
-        if obj.decoded_payload.is_none() {
-            if let Ok(res) = decode(
-                &obj.payload,
-                obj.encoding.as_str(),
-                DecoderTrap::Strict,
-                false,
-                true,
-            ) {
-                obj.decoded_payload =
-                    Some(res.strip_prefix('\u{feff}').unwrap_or(&res).to_string());
-            }
+            decoded_payload: decoded_payload.map(String::from).or_else(|| {
+                decode(payload, encoding, DecoderTrap::Strict, false, true)
+                    .ok()
+                    .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
+            }),
         }
-        obj
     }
 
     // Add submatch
@@ -182,7 +171,7 @@ impl CharsetMatch {
     // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
     pub fn encoding_aliases(&self) -> Vec<&'static str> {
         IANA_SUPPORTED_ALIASES
-            .get(&self.encoding.as_str())
+            .get(self.encoding.as_str())
             .cloned()
             .unwrap_or_default()
     }
@@ -253,13 +242,10 @@ impl CharsetMatch {
     }
     // Most relevant language coherence
     pub fn coherence(&self) -> f32 {
-        if self.coherence_matches.is_empty() {
-            return 0.0;
-        }
         self.coherence_matches
             .first()
             .map(|lang| lang.score)
-            .unwrap()
+            .unwrap_or_default()
     }
 
     // To recalc decoded_payload field
@@ -361,7 +347,7 @@ impl CharsetMatches {
     }
     // is empty?
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.items.is_empty()
     }
 }
 
