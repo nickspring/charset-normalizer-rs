@@ -167,7 +167,7 @@ pub mod utils;
 // By default the library does not setup any handler other than the NullHandler, if you choose to set the 'explain'
 // toggle to True it will alter the logger configuration to add a StreamHandler that is suitable for debugging.
 // Custom logging format and handler can be set manually.
-pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> CharsetMatches {
+pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> CharsetMatches {
     // init settings with default values if it's None and recheck include_encodings and
     // exclude_encodings settings
     let mut settings = settings.unwrap_or_default();
