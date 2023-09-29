@@ -350,7 +350,7 @@ impl CharsetMatches {
     }
     // is empty?
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.items.is_empty()
     }
 }
 
