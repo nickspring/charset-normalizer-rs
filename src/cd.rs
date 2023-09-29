@@ -110,7 +110,7 @@ pub(crate) fn alphabet_languages(
         let language_characters_set: HashSet<_> = language_characters.chars().collect();
         let intersection: HashSet<_> = language_characters_set
             .intersection(&source_characters_set)
-            .cloned()
+            .copied()
             .collect();
 
         let ratio: f32 = intersection.len() as f32 / language_characters_set.len() as f32;
@@ -244,7 +244,7 @@ pub(crate) fn coherence_ratio(
 
             if ratio < threshold {
                 continue;
-            } 
+            }
             if ratio >= 0.8 {
                 sufficient_match_count += 1;
             }
