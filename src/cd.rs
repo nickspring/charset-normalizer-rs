@@ -244,7 +244,8 @@ pub(crate) fn coherence_ratio(
 
             if ratio < threshold {
                 continue;
-            } else if ratio >= 0.8 {
+            } 
+            if ratio >= 0.8 {
                 sufficient_match_count += 1;
             }
 
