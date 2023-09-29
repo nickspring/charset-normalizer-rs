@@ -142,7 +142,7 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
             let layer = layers
                 .entry(layer_target_range.get_or_insert(character_range))
                 .or_insert_with(String::new);
-            layer.push(ch.to_lowercase().next().unwrap());
+            layer.extend(ch.to_lowercase());
         }
     }
     layers.values().cloned().collect()
