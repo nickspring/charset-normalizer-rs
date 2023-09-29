@@ -184,10 +184,10 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
 // The return type is the same as coherence_ratio.
 pub(crate) fn merge_coherence_ratios(results: &Vec<CoherenceMatches>) -> CoherenceMatches {
     let mut index: HashMap<&Language, Vec<f32>> = HashMap::with_capacity(results.len());
-
-    for result in results.iter().flatten() {
-        index.entry(result.language).or_default().push(result.score);
-    }
+    results
+        .iter()
+        .flatten()
+        .for_each(|result| index.entry(result.language).or_default().push(result.score));
 
     let mut merge: Vec<CoherenceMatch> = index
         .iter()
