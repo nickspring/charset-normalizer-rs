@@ -179,11 +179,6 @@ impl CharsetMatch {
         //self.decoded_payload = None;
     }
 
-    // Alphabets
-    pub fn alphabets(&self) -> Vec<String> {
-        todo!();
-    }
-
     // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
     pub fn encoding_aliases(&self) -> Vec<&'static str> {
         IANA_SUPPORTED_ALIASES
