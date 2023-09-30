@@ -123,11 +123,13 @@ impl PartialOrd<Self> for CharsetMatch {
         let mess_difference = (self.mean_mess_ratio - other.mean_mess_ratio).abs();
 
         match (mess_difference < 0.01, coherence_difference > 0.02) {
-            (false, _) => return self.mean_mess_ratio.partial_cmp(&other.mean_mess_ratio),
+            (false, _) => self.mean_mess_ratio.partial_cmp(&other.mean_mess_ratio),
             // Below 1% difference --> Use Coherence
-            (true, true) => return coherence_b.partial_cmp(&coherence_a),
+            (true, true) => coherence_b.partial_cmp(&coherence_a),
             // When having a tough decision, use the result that decoded as many multi-byte as possible.
-            (true, false) => return other.multi_byte_usage().partial_cmp(&self.multi_byte_usage()),
+            (true, false) => other
+                .multi_byte_usage()
+                .partial_cmp(&self.multi_byte_usage()),
         }
     }
 }
