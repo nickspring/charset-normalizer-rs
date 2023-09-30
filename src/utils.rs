@@ -496,7 +496,7 @@ pub(crate) fn is_suspiciously_successive_range(
         let jp_ranges = ["Hiragana", "Katakana"];
         let jp_a = jp_ranges.contains(&range_a);
         let jp_b = jp_ranges.contains(&range_b);
-        let has_cjk = range_a.contains("CJK") || range_b.contains("CJK");
+        let has_cjk = [range_a, range_b].iter().any(|x| x.contains("CJK"));
         let has_hangul = [range_a, range_b].iter().any(|x| x.contains("Hangul"));
         let has_punct_or_forms = [range_a, range_b]
             .iter()
@@ -516,7 +516,7 @@ pub(crate) fn is_suspiciously_successive_range(
                 return false; // either has both CJK and Hanguls
             }
             if [range_a, range_b].iter().any(|x| *x == "Basic Latin") {
-                //either has hangul and basic latin
+                // either has hangul and basic latin
                 return false;
             }
         }
