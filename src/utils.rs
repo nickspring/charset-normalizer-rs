@@ -303,23 +303,20 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
         return 0.0;
     }
 
-    let mut character_match_count: u8 = 0;
     if let (Some(encoder_a), Some(encoder_b)) = (
         encoding_from_whatwg_label(iana_name_a),
         encoding_from_whatwg_label(iana_name_b),
     ) {
-        for ch in 1..255u8 {
-            if let (Ok(res_a), Ok(res_b)) = (
-                encoder_a.decode(&[ch], DecoderTrap::Ignore),
-                encoder_b.decode(&[ch], DecoderTrap::Ignore),
-            ) {
-                if res_a == res_b {
-                    character_match_count += 1;
-                }
-            }
-        }
+        let character_match_count = (1..255u8)
+            .filter(|&ch| {
+                let res_a = encoder_a.decode(&[ch], DecoderTrap::Ignore).ok();
+                let res_b = encoder_b.decode(&[ch], DecoderTrap::Ignore).ok();
+                res_a.is_some() && res_a == res_b //check that they aren't none and equal
+            })
+            .count();
+        return character_match_count as f32 / 254.0;
     }
-    character_match_count as f32 / 254f32
+    0.0 // Return 0.0 if encoders could not be retrieved.
 }
 
 // Test Decoding bytes to string with specified encoding without writing result to memory
