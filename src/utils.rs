@@ -308,8 +308,7 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
         encoding_from_whatwg_label(iana_name_a),
         encoding_from_whatwg_label(iana_name_b),
     ) {
-        for i in 1..255 {
-            let ch = i as u8;
+        for ch in 1..255u8 {
             if let (Ok(res_a), Ok(res_b)) = (
                 encoder_a.decode(&[ch], DecoderTrap::Ignore),
                 encoder_b.decode(&[ch], DecoderTrap::Ignore),
