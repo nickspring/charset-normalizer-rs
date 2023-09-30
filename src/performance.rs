@@ -5,12 +5,42 @@ use charset_normalizer_rs::from_bytes;
 use charset_normalizer_rs::utils::get_large_test_datasets;
 use clap::Parser;
 use encoding::label::encoding_from_whatwg_label;
+use encoding::DecoderTrap;
 use log::trace;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::Read;
 use std::process;
 use std::time::{Duration, Instant};
+
+// Check result
+fn check_result(
+    correct_encodings: &Vec<String>,
+    guessed_encoding: &String,
+    buffer: &Vec<u8>,
+) -> bool {
+    // check by encoding name
+    if correct_encodings.iter().any(|e| guessed_encoding == e) {
+        return true;
+    }
+
+    // if correct encoding wasn't found we will try to decode and compare results
+    let whatwg_correct_encoding = correct_encodings
+        .first()
+        .and_then(|enc| encoding_from_whatwg_label(enc));
+    let whatwg_guessed_encoding = encoding_from_whatwg_label(guessed_encoding);
+    match (whatwg_correct_encoding, whatwg_guessed_encoding) {
+        (Some(correct_encoding), Some(guessed_encoding)) => {
+            let correct_decoded = correct_encoding.decode(buffer.as_slice(), DecoderTrap::Strict);
+            let guessed_decoded = guessed_encoding.decode(buffer.as_slice(), DecoderTrap::Strict);
+            match (correct_decoded, guessed_decoded) {
+                (Ok(correct_result), Ok(guessed_result)) => correct_result == guessed_result,
+                _ => false,
+            }
+        }
+        _ => false,
+    }
+}
 
 // Calculate percentile
 fn calc_percentile(results: &Vec<PerformanceResult>, percentile: f64) -> Duration {
@@ -123,12 +153,14 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
             let duration = Instant::now();
             let guessed_encoding = foo(&buffer);
             let duration = duration.elapsed();
+
+            // save result
             performance_results
                 .get_mut(name)
                 .unwrap()
                 .push(PerformanceResult {
                     duration,
-                    correct: correct_encodings.contains(&guessed_encoding.to_string()),
+                    correct: check_result(correct_encodings, &guessed_encoding, &buffer),
                 });
             println!("  --> {}: {:?}", name, duration,);
 
