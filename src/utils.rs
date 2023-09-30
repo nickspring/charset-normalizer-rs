@@ -501,6 +501,7 @@ pub(crate) fn is_suspiciously_successive_range(
         let has_punct_or_forms = [range_a, range_b]
             .iter()
             .any(|x| x.contains("Punctuation") || x.contains("Forms"));
+        let is_any_basic_latin = [range_a, range_b].iter().any(|x| *x == "Basic Latin");
 
         if (jp_a || jp_b) && has_cjk {
             //either is japanese and either contains CJK
@@ -515,7 +516,7 @@ pub(crate) fn is_suspiciously_successive_range(
             if has_cjk {
                 return false; // either has both CJK and Hanguls
             }
-            if [range_a, range_b].iter().any(|x| *x == "Basic Latin") {
+            if is_any_basic_latin {
                 // either has hangul and basic latin
                 return false;
             }
