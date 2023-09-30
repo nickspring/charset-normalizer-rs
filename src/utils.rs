@@ -205,12 +205,12 @@ pub(crate) fn unicode_range(character: &char) -> Option<&'static str> {
 pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
     let (lower, upper) = decoded_sequence.chars().size_hint();
     let mut result: HashSet<String> = HashSet::with_capacity(upper.unwrap_or(lower));
-    for ch in decoded_sequence.chars() {
-        if let Some(r) = unicode_range(&ch) {
-            result.insert(r.to_string());
-        }
-    }
-    result
+    result.extend(
+        decoded_sequence
+            .chars()
+            .filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())),
+    );
+    result // decoded_sequence.chars().filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())).collect()
 }
 
 pub(crate) fn is_ascii(character: &char) -> bool {
