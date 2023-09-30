@@ -203,7 +203,8 @@ pub(crate) fn unicode_range(character: &char) -> Option<&'static str> {
 }
 
 pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
-    let mut result: HashSet<String> = HashSet::new();
+    let (lower, upper) = decoded_sequence.chars().size_hint();
+    let mut result: HashSet<String> = HashSet::with_capacity(upper.unwrap_or(lower));
     for ch in decoded_sequence.chars() {
         if let Some(r) = unicode_range(&ch) {
             result.insert(r.to_string());
