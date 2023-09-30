@@ -465,72 +465,66 @@ pub(crate) fn is_suspiciously_successive_range(
     range_a: Option<&'static str>,
     range_b: Option<&'static str>,
 ) -> bool {
-    // both arguments should not be None
-    if range_a.is_none() || range_b.is_none() {
-        return true;
-    }
-    let range_a = range_a.unwrap();
-    let range_b = range_b.unwrap();
-
-    // some edge cases
-    if range_a == range_b
-        || [range_a, range_b].iter().all(|x| x.contains("Latin"))
-        || [range_a, range_b].iter().any(|x| x.contains("Emoticons"))
-    {
-        return false;
-    }
-
-    // Latin characters can be accompanied with a combining diacritical mark
-    // eg. Vietnamese.
-    if [range_a, range_b].iter().any(|x| x.contains("Latin"))
-        && [range_a, range_b].iter().any(|x| x.contains("Combining"))
-    {
-        return false;
-    }
-
-    // keywords intersection
-    let set_a: HashSet<_> = range_a.split_whitespace().collect();
-    let set_b: HashSet<_> = range_b.split_whitespace().collect();
-
-    if set_a
-        .intersection(&set_b)
-        .any(|&elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
-    {
-        return false;
-    }
-
-    // Japanese exception
-    let jp_ranges = ["Hiragana", "Katakana"];
-    let jp_a = jp_ranges.contains(&range_a);
-    let jp_b = jp_ranges.contains(&range_b);
-    let has_cjk = range_a.contains("CJK") || range_b.contains("CJK");
-
-    if (jp_a || jp_b) && has_cjk {
-        return false;
-    }
-
-    if jp_a && jp_b {
-        return false;
-    }
-
-    if [range_a, range_b].iter().any(|x| x.contains("Hangul")) {
-        if has_cjk {
+    if let (Some(range_a), Some(range_b)) = (range_a, range_b) {
+        if range_a == range_b
+            || [range_a, range_b].iter().all(|x| x.contains("Latin"))
+            || [range_a, range_b].iter().any(|x| x.contains("Emoticons"))
+        {
             return false;
         }
-        if [range_a, range_b].iter().any(|x| *x == "Basic Latin") {
+
+        // Latin characters can be accompanied with a combining diacritical mark
+        // eg. Vietnamese.
+        if [range_a, range_b].iter().any(|x| x.contains("Latin"))
+            && [range_a, range_b].iter().any(|x| x.contains("Combining"))
+        {
+            return false;
+        }
+
+        // keywords intersection
+        let set_a: HashSet<_> = range_a.split_whitespace().collect();
+        let set_b: HashSet<_> = range_b.split_whitespace().collect();
+
+        if set_a
+            .intersection(&set_b)
+            .any(|&elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
+        {
+            return false;
+        }
+
+        // Japanese exception
+        let jp_ranges = ["Hiragana", "Katakana"];
+        let jp_a = jp_ranges.contains(&range_a);
+        let jp_b = jp_ranges.contains(&range_b);
+        let has_cjk = range_a.contains("CJK") || range_b.contains("CJK");
+
+        if (jp_a || jp_b) && has_cjk {
+            return false;
+        }
+
+        if jp_a && jp_b {
+            return false;
+        }
+
+        if [range_a, range_b].iter().any(|x| x.contains("Hangul")) {
+            if has_cjk {
+                return false;
+            }
+            if [range_a, range_b].iter().any(|x| *x == "Basic Latin") {
+                return false;
+            }
+        }
+
+        // Chinese use dedicated range for punctuation and/or separators.
+        if has_cjk
+            && [range_a, range_b]
+                .iter()
+                .any(|x| x.contains("Punctuation") || x.contains("Forms"))
+        {
             return false;
         }
     }
-
-    // Chinese use dedicated range for punctuation and/or separators.
-    if has_cjk
-        && [range_a, range_b]
-            .iter()
-            .any(|x| x.contains("Punctuation") || x.contains("Forms"))
-    {
-        return false;
-    }
-
+    // returns true if either range is none or edge cases never trigger
     true
 }
 
