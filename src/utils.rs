@@ -562,24 +562,22 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
     match fs::metadata(&path) {
-        Ok(metadata) if metadata.is_dir() => {
-            return Ok(collect_large_sets(&path)
-                .iter()
-                .filter_map(|set| {
-                    let path = set.to_str()?;
-                    let encoding: Vec<&str> = path.split('/').collect();
-                    let encoding: Vec<String> = encoding
-                        .get(encoding.len().checked_sub(2)?)?
-                        .split(',')
-                        .map(|s| s.to_string())
-                        .collect();
-                    if encoding.len() == 1 && encoding.first()? == "largesets" {
-                        return None; // None is ignored by filter_map
-                    }
-                    Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
-                })
-                .collect::<Vec<(String, Vec<String>)>>());
-        }
+        Ok(metadata) if metadata.is_dir() => Ok(collect_large_sets(&path)
+            .iter()
+            .filter_map(|set| {
+                let path = set.to_str()?;
+                let encoding: Vec<&str> = path.split('/').collect();
+                let encoding: Vec<String> = encoding
+                    .get(encoding.len().checked_sub(2)?)?
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect();
+                if encoding.len() == 1 && encoding.first()? == "largesets" {
+                    return None; // None is ignored by filter_map
+                }
+                Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
+            })
+            .collect::<Vec<(String, Vec<String>)>>()),
         Ok(metadata) => Err(format!(
             "Path exists but not a directory: {:?} metadata: {:?}",
             path, metadata
