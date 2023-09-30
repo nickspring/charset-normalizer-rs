@@ -194,22 +194,21 @@ pub(crate) fn is_unicode_range_secondary(range_name: String) -> bool {
 // Retrieve the Unicode range official name from a single character
 pub(crate) fn unicode_range(character: &char) -> Option<&'static str> {
     let char_code = *character as u32;
-    for (name, range) in &*UNICODE_RANGES_COMBINED {
-        if range.contains(&char_code) {
-            return Some(name);
-        }
-    }
-    None
+    UNICODE_RANGES_COMBINED
+        .iter()
+        .find(|&(_, range)| range.contains(&char_code))
+        .map(|(name, _)| *name)
 }
 
 pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
-    let mut result: HashSet<String> = HashSet::new();
-    for ch in decoded_sequence.chars() {
-        if let Some(r) = unicode_range(&ch) {
-            result.insert(r.to_string());
-        }
-    }
-    result
+    let (lower, upper) = decoded_sequence.chars().size_hint();
+    let mut result: HashSet<String> = HashSet::with_capacity(upper.unwrap_or(lower));
+    result.extend(
+        decoded_sequence
+            .chars()
+            .filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())),
+    );
+    result // decoded_sequence.chars().filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())).collect()
 }
 
 pub(crate) fn is_ascii(character: &char) -> bool {
@@ -303,24 +302,20 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
         return 0.0;
     }
 
-    let mut character_match_count: u8 = 0;
     if let (Some(encoder_a), Some(encoder_b)) = (
         encoding_from_whatwg_label(iana_name_a),
         encoding_from_whatwg_label(iana_name_b),
     ) {
-        for i in 1..255 {
-            let ch = i as u8;
-            if let (Ok(res_a), Ok(res_b)) = (
-                encoder_a.decode(&[ch], DecoderTrap::Ignore),
-                encoder_b.decode(&[ch], DecoderTrap::Ignore),
-            ) {
-                if res_a == res_b {
-                    character_match_count += 1;
-                }
-            }
-        }
+        let character_match_count = (1..255u8)
+            .filter(|&ch| {
+                let res_a = encoder_a.decode(&[ch], DecoderTrap::Ignore).ok();
+                let res_b = encoder_b.decode(&[ch], DecoderTrap::Ignore).ok();
+                res_a.is_some() && res_a == res_b //check that they aren't none and equal
+            })
+            .count();
+        return character_match_count as f32 / 254.0;
     }
-    character_match_count as f32 / 254f32
+    0.0 // Return 0.0 if encoders could not be retrieved.
 }
 
 // Test Decoding bytes to string with specified encoding without writing result to memory
@@ -465,73 +460,65 @@ pub(crate) fn is_suspiciously_successive_range(
     range_a: Option<&'static str>,
     range_b: Option<&'static str>,
 ) -> bool {
-    // both arguments should not be None
-    if range_a.is_none() || range_b.is_none() {
-        return true;
-    }
-    let range_a = range_a.unwrap();
-    let range_b = range_b.unwrap();
-
-    // some edge cases
-    if range_a == range_b
-        || [range_a, range_b].iter().all(|x| x.contains("Latin"))
-        || [range_a, range_b].iter().any(|x| x.contains("Emoticons"))
-    {
-        return false;
-    }
-
-    // Latin characters can be accompanied with a combining diacritical mark
-    // eg. Vietnamese.
-    if [range_a, range_b].iter().any(|x| x.contains("Latin"))
-        && [range_a, range_b].iter().any(|x| x.contains("Combining"))
-    {
-        return false;
-    }
-
-    // keywords intersection
-    let set_a: HashSet<_> = range_a.split_whitespace().collect();
-    let set_b: HashSet<_> = range_b.split_whitespace().collect();
-
-    if set_a
-        .intersection(&set_b)
-        .any(|&elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
-    {
-        return false;
-    }
-
-    // Japanese exception
-    let jp_ranges = ["Hiragana", "Katakana"];
-    let jp_a = jp_ranges.contains(&range_a);
-    let jp_b = jp_ranges.contains(&range_b);
-    let has_cjk = range_a.contains("CJK") || range_b.contains("CJK");
-
-    if (jp_a || jp_b) && has_cjk {
-        return false;
-    }
-
-    if jp_a && jp_b {
-        return false;
-    }
-
-    if [range_a, range_b].iter().any(|x| x.contains("Hangul")) {
-        if has_cjk {
+    if let (Some(range_a), Some(range_b)) = (range_a, range_b) {
+        if range_a == range_b
+            || [range_a, range_b].iter().all(|x| x.contains("Latin"))
+            || [range_a, range_b].iter().any(|x| x.contains("Emoticons"))
+        {
             return false;
         }
-        if [range_a, range_b].iter().any(|x| *x == "Basic Latin") {
+
+        // Latin characters can be accompanied with a combining diacritical mark
+        // eg. Vietnamese.
+        if [range_a, range_b].iter().any(|x| x.contains("Latin"))
+            && [range_a, range_b].iter().any(|x| x.contains("Combining"))
+        {
             return false;
         }
-    }
 
-    // Chinese use dedicated range for punctuation and/or separators.
-    if has_cjk
-        && [range_a, range_b]
+        // keywords intersection
+        let set_a: HashSet<_> = range_a.split_whitespace().collect();
+        let set_b: HashSet<_> = range_b.split_whitespace().collect();
+
+        if set_a
+            .intersection(&set_b)
+            .any(|elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
+        {
+            return false;
+        }
+
+        // Japanese exception
+        let jp_ranges = ["Hiragana", "Katakana"];
+        let jp_a = jp_ranges.contains(&range_a);
+        let jp_b = jp_ranges.contains(&range_b);
+        let has_cjk = [range_a, range_b].iter().any(|x| x.contains("CJK"));
+        let has_hangul = [range_a, range_b].iter().any(|x| x.contains("Hangul"));
+        let has_punct_or_forms = [range_a, range_b]
             .iter()
-            .any(|x| x.contains("Punctuation") || x.contains("Forms"))
-    {
-        return false;
-    }
+            .any(|x| x.contains("Punctuation") || x.contains("Forms"));
+        let is_any_basic_latin = [range_a, range_b].iter().any(|&x| x == "Basic Latin");
 
-    true
+        match (
+            jp_a,
+            jp_b,
+            has_cjk,
+            has_hangul,
+            has_punct_or_forms,
+            is_any_basic_latin,
+        ) {
+            (true, true, _, _, _, _) => return false, // both are japanese
+            //either is japanese and either contains CJK
+            (true, _, true, _, _, _) | (_, true, true, _, _, _) => return false,
+            // either has both CJK and Hanguls
+            (_, _, true, true, _, _) => return false,
+            // either has chinese and dedicated punctuation and separators
+            (_, _, true, _, true, _) => return false,
+            // either has hangul and basic latin
+            (_, _, _, true, _, true) => return false,
+            _ => {} // All other combinations
+        }
+    }
+    true // if either range is none or edge cases never triggers, return true
 }
 
 // Get data for specified language
@@ -567,34 +554,32 @@ fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
 
 // Get large datasets
 pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
     match fs::metadata(&path) {
-        Ok(metadata) if metadata.is_dir() => {
-            return Ok(collect_large_sets(&path)
-                .iter()
-                .filter_map(|set| {
-                    let path = set.to_str().unwrap();
-                    let encoding: Vec<&str> = path.split('/').collect();
-                    let encoding: Vec<String> = encoding[encoding.len() - 2]
-                        .split(',')
-                        .map(|s| s.to_string())
-                        .collect();
-                    if encoding.len() == 1 && encoding.first().unwrap() == "largesets" {
-                        None // None is ignored by filter_map
-                    } else {
-                        Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
-                    }
-                })
-                .collect::<Vec<(String, Vec<String>)>>());
-        }
+        Ok(metadata) if metadata.is_dir() => Ok(collect_large_sets(&path)
+            .iter()
+            .filter_map(|set| {
+                let path = set.to_str()?;
+                let encoding: Vec<&str> = path.split('/').collect();
+                let encoding: Vec<String> = encoding
+                    .get(encoding.len().checked_sub(2)?)?
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect();
+                if encoding.len() == 1 && encoding.first()? == "largesets" {
+                    return None; // None is ignored by filter_map
+                }
+                Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
+            })
+            .collect::<Vec<(String, Vec<String>)>>()),
         Ok(metadata) => Err(format!(
             "Path exists but not a directory: {:?} metadata: {:?}",
-            &path, metadata
+            path, metadata
         )),
         Err(err) => Err(format!(
             "Cannot find large datasets at {:?} error: {}",
-            &path, err
+            path, err
         )),
     }
 }

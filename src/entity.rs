@@ -256,9 +256,9 @@ impl CharsetMatch {
     // The complete list of encodings that output the exact SAME str result and therefore could be the originating
     // encoding. This list does include the encoding available in property 'encoding'.
     pub fn suitable_encodings(&self) -> Vec<String> {
-        let mut result: Vec<String> = self.submatch.iter().map(|s| s.encoding.clone()).collect();
-        result.insert(0, self.encoding.clone());
-        result
+        std::iter::once(self.encoding.clone())
+            .chain(self.submatch.iter().map(|s| s.encoding.clone()))
+            .collect()
     }
     // Returns sorted list of unicode ranges (if exists)
     pub fn unicode_ranges(&self) -> Vec<String> {

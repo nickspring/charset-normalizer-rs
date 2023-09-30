@@ -41,11 +41,11 @@
 //! ```
 //!
 //! ```rust
-//! use std::path::PathBuf;
+//! use std::path::Path;
 //! use charset_normalizer_rs::from_path;
 //!
 //! fn test_from_path() {
-//!     let result = from_path(&PathBuf::from("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
+//!     let result = from_path(Path::new("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
 //!     let best_guess = result.get_best();
 //!     assert_eq!(
 //!         best_guess.unwrap().encoding(),
@@ -142,7 +142,7 @@ use encoding::DecoderTrap;
 use log::{debug, trace};
 use std::fs::{metadata, File};
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub mod assets;
 mod cd;
@@ -167,7 +167,7 @@ pub mod utils;
 // By default the library does not setup any handler other than the NullHandler, if you choose to set the 'explain'
 // toggle to True it will alter the logger configuration to add a StreamHandler that is suitable for debugging.
 // Custom logging format and handler can be set manually.
-pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> CharsetMatches {
+pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> CharsetMatches {
     // init settings with default values if it's None and recheck include_encodings and
     // exclude_encodings settings
     let mut settings = settings.unwrap_or_default();
@@ -262,7 +262,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 
     // check bom & sig
     let (sig_encoding, sig_payload) = identify_sig_or_bom(bytes);
-    if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, &sig_payload) {
+    if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, sig_payload) {
         trace!(
             "Detected a SIG or BOM mark on first {} byte(s). Priority +1 given for {}.",
             sig_pay.len(),
@@ -612,7 +612,7 @@ pub fn from_bytes(bytes: &Vec<u8>, settings: Option<NormalizerSettings>) -> Char
 // Opening and reading given file path in binary mode.
 // Can return Error.
 pub fn from_path(
-    path: &PathBuf,
+    path: &Path,
     settings: Option<NormalizerSettings>,
 ) -> Result<CharsetMatches, String> {
     // read file
