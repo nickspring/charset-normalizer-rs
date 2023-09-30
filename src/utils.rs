@@ -568,7 +568,8 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
                 .filter_map(|set| {
                     let path = set.to_str().unwrap();
                     let encoding: Vec<&str> = path.split('/').collect();
-                    let encoding: Vec<String> = encoding[encoding.len() - 2]
+                    let encoding: Vec<String> = encoding
+                        .get(encoding.len().checked_sub(2)?)?
                         .split(',')
                         .map(|s| s.to_string())
                         .collect();
