@@ -487,7 +487,7 @@ pub(crate) fn is_suspiciously_successive_range(
 
         if set_a
             .intersection(&set_b)
-            .any(|&elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
+            .any(|elem| !UNICODE_SECONDARY_RANGE_KEYWORD.contains(elem))
         {
             return false;
         }
@@ -501,7 +501,7 @@ pub(crate) fn is_suspiciously_successive_range(
         let has_punct_or_forms = [range_a, range_b]
             .iter()
             .any(|x| x.contains("Punctuation") || x.contains("Forms"));
-        let is_any_basic_latin = [range_a, range_b].iter().any(|x| *x == "Basic Latin");
+        let is_any_basic_latin = [range_a, range_b].iter().any(|&x| x == "Basic Latin");
 
         if (jp_a || jp_b) && has_cjk {
             //either is japanese and either contains CJK
