@@ -19,6 +19,12 @@ fn check_result(
     guessed_encoding: &String,
     buffer: &Vec<u8>,
 ) -> bool {
+    // check by encoding name
+    if correct_encodings.iter().any(|e| guessed_encoding == e) {
+        return true;
+    }
+
+    // if correct encoding wasn't found we will try to decode and compare results
     let whatwg_correct_encoding = correct_encodings
         .first()
         .and_then(|enc| encoding_from_whatwg_label(enc));
@@ -32,7 +38,7 @@ fn check_result(
                 _ => false,
             }
         }
-        _ => correct_encodings.iter().any(|e| guessed_encoding == e),
+        _ => false,
     }
 }
 
