@@ -119,6 +119,7 @@ impl PartialEq<Self> for CharsetMatch {
 impl PartialOrd<Self> for CharsetMatch {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let (coherence_a, coherence_b) = (self.coherence(), other.coherence());
+        let (multi_byte_a, multi_byte_b) = (self.multi_byte_usage(), other.multi_byte_usage());
         let coherence_difference = (coherence_a - coherence_b).abs();
         let mess_difference = (self.mean_mess_ratio - other.mean_mess_ratio).abs();
 
@@ -127,9 +128,7 @@ impl PartialOrd<Self> for CharsetMatch {
             // Below 1% difference --> Use Coherence
             (true, true) => coherence_b.partial_cmp(&coherence_a),
             // When having a tough decision, use the result that decoded as many multi-byte as possible.
-            (true, false) => other
-                .multi_byte_usage()
-                .partial_cmp(&self.multi_byte_usage()),
+            (true, false) => multi_byte_b.partial_cmp(&multi_byte_a),
         }
     }
 }
