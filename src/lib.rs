@@ -262,7 +262,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
     // check bom & sig
     let (sig_encoding, sig_payload) = identify_sig_or_bom(bytes);
-    if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, &sig_payload) {
+    if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, sig_payload) {
         trace!(
             "Detected a SIG or BOM mark on first {} byte(s). Priority +1 given for {}.",
             sig_pay.len(),
