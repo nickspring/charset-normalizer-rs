@@ -31,16 +31,16 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     let mut character_count: u32 = 0;
 
     for i in range {
-        if let Ok(chunk) = encoder.decode(&[i], DecoderTrap::Ignore) {
-            if let Some(first_char) = chunk.chars().next() {
-                if let Some(range) = unicode_range(&first_char) {
-                    if !is_unicode_range_secondary(range.to_string()) {
-                        *result.entry(range).or_insert(0) += 1;
-                        character_count += 1;
-                    }
-                }
-            }
-        }
+        encoder
+            .decode(&[i], DecoderTrap::Ignore)
+            .ok()
+            .and_then(|chunk| chunk.chars().next())
+            .and_then(|first_char| unicode_range(&first_char))
+            .filter(|&range| !is_unicode_range_secondary(range.to_string()))
+            .map(|range| {
+                *result.entry(range).or_insert(0) += 1;
+                character_count += 1;
+            });
     }
 
     let threshold = 0.15;
