@@ -5,7 +5,7 @@ use crate::consts::*;
 use crate::entity::*;
 use ahash::{HashSet, HashSetExt};
 use cached::proc_macro::cached;
-use cached::SizedCache;
+use cached::UnboundCache;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
 use std::borrow::Cow;
@@ -54,8 +54,8 @@ fn in_description(character: &char, patterns: &[&str]) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_punctuation(character: &char) -> bool {
@@ -63,8 +63,8 @@ pub(crate) fn is_punctuation(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_symbol(character: &char) -> bool {
@@ -72,8 +72,8 @@ pub(crate) fn is_symbol(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_emoticon(character: &char) -> bool {
@@ -81,8 +81,8 @@ pub(crate) fn is_emoticon(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_separator(character: &char) -> bool {
@@ -93,8 +93,8 @@ pub(crate) fn is_separator(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_unprintable(character: &char) -> bool {
@@ -105,8 +105,8 @@ pub(crate) fn is_unprintable(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_accentuated(character: &char) -> bool {
@@ -122,8 +122,8 @@ pub(crate) fn is_accentuated(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_latin(character: &char) -> bool {
@@ -132,8 +132,8 @@ pub(crate) fn is_latin(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_cjk(character: &char) -> bool {
@@ -142,8 +142,8 @@ pub(crate) fn is_cjk(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_hiragana(character: &char) -> bool {
@@ -152,8 +152,8 @@ pub(crate) fn is_hiragana(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_katakana(character: &char) -> bool {
@@ -162,8 +162,8 @@ pub(crate) fn is_katakana(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_hangul(character: &char) -> bool {
@@ -172,8 +172,8 @@ pub(crate) fn is_hangul(character: &char) -> bool {
 }
 
 #[cached(
-    type = "SizedCache<char, bool>",
-    create = "{ SizedCache::with_size(*UTF8_MAXIMAL_ALLOCATION) }",
+    type = "UnboundCache<char, bool>",
+    create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ *character }"#
 )]
 pub(crate) fn is_thai(character: &char) -> bool {
