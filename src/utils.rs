@@ -503,25 +503,27 @@ pub(crate) fn is_suspiciously_successive_range(
             .any(|x| x.contains("Punctuation") || x.contains("Forms"));
 
         if (jp_a || jp_b) && has_cjk {
+            //either is japanese and either contains CJK
             return false;
         }
 
         if jp_a && jp_b {
-            return false;
+            return false; // both are japanese
         }
 
         if has_hangul {
             if has_cjk {
-                return false;
+                return false; // either has both CJK and Hanguls
             }
             if [range_a, range_b].iter().any(|x| *x == "Basic Latin") {
+                //either has hangul and basic latin
                 return false;
             }
         }
 
         // Chinese use dedicated range for punctuation and/or separators.
         if has_cjk && has_punct_or_forms {
-            return false;
+            return false; // either has chinese and dedicated punctuation and separators
         }
     }
     // returns true if either range is none or edge cases never trigger
