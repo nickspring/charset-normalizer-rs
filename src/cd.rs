@@ -60,7 +60,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
         .filter_map(|(language, characters, _, _)| {
             characters
                 .chars()
-                .find(|&character| unicode_range(&character).unwrap_or_default() == primary_range)
+                .find(|char| unicode_range(char).unwrap_or_default() == primary_range)
                 .map(|_| language)
         })
         .collect::<Vec<&Language>>()
