@@ -566,14 +566,14 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
             return Ok(collect_large_sets(&path)
                 .iter()
                 .filter_map(|set| {
-                    let path = set.to_str().unwrap();
+                    let path = set.to_str()?;
                     let encoding: Vec<&str> = path.split('/').collect();
                     let encoding: Vec<String> = encoding
                         .get(encoding.len().checked_sub(2)?)?
                         .split(',')
                         .map(|s| s.to_string())
                         .collect();
-                    if encoding.len() == 1 && encoding.first().unwrap() == "largesets" {
+                    if encoding.len() == 1 && encoding.first()? == "largesets" {
                         None // None is ignored by filter_map
                     } else {
                         Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map
