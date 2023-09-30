@@ -194,12 +194,10 @@ pub(crate) fn is_unicode_range_secondary(range_name: String) -> bool {
 // Retrieve the Unicode range official name from a single character
 pub(crate) fn unicode_range(character: &char) -> Option<&'static str> {
     let char_code = *character as u32;
-    for (name, range) in &*UNICODE_RANGES_COMBINED {
-        if range.contains(&char_code) {
-            return Some(name);
-        }
-    }
-    None
+    UNICODE_RANGES_COMBINED
+        .iter()
+        .find(|&(_, range)| range.contains(&char_code))
+        .map(|(name, _)| *name)
 }
 
 pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
