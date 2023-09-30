@@ -503,32 +503,27 @@ pub(crate) fn is_suspiciously_successive_range(
             .any(|x| x.contains("Punctuation") || x.contains("Forms"));
         let is_any_basic_latin = [range_a, range_b].iter().any(|&x| x == "Basic Latin");
 
-        if (jp_a || jp_b) && has_cjk {
+        match (
+            jp_a,
+            jp_b,
+            has_cjk,
+            has_hangul,
+            has_punct_or_forms,
+            is_any_basic_latin,
+        ) {
+            (true, true, _, _, _, _) => return false, // both are japanese
             //either is japanese and either contains CJK
-            return false;
-        }
-
-        if jp_a && jp_b {
-            return false; // both are japanese
-        }
-
-        if has_hangul {
-            if has_cjk {
-                return false; // either has both CJK and Hanguls
-            }
-            if is_any_basic_latin {
-                // either has hangul and basic latin
-                return false;
-            }
-        }
-
-        // Chinese use dedicated range for punctuation and/or separators.
-        if has_cjk && has_punct_or_forms {
-            return false; // either has chinese and dedicated punctuation and separators
+            (true, _, true, _, _, _) | (_, true, true, _, _, _) => return false,
+            // either has both CJK and Hanguls
+            (_, _, true, true, _, _) => return false,
+            // either has chinese and dedicated punctuation and separators
+            (_, _, true, _, true, _) => return false,
+            // either has hangul and basic latin
+            (_, _, _, true, _, true) => return false,
+            _ => {} // All other combinations
         }
     }
-    // returns true if either range is none or edge cases never trigger
-    true
+    true // if either range is none or edge cases never triggers, return true
 }
 
 // Get data for specified language
