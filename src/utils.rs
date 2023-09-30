@@ -497,6 +497,10 @@ pub(crate) fn is_suspiciously_successive_range(
         let jp_a = jp_ranges.contains(&range_a);
         let jp_b = jp_ranges.contains(&range_b);
         let has_cjk = range_a.contains("CJK") || range_b.contains("CJK");
+        let has_hangul = [range_a, range_b].iter().any(|x| x.contains("Hangul"));
+        let has_punct_or_forms = [range_a, range_b]
+            .iter()
+            .any(|x| x.contains("Punctuation") || x.contains("Forms"));
 
         if (jp_a || jp_b) && has_cjk {
             return false;
@@ -506,7 +510,7 @@ pub(crate) fn is_suspiciously_successive_range(
             return false;
         }
 
-        if [range_a, range_b].iter().any(|x| x.contains("Hangul")) {
+        if has_hangul {
             if has_cjk {
                 return false;
             }
@@ -516,11 +520,7 @@ pub(crate) fn is_suspiciously_successive_range(
         }
 
         // Chinese use dedicated range for punctuation and/or separators.
-        if has_cjk
-            && [range_a, range_b]
-                .iter()
-                .any(|x| x.contains("Punctuation") || x.contains("Forms"))
-        {
+        if has_cjk && has_punct_or_forms {
             return false;
         }
     }
