@@ -486,16 +486,15 @@ pub(crate) fn is_suspiciously_successive_range(
 
         // Japanese exception
         let jp_ranges = ["Hiragana", "Katakana"];
-
         match (
-            jp_ranges.contains(&range_a), // has_jp_a
-            jp_ranges.contains(&range_b), // has_jp_b
-            [range_a, range_b].iter().any(|x| x.contains("CJK")), // has_cjk
+            jp_ranges.contains(&range_a),                            // has_jp_a
+            jp_ranges.contains(&range_b),                            // has_jp_b
+            [range_a, range_b].iter().any(|x| x.contains("CJK")),    // has_cjk
             [range_a, range_b].iter().any(|x| x.contains("Hangul")), // has_hangul
             [range_a, range_b]
                 .iter()
                 .any(|x| x.contains("Punctuation") || x.contains("Forms")), // has_punct_or_forms
-            [range_a, range_b].iter().any(|&x| x == "Basic Latin"), // is_any_basic_latin
+            [range_a, range_b].iter().any(|&x| x == "Basic Latin"),  // is_any_basic_latin
         ) {
             (true, true, _, _, _, _) => return false, // both are japanese
             //either is japanese and either contains CJK
