@@ -26,8 +26,8 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     let encoder = encoding_from_whatwg_label(iana_name)
         .ok_or("No decoder found for this encoding".to_string())?;
 
-    let range = 0x40..0xFF; // utf8 range
-    let mut result: HashMap<&str, u32> = HashMap::with_capacity(range.len());
+    let range = 0x40..0xFF; // utf8 range. range.len()==191
+    let mut result: HashMap<&str, u8> = HashMap::with_capacity(range.len());
 
     for i in range {
         encoder
@@ -40,7 +40,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
                 *result.entry(range).or_insert(0) += 1;
             });
     }
-    let character_count: u32 = result.values().sum();
+    let character_count: u8 = result.values().sum();
 
     let threshold = 0.15;
     let mut result: Vec<&str> = result
