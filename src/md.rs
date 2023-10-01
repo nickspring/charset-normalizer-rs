@@ -2,9 +2,9 @@
 
 use crate::consts::COMMON_SAFE_ASCII_CHARACTERS;
 use crate::utils::{
-    is_accentuated, is_case_variable, is_cjk, is_emoticon, is_hangul, is_hiragana,
-    is_katakana, is_latin, is_punctuation, is_separator, is_suspiciously_successive_range,
-    is_symbol, is_thai, is_unprintable, remove_accent, unicode_range,
+    is_accentuated, is_case_variable, is_cjk, is_emoticon, is_hangul, is_hiragana, is_katakana,
+    is_latin, is_punctuation, is_separator, is_suspiciously_successive_range, is_symbol, is_thai,
+    is_unprintable, remove_accent, unicode_range,
 };
 use cached::proc_macro::cached;
 use log::trace;
