@@ -210,17 +210,13 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
         self.last_printable_char = Some(*character);
     }
     fn ratio(&self) -> f32 {
-        if self.character_count == 0 {
-            return 0.0;
-        }
-
-        let ratio_of_suspicious_range_usage: f32 =
-            ((self.suspicious_successive_range_count as f32) * 2.0) / self.character_count as f32;
-
-        if ratio_of_suspicious_range_usage < 0.1 {
-            return 0.0;
-        }
-        ratio_of_suspicious_range_usage
+        (self.character_count > 0)
+            .then(|| {
+                ((self.suspicious_successive_range_count as f32) * 2.0)
+                    / self.character_count as f32
+            })
+            .filter(|&ratio| ratio >= 0.1)
+            .unwrap_or(0.0)
     }
 }
 
