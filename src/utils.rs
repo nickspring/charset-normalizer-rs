@@ -185,7 +185,7 @@ pub(crate) fn is_case_variable(character: &char) -> bool {
     character.is_lowercase() != character.is_uppercase()
 }
 
-pub(crate) fn is_unicode_range_secondary(range_name: String) -> bool {
+pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
     UNICODE_SECONDARY_RANGE_KEYWORD
         .iter()
         .any(|&s| range_name.contains(s))

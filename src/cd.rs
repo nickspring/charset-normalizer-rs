@@ -35,7 +35,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
             .ok()
             .and_then(|chunk| chunk.chars().next())
             .and_then(|first_char| unicode_range(&first_char))
-            .filter(|&range| !is_unicode_range_secondary(range.to_string()))
+            .filter(|&range| !is_unicode_range_secondary(range))
             .map(|range| {
                 *result.entry(range).or_insert(0) += 1;
             });

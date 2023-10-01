@@ -76,8 +76,8 @@ fn test_is_case_variable() {
 
 #[test]
 fn test_is_unicode_range_secondary() {
-    assert!(!is_unicode_range_secondary("Something".to_string()));
-    assert!(is_unicode_range_secondary("Extended".to_string()));
+    assert!(!is_unicode_range_secondary("Something"));
+    assert!(is_unicode_range_secondary("Extended"));
 }
 
 #[test]
