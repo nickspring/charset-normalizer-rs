@@ -48,12 +48,11 @@ fn in_category(
 // check if character description contains at least one of patterns
 fn in_description(character: &char, patterns: &[&str]) -> bool {
     Name::of(*character)
-        .map(|description| {
+        .is_some_and(|description| {
             patterns
                 .iter()
                 .any(|&s| description.to_string().contains(s))
         })
-        .unwrap_or(false)
 }
 
 #[cached(
