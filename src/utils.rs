@@ -358,32 +358,30 @@ pub fn decode(
     only_test: bool,
     is_chunk: bool,
 ) -> Result<String, String> {
-    if let Some(encoder) = encoding_from_whatwg_label(from_encoding) {
-        let mut buf = DecodeTestResult {
-            only_test,
-            data: String::new(),
-        };
-        let mut err = CodecError {
-            upto: 0,
-            cause: Cow::from(String::new()),
-        };
-        let chunk_len = input.len();
-        let mut begin_offset: usize = 0;
-        let mut end_offset: usize = chunk_len;
-        let mut res;
-        let mut error_occured: bool;
-        loop {
-            res = decode_to(
-                encoder,
-                &input[begin_offset..end_offset],
-                how_process_errors,
-                &mut buf,
-            );
-            error_occured = res.is_err();
-            if let DecoderTrap::Strict = how_process_errors {
-            } else {
-                break;
-            }
+    let encoder = encoding_from_whatwg_label(from_encoding)
+        .ok_or(format!("Encoding '{}' not found", from_encoding))?;
+
+    let mut buf = DecodeTestResult {
+        only_test,
+        data: String::new(),
+    };
+    let mut err = CodecError {
+        upto: 0,
+        cause: Cow::from(String::new()),
+    };
+    let chunk_len = input.len();
+    let mut begin_offset: usize = 0;
+    let mut end_offset: usize = chunk_len;
+    let mut error_occured: bool;
+    loop {
+        let res = decode_to(
+            encoder,
+            &input[begin_offset..end_offset],
+            how_process_errors,
+            &mut buf,
+        );
+        error_occured = res.is_err();
+        if let DecoderTrap::Strict = how_process_errors {
             if !is_chunk || res.is_ok() || !is_multi_byte_encoding(from_encoding) {
                 break;
             }
@@ -396,13 +394,14 @@ pub fn decode(
             if end_offset - begin_offset < 1 || begin_offset > 3 || (chunk_len - end_offset) > 3 {
                 break;
             }
+        } else {
+            break;
         }
-        if error_occured {
-            return Err(format!("{} at index {}", err.cause, err.upto));
-        }
-        return Ok(String::from(buf.get_buffer()));
     }
-    Err(format!("Encoding '{}' not found", from_encoding))
+    if error_occured {
+        return Err(format!("{} at index {}", err.cause, err.upto));
+    }
+    return Ok(String::from(buf.get_buffer()));
 }
 
 // Copied implementation of decode_to from encoder lib
