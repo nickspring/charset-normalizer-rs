@@ -575,12 +575,10 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         let fb = match (&fallback_specified, &fallback_u8, &fallback_ascii) {
             (Some(specified), _, _) => Some(specified),
             (None, Some(u8_fallback), None) => Some(u8_fallback),
-            (None, Some(u8_fallback), Some(ascii)) => {
-                if u8_fallback.decoded_payload() != ascii.decoded_payload() {
-                    Some(u8_fallback)
-                } else {
-                    Some(ascii)
-                }
+            (None, Some(u8_fallback), Some(ascii))
+                if u8_fallback.decoded_payload() != ascii.decoded_payload() =>
+            {
+                Some(u8_fallback)
             }
             (None, _, Some(ascii)) => Some(ascii),
             _ => None,
