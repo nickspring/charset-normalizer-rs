@@ -42,6 +42,8 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
                 character_count += 1;
             });
     }
+    let character_count2: u32 = result.values().sum();
+    assert_eq!(character_count,character_count2);
 
     let threshold = 0.15;
     let mut result: Vec<&str> = result
