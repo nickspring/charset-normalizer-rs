@@ -2,9 +2,9 @@
 
 use crate::consts::COMMON_SAFE_ASCII_CHARACTERS;
 use crate::utils::{
-    is_accentuated, is_ascii, is_case_variable, is_cjk, is_emoticon, is_hangul, is_hiragana,
-    is_katakana, is_latin, is_punctuation, is_separator, is_suspiciously_successive_range,
-    is_symbol, is_thai, is_unprintable, remove_accent, unicode_range,
+    is_accentuated, is_case_variable, is_cjk, is_emoticon, is_hangul, is_hiragana, is_katakana,
+    is_latin, is_punctuation, is_separator, is_suspiciously_successive_range, is_symbol, is_thai,
+    is_unprintable, remove_accent, unicode_range,
 };
 use cached::proc_macro::cached;
 use log::trace;
@@ -66,14 +66,11 @@ impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
         if self.character_count == 0 {
             return 0.0;
         }
-        let ratio_of_punctuation: f32 = (self.punctuation_count as f32 + self.symbol_count as f32)
-            / (self.character_count as f32);
-
-        if ratio_of_punctuation >= 0.3 {
-            ratio_of_punctuation
-        } else {
-            0.0
-        }
+        let ratio_of_punctuation =
+            (self.punctuation_count + self.symbol_count) as f32 / (self.character_count as f32);
+        (ratio_of_punctuation >= 0.3)
+            .then(|| ratio_of_punctuation)
+            .unwrap_or(0.0)
     }
 }
 
@@ -98,16 +95,10 @@ impl MessDetectorPlugin for TooManyAccentuatedPlugin {
         }
     }
     fn ratio(&self) -> f32 {
-        if self.character_count < 8 {
-            return 0.0;
-        }
-        let ratio_of_accentuation: f32 =
-            self.accentuated_count as f32 / self.character_count as f32;
-        if ratio_of_accentuation >= 0.35 {
-            ratio_of_accentuation
-        } else {
-            0.0
-        }
+        (self.character_count >= 8)
+            .then(|| self.accentuated_count as f32 / self.character_count as f32)
+            .filter(|&ratio| ratio >= 0.35)
+            .unwrap_or(0.0)
     }
 }
 
@@ -219,17 +210,13 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
         self.last_printable_char = Some(*character);
     }
     fn ratio(&self) -> f32 {
-        if self.character_count == 0 {
-            return 0.0;
-        }
-
-        let ratio_of_suspicious_range_usage: f32 =
-            ((self.suspicious_successive_range_count as f32) * 2.0) / self.character_count as f32;
-
-        if ratio_of_suspicious_range_usage < 0.1 {
-            return 0.0;
-        }
-        ratio_of_suspicious_range_usage
+        (self.character_count > 0)
+            .then(|| {
+                ((self.suspicious_successive_range_count as f32) * 2.0)
+                    / self.character_count as f32
+            })
+            .filter(|&ratio| ratio >= 0.1)
+            .unwrap_or(0.0)
     }
 }
 
@@ -237,6 +224,7 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
 // SuperWeirdWordPlugin implementation
 //
 
+#[derive(Default)]
 struct SuperWeirdWordPlugin {
     character_count: u64,
     word_count: u64,
@@ -247,22 +235,6 @@ struct SuperWeirdWordPlugin {
     bad_character_count: u64,
     buffer_accent_count: u64,
     buffer: String,
-}
-
-impl Default for SuperWeirdWordPlugin {
-    fn default() -> Self {
-        SuperWeirdWordPlugin {
-            word_count: 0,
-            bad_word_count: 0,
-            foreign_long_count: 0,
-            is_current_word_bad: false,
-            foreign_long_watch: false,
-            character_count: 0,
-            bad_character_count: 0,
-            buffer: "".to_string(),
-            buffer_accent_count: 0,
-        }
-    }
 }
 
 impl MessDetectorPlugin for SuperWeirdWordPlugin {
@@ -433,9 +405,7 @@ impl MessDetectorPlugin for ArchaicUpperLowerPlugin {
             return;
         }
 
-        if self.current_ascii_only && !is_ascii(character) {
-            self.current_ascii_only = false;
-        }
+        self.current_ascii_only &= character.is_ascii();
 
         if let Some(tmp_last_alpha) = self.last_alpha_seen {
             if (character.is_uppercase() && tmp_last_alpha.is_lowercase())

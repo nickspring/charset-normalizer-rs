@@ -185,7 +185,7 @@ pub(crate) fn is_case_variable(character: &char) -> bool {
     character.is_lowercase() != character.is_uppercase()
 }
 
-pub(crate) fn is_unicode_range_secondary(range_name: String) -> bool {
+pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
     UNICODE_SECONDARY_RANGE_KEYWORD
         .iter()
         .any(|&s| range_name.contains(s))
@@ -211,19 +211,12 @@ pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
     result // decoded_sequence.chars().filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())).collect()
 }
 
-pub(crate) fn is_ascii(character: &char) -> bool {
-    character.is_ascii()
-}
-
 pub(crate) fn remove_accent(ch: &char) -> char {
     let mut base_char = None;
     decompose_canonical(*ch, |c| {
         base_char.get_or_insert(c);
     });
-    if let Some(base_char) = base_char {
-        return base_char;
-    }
-    *ch
+    base_char.map_or(*ch, |c| c)
 }
 
 pub(crate) fn should_strip_sig_or_bom(_iana_encoding: &str) -> bool {
@@ -251,25 +244,22 @@ pub fn is_multi_byte_encoding(name: &str) -> bool {
 
 // Try to detect multibyte encoding by signature
 pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[u8]>) {
-    for (encoding_name, encoding_signature) in &*ENCODING_MARKS {
-        if sequence.starts_with(encoding_signature) {
-            return (Some(encoding_name.to_string()), Some(encoding_signature));
-        }
-    }
-    (None, None)
+    ENCODING_MARKS
+        .iter()
+        .find(|&(_, enc_sig)| sequence.starts_with(enc_sig))
+        .map(|(enc_name, enc_sig)| (Some(enc_name.to_string()), Some(*enc_sig)))
+        .unwrap_or((None, None))
 }
 
 // Try to get standard name by alternative labels
 pub fn iana_name(cp_name: &str) -> Option<&str> {
-    // firstly just try to search it in our list
-    if IANA_SUPPORTED.contains(&cp_name) {
-        return Some(cp_name);
-    }
-    // if didn't found, try to use alternative way
-    if let Some(enc) = encoding_from_whatwg_label(cp_name) {
-        return Some(enc.whatwg_name().unwrap_or(enc.name()));
-    }
-    None
+    IANA_SUPPORTED
+        .contains(&cp_name) // first just try to search it in our list
+        .then(|| cp_name)
+        .or_else(|| {
+            // if not found, try to use alternative way
+            encoding_from_whatwg_label(cp_name).map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
+        })
 }
 
 pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
@@ -279,20 +269,20 @@ pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
 
 // Extract using ASCII-only decoder any specified encoding in the first n-bytes.
 pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Option<String> {
-    if let Ok(test_string) = encoding::all::ASCII.decode(
-        &sequence[0..search_zone.min(sequence.len())],
-        DecoderTrap::Ignore,
-    ) {
-        for (_, [specified_encoding]) in RE_POSSIBLE_ENCODING_INDICATION
-            .captures_iter(&test_string)
-            .map(|c| c.extract())
-        {
-            if let Some(found_iana) = iana_name(specified_encoding) {
-                return Some(found_iana.to_string());
-            }
-        }
-    }
-    None
+    encoding::all::ASCII
+        .decode(
+            &sequence[0..search_zone.min(sequence.len())],
+            DecoderTrap::Ignore,
+        )
+        .ok()
+        .and_then(|test_string| {
+            RE_POSSIBLE_ENCODING_INDICATION
+                .captures_iter(&test_string)
+                .map(|c| c.extract())
+                .filter_map(|(_, [specified_encoding])| iana_name(specified_encoding))
+                .next()
+                .map(|found_iana| found_iana.to_string())
+        })
 }
 
 // Calculate similarity of two single byte encodings
@@ -360,32 +350,30 @@ pub fn decode(
     only_test: bool,
     is_chunk: bool,
 ) -> Result<String, String> {
-    if let Some(encoder) = encoding_from_whatwg_label(from_encoding) {
-        let mut buf = DecodeTestResult {
-            only_test,
-            data: String::new(),
-        };
-        let mut err = CodecError {
-            upto: 0,
-            cause: Cow::from(String::new()),
-        };
-        let chunk_len = input.len();
-        let mut begin_offset: usize = 0;
-        let mut end_offset: usize = chunk_len;
-        let mut res;
-        let mut error_occured: bool;
-        loop {
-            res = decode_to(
-                encoder,
-                &input[begin_offset..end_offset],
-                how_process_errors,
-                &mut buf,
-            );
-            error_occured = res.is_err();
-            if let DecoderTrap::Strict = how_process_errors {
-            } else {
-                break;
-            }
+    let encoder = encoding_from_whatwg_label(from_encoding)
+        .ok_or(format!("Encoding '{}' not found", from_encoding))?;
+
+    let mut buf = DecodeTestResult {
+        only_test,
+        data: String::new(),
+    };
+    let mut err = CodecError {
+        upto: 0,
+        cause: Cow::from(String::new()),
+    };
+    let chunk_len = input.len();
+    let mut begin_offset: usize = 0;
+    let mut end_offset: usize = chunk_len;
+    let mut error_occured: bool;
+    loop {
+        let res = decode_to(
+            encoder,
+            &input[begin_offset..end_offset],
+            how_process_errors,
+            &mut buf,
+        );
+        error_occured = res.is_err();
+        if let DecoderTrap::Strict = how_process_errors {
             if !is_chunk || res.is_ok() || !is_multi_byte_encoding(from_encoding) {
                 break;
             }
@@ -398,13 +386,14 @@ pub fn decode(
             if end_offset - begin_offset < 1 || begin_offset > 3 || (chunk_len - end_offset) > 3 {
                 break;
             }
+        } else {
+            break;
         }
-        if error_occured {
-            return Err(format!("{} at index {}", err.cause, err.upto));
-        }
-        return Ok(String::from(buf.get_buffer()));
     }
-    Err(format!("Encoding '{}' not found", from_encoding))
+    if error_occured {
+        return Err(format!("{} at index {}", err.cause, err.upto));
+    }
+    Ok(String::from(buf.get_buffer()))
 }
 
 // Copied implementation of decode_to from encoder lib
@@ -420,9 +409,10 @@ fn decode_to(
     loop {
         let (offset, err) = decoder.raw_feed(&input[remaining..], ret);
         let unprocessed = remaining + offset;
+
         match err {
             Some(err) => {
-                remaining = (remaining as isize + err.upto) as usize;
+                remaining = remaining.wrapping_add_signed(err.upto);
                 if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
                     return Err(err);
                 }
@@ -430,7 +420,7 @@ fn decode_to(
             None => {
                 remaining = input.len();
                 if let Some(err) = decoder.raw_finish(ret) {
-                    remaining = (remaining as isize + err.upto) as usize;
+                    remaining = remaining.wrapping_add_signed(err.upto);
                     if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
                         return Err(err);
                     }
@@ -489,22 +479,15 @@ pub(crate) fn is_suspiciously_successive_range(
 
         // Japanese exception
         let jp_ranges = ["Hiragana", "Katakana"];
-        let jp_a = jp_ranges.contains(&range_a);
-        let jp_b = jp_ranges.contains(&range_b);
-        let has_cjk = [range_a, range_b].iter().any(|x| x.contains("CJK"));
-        let has_hangul = [range_a, range_b].iter().any(|x| x.contains("Hangul"));
-        let has_punct_or_forms = [range_a, range_b]
-            .iter()
-            .any(|x| x.contains("Punctuation") || x.contains("Forms"));
-        let is_any_basic_latin = [range_a, range_b].iter().any(|&x| x == "Basic Latin");
-
         match (
-            jp_a,
-            jp_b,
-            has_cjk,
-            has_hangul,
-            has_punct_or_forms,
-            is_any_basic_latin,
+            jp_ranges.contains(&range_a),                            // has_jp_a
+            jp_ranges.contains(&range_b),                            // has_jp_b
+            [range_a, range_b].iter().any(|x| x.contains("CJK")),    // has_cjk
+            [range_a, range_b].iter().any(|x| x.contains("Hangul")), // has_hangul
+            [range_a, range_b]
+                .iter()
+                .any(|x| x.contains("Punctuation") || x.contains("Forms")), // has_punct_or_forms
+            [range_a, range_b].iter().any(|&x| x == "Basic Latin"),  // is_any_basic_latin
         ) {
             (true, true, _, _, _, _) => return false, // both are japanese
             //either is japanese and either contains CJK

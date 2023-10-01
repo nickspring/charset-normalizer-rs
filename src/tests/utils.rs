@@ -76,8 +76,8 @@ fn test_is_case_variable() {
 
 #[test]
 fn test_is_unicode_range_secondary() {
-    assert!(!is_unicode_range_secondary("Something".to_string()));
-    assert!(is_unicode_range_secondary("Extended".to_string()));
+    assert!(!is_unicode_range_secondary("Something"));
+    assert!(is_unicode_range_secondary("Extended"));
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn test_is_ascii() {
         ('7', true),
     ];
     for test in &tests {
-        assert_eq!(is_ascii(&test.0), test.1);
+        assert_eq!(test.0.is_ascii(), test.1);
     }
 }
 

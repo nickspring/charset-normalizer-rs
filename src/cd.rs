@@ -26,23 +26,21 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     let encoder = encoding_from_whatwg_label(iana_name)
         .ok_or("No decoder found for this encoding".to_string())?;
 
-    let range = 0x40..0xFF; // utf8 range
-    let mut result: HashMap<&str, u32> = HashMap::with_capacity(range.len());
-    let mut character_count: u32 = 0;
+    let byte_range = 0x40..0xFF; // utf8 range. range.len()==191
+    let mut result: HashMap<&str, u8> = HashMap::with_capacity(byte_range.len());
 
-    for i in range {
-        if let Ok(chunk) = encoder.decode(&[i], DecoderTrap::Ignore) {
-            if let Some(first_char) = chunk.chars().next() {
-                if let Some(range) = unicode_range(&first_char) {
-                    if !is_unicode_range_secondary(range.to_string()) {
-                        *result.entry(range).or_insert(0) += 1;
-                        character_count += 1;
-                    }
-                }
-            }
-        }
+    for i in byte_range {
+        encoder
+            .decode(&[i], DecoderTrap::Ignore)
+            .ok()
+            .and_then(|chunk| chunk.chars().next())
+            .and_then(|first_char| unicode_range(&first_char))
+            .filter(|&range| !is_unicode_range_secondary(range))
+            .map(|range| {
+                *result.entry(range).or_insert(0) += 1;
+            });
     }
-
+    let character_count: u8 = result.values().sum();
     let threshold = 0.15;
     let mut result: Vec<&str> = result
         .iter()
@@ -60,7 +58,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
         .filter_map(|(language, characters, _, _)| {
             characters
                 .chars()
-                .find(|&character| unicode_range(&character).unwrap_or_default() == primary_range)
+                .find(|char| unicode_range(char).unwrap_or_default() == primary_range)
                 .map(|_| language)
         })
         .collect::<Vec<&Language>>()
