@@ -29,17 +29,17 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     let byte_range = 0x40..0xFF; // utf8 range. range.len()==191
     let mut result: HashMap<&str, u8> = HashMap::with_capacity(byte_range.len());
 
-    for i in byte_range {
-        encoder
+    byte_range.for_each(|i| {
+        if let Some(range) = encoder
             .decode(&[i], DecoderTrap::Ignore)
             .ok()
             .and_then(|chunk| chunk.chars().next())
             .and_then(|first_char| unicode_range(&first_char))
             .filter(|&range| !is_unicode_range_secondary(range))
-            .map(|range| {
-                *result.entry(range).or_insert(0) += 1;
-            });
-    }
+        {
+            *result.entry(range).or_insert(0) += 1;
+        }
+    });
     let character_count: u8 = result.values().sum();
     let threshold = 0.15;
     let mut result: Vec<&str> = result
