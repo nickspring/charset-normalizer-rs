@@ -419,7 +419,7 @@ fn decode_to(
         let unprocessed = remaining + offset;
         match err {
             Some(err) => {
-                remaining = (remaining as isize + err.upto) as usize;
+                remaining = remaining.wrapping_add_signed(err.upto);
                 if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
                     return Err(err);
                 }
@@ -427,7 +427,7 @@ fn decode_to(
             None => {
                 remaining = input.len();
                 if let Some(err) = decoder.raw_finish(ret) {
-                    remaining = (remaining as isize + err.upto) as usize;
+                    remaining = remaining.wrapping_add_signed(err.upto);
                     if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
                         return Err(err);
                     }
