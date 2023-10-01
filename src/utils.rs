@@ -211,10 +211,6 @@ pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
     result // decoded_sequence.chars().filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())).collect()
 }
 
-pub(crate) fn is_ascii(character: &char) -> bool {
-    character.is_ascii()
-}
-
 pub(crate) fn remove_accent(ch: &char) -> char {
     let mut base_char = None;
     decompose_canonical(*ch, |c| {

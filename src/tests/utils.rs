@@ -107,8 +107,7 @@ fn test_is_ascii() {
         ('7', true),
     ];
     for test in &tests {
-        assert_eq!(is_ascii(&test.0), test.1);
-        assert_eq!(is_ascii(&test.0), test.0.is_ascii())
+        assert_eq!(test.0.is_ascii(), test.1);
     }
 }
 
