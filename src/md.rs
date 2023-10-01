@@ -224,6 +224,7 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
 // SuperWeirdWordPlugin implementation
 //
 
+#[derive(Default)]
 struct SuperWeirdWordPlugin {
     character_count: u64,
     word_count: u64,
@@ -234,22 +235,6 @@ struct SuperWeirdWordPlugin {
     bad_character_count: u64,
     buffer_accent_count: u64,
     buffer: String,
-}
-
-impl Default for SuperWeirdWordPlugin {
-    fn default() -> Self {
-        SuperWeirdWordPlugin {
-            word_count: 0,
-            bad_word_count: 0,
-            foreign_long_count: 0,
-            is_current_word_bad: false,
-            foreign_long_watch: false,
-            character_count: 0,
-            bad_character_count: 0,
-            buffer: "".to_string(),
-            buffer_accent_count: 0,
-        }
-    }
 }
 
 impl MessDetectorPlugin for SuperWeirdWordPlugin {
