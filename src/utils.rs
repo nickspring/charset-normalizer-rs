@@ -261,13 +261,13 @@ pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[
 
 // Try to get standard name by alternative labels
 pub fn iana_name(cp_name: &str) -> Option<&str> {
-    // firstly just try to search it in our list
-    if IANA_SUPPORTED.contains(&cp_name) {
-        return Some(cp_name);
-    }
-    // if didn't found, try to use alternative way
-    encoding_from_whatwg_label(cp_name)
-        .map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
+    IANA_SUPPORTED
+        .contains(&cp_name) // first just try to search it in our list
+        .then(|| cp_name)
+        .or_else(|| {
+            // if not found, try to use alternative way
+            encoding_from_whatwg_label(cp_name).map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
+        })
 }
 
 pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
