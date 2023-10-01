@@ -489,15 +489,12 @@ pub(crate) fn is_suspiciously_successive_range(
                 .any(|x| x.contains("Punctuation") || x.contains("Forms")), // has_punct_or_forms
             [range_a, range_b].iter().any(|&x| x == "Basic Latin"),  // is_any_basic_latin
         ) {
-            (true, true, _, _, _, _) => return false, // both are japanese
-            //either is japanese and either contains CJK
-            (true, _, true, _, _, _) | (_, true, true, _, _, _) => return false,
-            // either has both CJK and Hanguls
-            (_, _, true, true, _, _) => return false,
-            // either has chinese and dedicated punctuation and separators
-            (_, _, true, _, true, _) => return false,
-            // either has hangul and basic latin
-            (_, _, _, true, _, true) => return false,
+            (true, true, _, _, _, _) // both are japanese
+            | (true, _, true, _, _, _) | (_, true, true, _, _, _) //either is japanese and either contains CJK
+            | (_, _, true, true, _, _) // either has both CJK and Hanguls
+            | (_, _, true, _, true, _) // either has chinese and dedicated punctuation and separators 
+            | (_, _, _, true, _, true) // either has hangul and basic latin 
+            => return false,
             _ => {} // All other combinations
         }
     }
