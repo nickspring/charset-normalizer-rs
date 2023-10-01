@@ -213,7 +213,7 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
         (self.character_count > 0)
             .then_some(
                 ((self.suspicious_successive_range_count as f32) * 2.0)
-                    / self.character_count as f32
+                    / self.character_count as f32,
             )
             .filter(|&ratio| ratio >= 0.1)
             .unwrap_or(0.0)

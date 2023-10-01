@@ -272,7 +272,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // add ascii & utf-8
-    prioritized_encodings.extend(["ascii", "utf-8"].iter().map(|s| s.to_string()));
+    prioritized_encodings.extend(["ascii", "utf-8"].iter().map(|&s| s.to_string()));
 
     // generate array of encodings for probing with prioritizing
     let mut iana_encodings = IANA_SUPPORTED.clone();

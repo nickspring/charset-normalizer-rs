@@ -280,7 +280,8 @@ pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Opt
         .and_then(|test_string| {
             RE_POSSIBLE_ENCODING_INDICATION
                 .captures_iter(&test_string)
-                .map(|c| c.extract()).find_map(|(_, [specified_encoding])| iana_name(specified_encoding))
+                .map(|c| c.extract())
+                .find_map(|(_, [specified_encoding])| iana_name(specified_encoding))
                 .map(|found_iana| found_iana.to_string())
         })
 }
