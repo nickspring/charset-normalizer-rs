@@ -28,7 +28,6 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
 
     let range = 0x40..0xFF; // utf8 range
     let mut result: HashMap<&str, u32> = HashMap::with_capacity(range.len());
-    let mut character_count: u32 = 0;
 
     for i in range {
         encoder
@@ -39,11 +38,9 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
             .filter(|&range| !is_unicode_range_secondary(range.to_string()))
             .map(|range| {
                 *result.entry(range).or_insert(0) += 1;
-                character_count += 1;
             });
     }
-    let character_count2: u32 = result.values().sum();
-    assert_eq!(character_count,character_count2);
+    let character_count: u32 = result.values().sum();
 
     let threshold = 0.15;
     let mut result: Vec<&str> = result
