@@ -266,10 +266,8 @@ pub fn iana_name(cp_name: &str) -> Option<&str> {
         return Some(cp_name);
     }
     // if didn't found, try to use alternative way
-    if let Some(enc) = encoding_from_whatwg_label(cp_name) {
-        return Some(enc.whatwg_name().unwrap_or(enc.name()));
-    }
-    None
+    encoding_from_whatwg_label(cp_name)
+        .map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
 }
 
 pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
