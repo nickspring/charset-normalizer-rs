@@ -47,12 +47,11 @@ fn in_category(
 
 // check if character description contains at least one of patterns
 fn in_description(character: &char, patterns: &[&str]) -> bool {
-    Name::of(*character)
-        .is_some_and(|description| {
-            patterns
-                .iter()
-                .any(|&s| description.to_string().contains(s))
-        })
+    Name::of(*character).is_some_and(|description| {
+        patterns
+            .iter()
+            .any(|&s| description.to_string().contains(s))
+    })
 }
 
 #[cached(
@@ -249,14 +248,16 @@ pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[
     ENCODING_MARKS
         .iter()
         .find(|&(_, enc_sig)| sequence.starts_with(enc_sig))
-        .map_or((None, None), |(enc_name, enc_sig)| (Some(enc_name.to_string()), Some(*enc_sig)))
+        .map_or((None, None), |(enc_name, enc_sig)| {
+            (Some((*enc_name).to_string()), Some(*enc_sig))
+        })
 }
 
 // Try to get standard name by alternative labels
 pub fn iana_name(cp_name: &str) -> Option<&str> {
     IANA_SUPPORTED
         .contains(&cp_name) // first just try to search it in our list
-        .then(|| cp_name)
+        .then_some(cp_name)
         .or_else(|| {
             // if not found, try to use alternative way
             encoding_from_whatwg_label(cp_name).map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
@@ -279,9 +280,7 @@ pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Opt
         .and_then(|test_string| {
             RE_POSSIBLE_ENCODING_INDICATION
                 .captures_iter(&test_string)
-                .map(|c| c.extract())
-                .filter_map(|(_, [specified_encoding])| iana_name(specified_encoding))
-                .next()
+                .map(|c| c.extract()).find_map(|(_, [specified_encoding])| iana_name(specified_encoding))
                 .map(|found_iana| found_iana.to_string())
         })
 }
