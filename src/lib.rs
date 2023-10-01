@@ -583,13 +583,13 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             (None, _, Some(ascii)) => Some(ascii),
             _ => None,
         };
-        fb.map(|fb_to_pass| {
+        if let Some(fb_to_pass) = fb {
             debug!(
                 "Encoding detection: will be used as a fallback match {}",
                 fb_to_pass.encoding()
             );
             results.append(fb_to_pass.clone());
-        });
+        };
     }
 
     // final logger information
