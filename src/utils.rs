@@ -277,20 +277,20 @@ pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
 
 // Extract using ASCII-only decoder any specified encoding in the first n-bytes.
 pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Option<String> {
-    if let Ok(test_string) = encoding::all::ASCII.decode(
-        &sequence[0..search_zone.min(sequence.len())],
-        DecoderTrap::Ignore,
-    ) {
-        for (_, [specified_encoding]) in RE_POSSIBLE_ENCODING_INDICATION
-            .captures_iter(&test_string)
-            .map(|c| c.extract())
-        {
-            if let Some(found_iana) = iana_name(specified_encoding) {
-                return Some(found_iana.to_string());
-            }
-        }
-    }
-    None
+    encoding::all::ASCII
+        .decode(
+            &sequence[0..search_zone.min(sequence.len())],
+            DecoderTrap::Ignore,
+        )
+        .ok()
+        .and_then(|test_string| {
+            RE_POSSIBLE_ENCODING_INDICATION
+                .captures_iter(&test_string)
+                .map(|c| c.extract())
+                .filter_map(|(_, [specified_encoding])| iana_name(specified_encoding))
+                .next()
+                .map(|found_iana| found_iana.to_string())
+        })
 }
 
 // Calculate similarity of two single byte encodings
