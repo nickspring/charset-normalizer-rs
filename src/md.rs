@@ -433,9 +433,7 @@ impl MessDetectorPlugin for ArchaicUpperLowerPlugin {
             return;
         }
 
-        if self.current_ascii_only && !character.is_ascii() {
-            self.current_ascii_only = false;
-        }
+        self.current_ascii_only &= character.is_ascii();
 
         if let Some(tmp_last_alpha) = self.last_alpha_seen {
             if (character.is_uppercase() && tmp_last_alpha.is_lowercase())
