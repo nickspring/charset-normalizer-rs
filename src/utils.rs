@@ -220,10 +220,7 @@ pub(crate) fn remove_accent(ch: &char) -> char {
     decompose_canonical(*ch, |c| {
         base_char.get_or_insert(c);
     });
-    if let Some(base_char) = base_char {
-        return base_char;
-    }
-    *ch
+    base_char.map_or(*ch, |c| c)
 }
 
 pub(crate) fn should_strip_sig_or_bom(_iana_encoding: &str) -> bool {
