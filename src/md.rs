@@ -23,7 +23,7 @@ trait MessDetectorPlugin {
     }
 
     // Determine if given character should be fed in
-    fn eligible(&self, character: &char) -> bool;
+    fn eligible(&self, character: char) -> bool;
 
     // The main routine to be executed upon character.
     // Insert the logic in witch the text would be considered chaotic.
@@ -46,8 +46,8 @@ struct TooManySymbolOrPunctuationPlugin {
 }
 
 impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
-    fn eligible(&self, character: &char) -> bool {
-        !is_unprintable(character)
+    fn eligible(&self, character: char) -> bool {
+        !is_unprintable(&character)
     }
     fn feed(&mut self, character: &char) {
         self.character_count += 1;
@@ -85,7 +85,7 @@ struct TooManyAccentuatedPlugin {
 }
 
 impl MessDetectorPlugin for TooManyAccentuatedPlugin {
-    fn eligible(&self, character: &char) -> bool {
+    fn eligible(&self, character: char) -> bool {
         character.is_alphabetic()
     }
     fn feed(&mut self, character: &char) {
@@ -96,7 +96,7 @@ impl MessDetectorPlugin for TooManyAccentuatedPlugin {
     }
     fn ratio(&self) -> f32 {
         (self.character_count >= 8)
-            .then(|| self.accentuated_count as f32 / self.character_count as f32)
+            .then_some(self.accentuated_count as f32 / self.character_count as f32)
             .filter(|&ratio| ratio >= 0.35)
             .unwrap_or(0.0)
     }
@@ -113,14 +113,14 @@ struct UnprintablePlugin {
 }
 
 impl MessDetectorPlugin for UnprintablePlugin {
-    fn eligible(&self, character: &char) -> bool {
+    fn eligible(&self, character: char) -> bool {
         true
     }
     fn feed(&mut self, character: &char) {
         if is_unprintable(character) {
             self.unprintable_count += 1;
         }
-        self.character_count += 1
+        self.character_count += 1;
     }
     fn ratio(&self) -> f32 {
         if self.character_count == 0 {
@@ -141,8 +141,8 @@ struct SuspiciousDuplicateAccentPlugin {
 }
 
 impl MessDetectorPlugin for SuspiciousDuplicateAccentPlugin {
-    fn eligible(&self, character: &char) -> bool {
-        character.is_alphabetic() && is_latin(character)
+    fn eligible(&self, character: char) -> bool {
+        character.is_alphabetic() && is_latin(&character)
     }
     fn feed(&mut self, character: &char) {
         self.character_count += 1;
@@ -180,8 +180,8 @@ struct SuspiciousRangePlugin {
 }
 
 impl MessDetectorPlugin for SuspiciousRangePlugin {
-    fn eligible(&self, character: &char) -> bool {
-        !is_unprintable(character)
+    fn eligible(&self, character: char) -> bool {
+        !is_unprintable(&character)
     }
     fn feed(&mut self, character: &char) {
         self.character_count += 1;
@@ -211,10 +211,10 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
     }
     fn ratio(&self) -> f32 {
         (self.character_count > 0)
-            .then(|| {
+            .then_some(
                 ((self.suspicious_successive_range_count as f32) * 2.0)
                     / self.character_count as f32
-            })
+            )
             .filter(|&ratio| ratio >= 0.1)
             .unwrap_or(0.0)
     }
@@ -238,7 +238,7 @@ struct SuperWeirdWordPlugin {
 }
 
 impl MessDetectorPlugin for SuperWeirdWordPlugin {
-    fn eligible(&self, character: &char) -> bool {
+    fn eligible(&self, _: char) -> bool {
         true
     }
     fn feed(&mut self, character: &char) {
@@ -332,7 +332,7 @@ struct CjkInvalidStopPlugin {
 }
 
 impl MessDetectorPlugin for CjkInvalidStopPlugin {
-    fn eligible(&self, character: &char) -> bool {
+    fn eligible(&self, _: char) -> bool {
         true
     }
     fn feed(&mut self, character: &char) {
@@ -381,7 +381,7 @@ impl Default for ArchaicUpperLowerPlugin {
 }
 
 impl MessDetectorPlugin for ArchaicUpperLowerPlugin {
-    fn eligible(&self, character: &char) -> bool {
+    fn eligible(&self, _: char) -> bool {
         true
     }
     fn feed(&mut self, character: &char) {
@@ -466,7 +466,7 @@ pub(crate) fn mess_ratio(
         .enumerate()
     {
         for detector in &mut *detectors {
-            if detector.eligible(&ch) {
+            if detector.eligible(ch) {
                 detector.feed(&ch);
             }
         }
