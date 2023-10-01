@@ -249,8 +249,7 @@ pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[
     ENCODING_MARKS
         .iter()
         .find(|&(_, enc_sig)| sequence.starts_with(enc_sig))
-        .map(|(enc_name, enc_sig)| (Some(enc_name.to_string()), Some(*enc_sig)))
-        .unwrap_or((None, None))
+        .map_or((None, None), |(enc_name, enc_sig)| (Some(enc_name.to_string()), Some(*enc_sig)))
 }
 
 // Try to get standard name by alternative labels
