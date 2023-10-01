@@ -401,7 +401,7 @@ pub fn decode(
     if error_occured {
         return Err(format!("{} at index {}", err.cause, err.upto));
     }
-    return Ok(String::from(buf.get_buffer()));
+    Ok(String::from(buf.get_buffer()))
 }
 
 // Copied implementation of decode_to from encoder lib
