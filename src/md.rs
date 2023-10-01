@@ -69,7 +69,7 @@ impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
         let ratio_of_punctuation =
             (self.punctuation_count + self.symbol_count) as f32 / (self.character_count as f32);
         (ratio_of_punctuation >= 0.3)
-            .then(|| ratio_of_punctuation)
+            .then_some(ratio_of_punctuation)
             .unwrap_or(0.0)
     }
 }
