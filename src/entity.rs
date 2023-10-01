@@ -159,7 +159,7 @@ impl CharsetMatch {
     }
 
     // Add submatch
-    pub fn add_submatch(&mut self, submatch: CharsetMatch) {
+    pub fn add_submatch(&mut self, submatch: &CharsetMatch) {
         self.submatch.push(submatch.clone());
         //self.decoded_payload = None;
     }
@@ -303,7 +303,7 @@ impl CharsetMatches {
                 if m.decoded_payload() == item.decoded_payload()
                     && m.mean_mess_ratio == item.mean_mess_ratio
                 {
-                    m.add_submatch(item.clone());
+                    m.add_submatch(&item);
                     return;
                 }
             }
