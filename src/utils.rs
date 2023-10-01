@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
-use crate::assets::*;
-use crate::consts::*;
-use crate::entity::*;
+use crate::assets::LANGUAGES;
+use crate::consts::{
+    ENCODING_MARKS, IANA_SUPPORTED, IANA_SUPPORTED_SIMILAR, RE_POSSIBLE_ENCODING_INDICATION,
+    UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD, UTF8_MAXIMAL_ALLOCATION,
+};
+use crate::entity::Language;
 use ahash::{HashSet, HashSetExt};
 use cached::proc_macro::cached;
 use cached::UnboundCache;
