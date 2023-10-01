@@ -251,12 +251,11 @@ pub fn is_multi_byte_encoding(name: &str) -> bool {
 
 // Try to detect multibyte encoding by signature
 pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[u8]>) {
-    for (encoding_name, encoding_signature) in &*ENCODING_MARKS {
-        if sequence.starts_with(encoding_signature) {
-            return (Some(encoding_name.to_string()), Some(encoding_signature));
-        }
-    }
-    (None, None)
+    ENCODING_MARKS
+        .iter()
+        .find(|&(_, enc_sig)| sequence.starts_with(enc_sig))
+        .map(|(enc_name, enc_sig)| (Some(enc_name.to_string()), Some(*enc_sig)))
+        .unwrap_or((None, None))
 }
 
 // Try to get standard name by alternative labels
@@ -417,6 +416,7 @@ fn decode_to(
     loop {
         let (offset, err) = decoder.raw_feed(&input[remaining..], ret);
         let unprocessed = remaining + offset;
+
         match err {
             Some(err) => {
                 remaining = remaining.wrapping_add_signed(err.upto);
