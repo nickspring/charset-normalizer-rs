@@ -95,16 +95,10 @@ impl MessDetectorPlugin for TooManyAccentuatedPlugin {
         }
     }
     fn ratio(&self) -> f32 {
-        if self.character_count < 8 {
-            return 0.0;
-        }
-        let ratio_of_accentuation: f32 =
-            self.accentuated_count as f32 / self.character_count as f32;
-        if ratio_of_accentuation >= 0.35 {
-            ratio_of_accentuation
-        } else {
-            0.0
-        }
+        (self.character_count >= 8)
+            .then(|| self.accentuated_count as f32 / self.character_count as f32)
+            .filter(|&ratio| ratio >= 0.35)
+            .unwrap_or(0.0)
     }
 }
 
