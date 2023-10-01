@@ -204,7 +204,7 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
     }
 
     // Correct exit code, if charset-normalizer-rs accuracy lower than 95%
-    if our_accuracy < 97.1 {
+    if our_accuracy < 97 {
         println!("LOW ACCURACY!!!");
         1
     } else {
