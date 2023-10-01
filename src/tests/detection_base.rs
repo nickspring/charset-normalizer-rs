@@ -129,7 +129,7 @@ fn test_obviously_ascii_content() {
     ];
 
     for input in tests {
-        let result = from_bytes(&input.to_vec(), None);
+        let result = from_bytes(input, None);
         let best_guess = result.get_best();
         assert!(
             best_guess.is_some(),
@@ -161,7 +161,7 @@ fn test_obviously_utf8_content() {
     ];
 
     for input in tests {
-        let result = from_bytes(&input.as_bytes().to_vec(), None);
+        let result = from_bytes(input.as_bytes(), None);
         let best_guess = result.get_best();
         assert!(
             best_guess.is_some(),
@@ -180,7 +180,7 @@ fn test_obviously_utf8_content() {
 #[test]
 fn test_unicode_ranges_property() {
     let text = "😀 Hello World! How affairs are going? 😀";
-    let result = from_bytes(&text.as_bytes().to_vec(), None);
+    let result = from_bytes(text.as_bytes(), None);
     let best_guess = result.get_best();
     let ur = best_guess.unwrap().unicode_ranges();
     assert!(ur.contains(&"Basic Latin".to_string()));
@@ -192,7 +192,7 @@ fn test_mb_cutting_chk() {
     let payload = b"\xbf\xaa\xbb\xe7\xc0\xfb    \xbf\xb9\xbc\xf6    \xbf\xac\xb1\xb8\xc0\xda\xb5\xe9\xc0\xba  \xba\xb9\xc0\xbd\xbc\xad\xb3\xaa ".repeat(128);
     let mut settings = NormalizerSettings::default();
     settings.include_encodings.push(String::from("euc-kr"));
-    let result = from_bytes(&payload.as_slice().to_vec(), Some(settings));
+    let result = from_bytes(payload.as_slice(), Some(settings));
     let best_guess = result.get_best().unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(best_guess.encoding(), "euc-kr");
