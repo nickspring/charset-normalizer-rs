@@ -140,6 +140,7 @@ use crate::utils::{
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
+use std::collections::VecDeque;
 use std::fs::{metadata, File};
 use std::io::Read;
 use std::path::Path;
@@ -274,14 +275,14 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // add ascii & utf-8
-    prioritized_encodings.extend(["ascii", "utf-8"].iter().map(|&s| s.to_string()));
+    prioritized_encodings.extend(["ascii".to_string(), "utf-8".to_string()]);
 
     // generate array of encodings for probing with prioritizing
-    let mut iana_encodings = IANA_SUPPORTED.clone();
+    let mut iana_encodings: VecDeque<&str> = VecDeque::from(IANA_SUPPORTED.clone());
     for pe in prioritized_encodings.iter().rev() {
         if let Some(index) = iana_encodings.iter().position(|x| *x == pe) {
-            let value = iana_encodings.remove(index);
-            iana_encodings.insert(0, value);
+            let value = iana_encodings.remove(index).unwrap();
+            iana_encodings.push_front(value);
         }
     }
 
