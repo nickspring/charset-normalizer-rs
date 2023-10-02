@@ -129,7 +129,8 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
 
     for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
         if let Some(character_range) = unicode_range(&ch) {
-            let layer_key = layers.keys()
+            let layer_key: &str = layers
+                .keys()
                 .find(|key| !is_suspiciously_successive_range(Some(key), Some(character_range)))
                 .copied()
                 .unwrap_or(character_range);
