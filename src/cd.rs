@@ -206,7 +206,7 @@ pub(crate) fn coherence_ratio(
     }
 
     let mut results: CoherenceMatches = vec![];
-    let mut sufficient_match_count: u8 = 0;
+    let mut sufficient_match_count: u64 = 0;
 
     for layer in alpha_unicode_split(&decoded_sequence) {
         if layer.chars().count() <= *TOO_SMALL_SEQUENCE {
