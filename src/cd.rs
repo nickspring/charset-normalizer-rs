@@ -94,7 +94,7 @@ pub(crate) fn alphabet_languages(
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
     let mut languages: Vec<(&Language, f32)> = vec![];
-    let source_characters_set: HashSet<_> = characters.iter().cloned().copied().collect();
+    let source_characters_set: HashSet<char> = characters.iter().copied().copied().collect(); //take a look why copied/cloned is needed twice
     let source_has_accents = source_characters_set.iter().any(is_accentuated);
 
     for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
