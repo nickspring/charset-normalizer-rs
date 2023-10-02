@@ -234,11 +234,10 @@ pub(crate) fn coherence_ratio(
             let ratio: f32 =
                 characters_popularity_compare(language, &popular_character_ordered_as_string)?;
 
-            if ratio < threshold {
-                continue;
-            }
-            if ratio >= 0.8 {
-                sufficient_match_count += 1;
+            match ratio {
+                r if r < threshold => continue,
+                r if r >= 0.8 => sufficient_match_count += 1,
+                _ => {}
             }
 
             results.push(CoherenceMatch {
