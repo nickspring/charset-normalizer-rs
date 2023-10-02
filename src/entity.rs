@@ -131,7 +131,7 @@ impl PartialOrd<Self> for CharsetMatch {
             let multibyte_usage_a = self.multi_byte_usage();
             let multibyte_usage_b = other.multi_byte_usage();
             let multibyte_usage_delta = (multibyte_usage_a - multibyte_usage_b).abs();
-            if multibyte_usage_a.abs() > f32::EPSILON && multibyte_usage_b.abs() > f32::EPSILON {
+            if multibyte_usage_delta > f32::EPSILON {
                 return multibyte_usage_b.partial_cmp(&multibyte_usage_a);
             }
         }
