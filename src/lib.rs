@@ -507,12 +507,10 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                     decoded_payload,
                 ));
 
-                if encoding_iana == specified_encoding {
-                    fallback_specified = fallback_entry;
-                } else if encoding_iana == "ascii" {
-                    fallback_ascii = fallback_entry;
-                } else {
-                    fallback_u8 = fallback_entry;
+                match encoding_iana {
+                    e if e == specified_encoding => fallback_specified = fallback_entry,
+                    "ascii" => fallback_ascii = fallback_entry,
+                    _ => fallback_u8 = fallback_entry,
                 }
             }
             continue 'iana_encodings_loop;
