@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
-use crate::assets::*;
-use crate::consts::*;
-use crate::entity::*;
+use crate::assets::LANGUAGES;
+use crate::consts::{
+    ENCODING_MARKS, IANA_SUPPORTED, IANA_SUPPORTED_SIMILAR, RE_POSSIBLE_ENCODING_INDICATION,
+    UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD, UTF8_MAXIMAL_ALLOCATION,
+};
+use crate::entity::Language;
 use ahash::{HashSet, HashSetExt};
 use cached::proc_macro::cached;
 use cached::UnboundCache;
@@ -44,13 +47,11 @@ fn in_category(
 
 // check if character description contains at least one of patterns
 fn in_description(character: &char, patterns: &[&str]) -> bool {
-    Name::of(*character)
-        .map(|description| {
-            patterns
-                .iter()
-                .any(|&s| description.to_string().contains(s))
-        })
-        .unwrap_or(false)
+    Name::of(*character).is_some_and(|description| {
+        patterns
+            .iter()
+            .any(|&s| description.to_string().contains(s))
+    })
 }
 
 #[cached(
@@ -247,15 +248,16 @@ pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[
     ENCODING_MARKS
         .iter()
         .find(|&(_, enc_sig)| sequence.starts_with(enc_sig))
-        .map(|(enc_name, enc_sig)| (Some(enc_name.to_string()), Some(*enc_sig)))
-        .unwrap_or((None, None))
+        .map_or((None, None), |(enc_name, enc_sig)| {
+            (Some((*enc_name).to_string()), Some(*enc_sig))
+        })
 }
 
 // Try to get standard name by alternative labels
 pub fn iana_name(cp_name: &str) -> Option<&str> {
     IANA_SUPPORTED
         .contains(&cp_name) // first just try to search it in our list
-        .then(|| cp_name)
+        .then_some(cp_name)
         .or_else(|| {
             // if not found, try to use alternative way
             encoding_from_whatwg_label(cp_name).map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
@@ -279,8 +281,7 @@ pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Opt
             RE_POSSIBLE_ENCODING_INDICATION
                 .captures_iter(&test_string)
                 .map(|c| c.extract())
-                .filter_map(|(_, [specified_encoding])| iana_name(specified_encoding))
-                .next()
+                .find_map(|(_, [specified_encoding])| iana_name(specified_encoding))
                 .map(|found_iana| found_iana.to_string())
         })
 }
@@ -489,15 +490,12 @@ pub(crate) fn is_suspiciously_successive_range(
                 .any(|x| x.contains("Punctuation") || x.contains("Forms")), // has_punct_or_forms
             [range_a, range_b].iter().any(|&x| x == "Basic Latin"),  // is_any_basic_latin
         ) {
-            (true, true, _, _, _, _) => return false, // both are japanese
-            //either is japanese and either contains CJK
-            (true, _, true, _, _, _) | (_, true, true, _, _, _) => return false,
-            // either has both CJK and Hanguls
-            (_, _, true, true, _, _) => return false,
-            // either has chinese and dedicated punctuation and separators
-            (_, _, true, _, true, _) => return false,
-            // either has hangul and basic latin
-            (_, _, _, true, _, true) => return false,
+            (true, true, _, _, _, _) // both are japanese
+            | (true, _, true, _, _, _) | (_, true, true, _, _, _) //either is japanese and either contains CJK
+            | (_, _, true, true, _, _) // either has both CJK and Hanguls
+            | (_, _, true, _, true, _) // either has chinese and dedicated punctuation and separators 
+            | (_, _, _, true, _, true) // either has hangul and basic latin 
+            => return false,
             _ => {} // All other combinations
         }
     }

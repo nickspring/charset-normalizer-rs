@@ -131,7 +131,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     // print out results
     if args.minimal {
         for path in &args.files {
-            let full_path = fs::canonicalize(path).unwrap();
+            let full_path = fs::canonicalize(path).map_err(|err| err.to_string())?;
             println!(
                 "{}",
                 results

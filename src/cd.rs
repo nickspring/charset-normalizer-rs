@@ -29,17 +29,17 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
     let byte_range = 0x40..0xFF; // utf8 range. range.len()==191
     let mut result: HashMap<&str, u8> = HashMap::with_capacity(byte_range.len());
 
-    for i in byte_range {
-        encoder
+    byte_range.for_each(|i| {
+        if let Some(range) = encoder
             .decode(&[i], DecoderTrap::Ignore)
             .ok()
             .and_then(|chunk| chunk.chars().next())
             .and_then(|first_char| unicode_range(&first_char))
             .filter(|&range| !is_unicode_range_secondary(range))
-            .map(|range| {
-                *result.entry(range).or_insert(0) += 1;
-            });
-    }
+        {
+            *result.entry(range).or_insert(0) += 1;
+        }
+    });
     let character_count: u8 = result.values().sum();
     let threshold = 0.15;
     let mut result: Vec<&str> = result
@@ -94,7 +94,7 @@ pub(crate) fn alphabet_languages(
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
     let mut languages: Vec<(&Language, f32)> = vec![];
-    let source_characters_set: HashSet<_> = characters.iter().cloned().copied().collect();
+    let source_characters_set: HashSet<char> = characters.iter().copied().copied().collect(); //take a look why copied/cloned is needed twice
     let source_has_accents = source_characters_set.iter().any(is_accentuated);
 
     for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
@@ -129,21 +129,16 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
 
     for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
         if let Some(character_range) = unicode_range(&ch) {
-            let mut layer_target_range: Option<&str> = None;
-            for discovered_range in layers.keys() {
-                if !is_suspiciously_successive_range(Some(discovered_range), Some(character_range))
-                {
-                    layer_target_range = Some(discovered_range);
-                    break;
-                }
-            }
-            let layer = layers
-                .entry(layer_target_range.get_or_insert(character_range))
-                .or_default();
+            let layer_key: &str = layers
+                .keys()
+                .find(|key| !is_suspiciously_successive_range(Some(key), Some(character_range)))
+                .copied()
+                .unwrap_or(character_range);
+            let layer = layers.entry(layer_key).or_default();
             layer.extend(ch.to_lowercase());
         }
     }
-    layers.values().cloned().collect()
+    layers.into_values().collect()
 }
 
 // Determine if a ordered characters list (by occurrence from most appearance to rarest) match a particular language.
@@ -164,7 +159,7 @@ pub(crate) fn characters_popularity_compare(
 pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> CoherenceMatches {
     let mut index: HashMap<&Language, f32> = HashMap::with_capacity(results.len());
     for result in results {
-        let score = index.entry(result.language).or_insert(0.0);
+        let score = index.entry(result.language).or_default();
         *score = result.score.max(*score);
     }
     index
@@ -204,9 +199,8 @@ pub(crate) fn coherence_ratio(
     include_languages: Option<Vec<&'static Language>>,
 ) -> Result<CoherenceMatches, String> {
     let threshold = f32::from(threshold.unwrap_or(OrderedFloat(0.1)));
-    let mut include_languages = include_languages.unwrap_or_default();
-    let ignore_non_latin =
-        include_languages.len() == 1 && include_languages.first() == Some(&&Language::Unknown);
+    let mut include_languages: Vec<&Language> = include_languages.unwrap_or_default();
+    let ignore_non_latin = include_languages == vec![&Language::Unknown];
     if ignore_non_latin {
         include_languages.clear();
     }
@@ -235,11 +229,10 @@ pub(crate) fn coherence_ratio(
             let ratio: f32 =
                 characters_popularity_compare(language, &popular_character_ordered_as_string)?;
 
-            if ratio < threshold {
-                continue;
-            }
-            if ratio >= 0.8 {
-                sufficient_match_count += 1;
+            match ratio {
+                r if r < threshold => continue,
+                r if r >= 0.8 => sufficient_match_count += 1,
+                _ => {}
             }
 
             results.push(CoherenceMatch {
