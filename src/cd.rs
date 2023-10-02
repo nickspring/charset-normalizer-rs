@@ -230,7 +230,7 @@ pub(crate) fn coherence_ratio(
         };
 
         let popular_character_ordered_as_string: String =
-            popular_character_ordered.into_iter().collect();
+            popular_character_ordered.iter().collect();
 
         // Convert the String into a &str
         for language in languages {
