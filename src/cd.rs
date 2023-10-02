@@ -229,8 +229,8 @@ pub(crate) fn coherence_ratio(
             include_languages.clone()
         };
 
-        let popular_character_ordered_as_string =
-            popular_character_ordered.into_iter().collect::<String>();
+        let popular_character_ordered_as_string: String =
+            popular_character_ordered.into_iter().collect();
 
         // Convert the String into a &str
         for language in languages {
