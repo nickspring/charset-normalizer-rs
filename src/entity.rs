@@ -124,8 +124,16 @@ impl PartialOrd<Self> for CharsetMatch {
         let coherence_difference = (coherence_a - coherence_b).abs();
 
         // Below 1% difference --> Use Coherence
-        if mess_difference < 0.01 && coherence_difference > 0.02 {
-            return coherence_b.partial_cmp(&coherence_a);
+        if mess_difference < 0.01 {
+            if coherence_difference > 0.02 {
+                return coherence_b.partial_cmp(&coherence_a);
+            }
+            let multibyte_usage_a = self.multi_byte_usage();
+            let multibyte_usage_b = other.multi_byte_usage();
+            let multibyte_usage_delta = (multibyte_usage_a - multibyte_usage_b).abs();
+            if multibyte_usage_delta > f32::EPSILON {
+                return multibyte_usage_b.partial_cmp(&multibyte_usage_a);
+            }
         }
         self.mean_mess_ratio.partial_cmp(&other.mean_mess_ratio)
     }
