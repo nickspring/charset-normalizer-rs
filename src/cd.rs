@@ -236,7 +236,7 @@ pub(crate) fn coherence_ratio(
         for language in languages {
             let ratio: f32 = characters_popularity_compare(
                 language,
-                popular_character_ordered_as_string.as_str(),
+                &popular_character_ordered_as_string,
             )?;
 
             if ratio < threshold {
