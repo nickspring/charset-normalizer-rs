@@ -164,7 +164,7 @@ pub(crate) fn characters_popularity_compare(
 pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> CoherenceMatches {
     let mut index: HashMap<&Language, f32> = HashMap::with_capacity(results.len());
     for result in results {
-        let score = index.entry(result.language).or_insert(0.0);
+        let score = index.entry(result.language).or_default();
         *score = result.score.max(*score);
     }
     index
