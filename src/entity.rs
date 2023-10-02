@@ -195,7 +195,7 @@ impl CharsetMatch {
                     } else {
                         encoding_languages(self.encoding.clone())
                     };
-                    languages.first().cloned().unwrap_or(&Language::Unknown)
+                    languages.first().copied().unwrap_or(&Language::Unknown)
                 }
             },
             |lang| lang.language,
