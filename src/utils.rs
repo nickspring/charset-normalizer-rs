@@ -46,8 +46,8 @@ fn in_category(
 }
 
 // check if character description contains at least one of patterns
-fn in_description(character: &char, patterns: &[&str]) -> bool {
-    Name::of(*character).is_some_and(|description| {
+fn in_description(character: char, patterns: &[&str]) -> bool {
+    Name::of(character).is_some_and(|description| {
         patterns
             .iter()
             .any(|&s| description.to_string().contains(s))

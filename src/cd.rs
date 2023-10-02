@@ -130,7 +130,7 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
     let mut layers: HashMap<&str, String> = HashMap::new();
 
     for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
-        if let Some(character_range) = unicode_range(&ch) {
+        if let Some(character_range) = unicode_range(ch) {
             let layer_key: &str = layers
                 .keys()
                 .find(|key| !is_suspiciously_successive_range(Some(key), Some(character_range)))
