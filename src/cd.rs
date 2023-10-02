@@ -90,7 +90,7 @@ pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
 // Return associated languages associated to given characters
 #[allow(clippy::ptr_arg)]
 pub(crate) fn alphabet_languages(
-    characters: Vec<char>,
+    characters: &[char],
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
     let mut languages: Vec<(&Language, f32)> = vec![];
@@ -224,7 +224,7 @@ pub(crate) fn coherence_ratio(
         let popular_character_ordered: Vec<char> = most_common.iter().map(|(ch, _)| *ch).collect();
 
         let languages = if include_languages.is_empty() {
-            alphabet_languages(popular_character_ordered.clone(), ignore_non_latin)
+            alphabet_languages(&popular_character_ordered, ignore_non_latin)
         } else {
             include_languages.clone()
         };
@@ -234,10 +234,8 @@ pub(crate) fn coherence_ratio(
 
         // Convert the String into a &str
         for language in languages {
-            let ratio: f32 = characters_popularity_compare(
-                language,
-                &popular_character_ordered_as_string,
-            )?;
+            let ratio: f32 =
+                characters_popularity_compare(language, &popular_character_ordered_as_string)?;
 
             if ratio < threshold {
                 continue;

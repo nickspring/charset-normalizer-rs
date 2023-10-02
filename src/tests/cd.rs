@@ -56,8 +56,8 @@ fn test_alphabet_languages() {
         ("Ailem ve Ben Adım Ece ve on iki yaşındayım. Her sabah 7'de uyanırım, kahvaltımı yaparım ve okula giderim. Boş zamanlarımda bahçede kitap okumayı severim. Küçük bir erkek kardeşim var. Kardeşim üç yaşında ve resim yapmayı sever. Evde her gün top oynar ve şarkı söyler. Kardeşim ve ben makarna yemeyi severiz. Bazen mutfakta yemekleri biz hazırlarız.", false, Some(Language::Turkish)),
     ];
     for (input, ignore_non_latin, expected) in tests {
-        let characters = input.chars().collect::<Vec<char>>();
-        let languages = alphabet_languages(characters, ignore_non_latin);
+        let characters: Vec<char> = input.chars().collect();
+        let languages = alphabet_languages(&characters, ignore_non_latin);
         if expected.is_none() {
             assert_eq!(languages.len(), 0);
         } else {
