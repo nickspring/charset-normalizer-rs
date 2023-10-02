@@ -21,13 +21,13 @@ use unic::ucd::{GeneralCategory, Name};
 // if character category is exactly one of categories_exact or
 // character is from range which has name, contains one of ranges_partial
 fn in_category(
-    character: &char,
+    character: char,
     categories_exact: &[&str],
     categories_partial: &[&str],
     ranges_partial: &[&str],
 ) -> bool {
     // unicode category part
-    let category = GeneralCategory::of(*character).abbr_name();
+    let category = GeneralCategory::of(character).abbr_name();
     if categories_exact.contains(&category)
         || categories_partial.iter().any(|&cp| category.contains(cp))
     {
@@ -43,8 +43,8 @@ fn in_category(
 }
 
 // check if character description contains at least one of patterns
-fn in_description(character: &char, patterns: &[&str]) -> bool {
-    Name::of(*character)
+fn in_description(character: char, patterns: &[&str]) -> bool {
+    Name::of(character)
         .map(|description| {
             patterns
                 .iter()
@@ -56,37 +56,37 @@ fn in_description(character: &char, patterns: &[&str]) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_punctuation(character: &char) -> bool {
+pub(crate) fn is_punctuation(character: char) -> bool {
     in_category(character, &[], &["P"], &["Punctuation"])
 }
 
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_symbol(character: &char) -> bool {
+pub(crate) fn is_symbol(character: char) -> bool {
     in_category(character, &[], &["N", "S"], &["Forms"])
 }
 
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_emoticon(character: &char) -> bool {
+pub(crate) fn is_emoticon(character: char) -> bool {
     in_category(character, &[], &[], &["Emoticons"])
 }
 
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_separator(character: &char) -> bool {
-    if character.is_whitespace() || ['｜', '+', '<', '>'].contains(character) {
+pub(crate) fn is_separator(character: char) -> bool {
+    if character.is_whitespace() || ['｜', '+', '<', '>'].contains(&character) {
         return true;
     }
     in_category(character, &["Po", "Pd", "Pc"], &["Z"], &[])
@@ -95,21 +95,21 @@ pub(crate) fn is_separator(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_unprintable(character: &char) -> bool {
+pub(crate) fn is_unprintable(character: char) -> bool {
     !character.is_whitespace()
         && !character.is_ascii_graphic()
-        && !['\x1A', '\u{FEFF}'].contains(character)
+        && !['\x1A', '\u{FEFF}'].contains(&character)
         && in_category(character, &["Cc"], &[], &["Control character"])
 }
 
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_accentuated(character: &char) -> bool {
+pub(crate) fn is_accentuated(character: char) -> bool {
     let patterns = [
         "WITH GRAVE",
         "WITH ACUTE",
@@ -124,9 +124,9 @@ pub(crate) fn is_accentuated(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_latin(character: &char) -> bool {
+pub(crate) fn is_latin(character: char) -> bool {
     let patterns = ["LATIN"];
     in_description(character, &patterns)
 }
@@ -134,9 +134,9 @@ pub(crate) fn is_latin(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_cjk(character: &char) -> bool {
+pub(crate) fn is_cjk(character: char) -> bool {
     let patterns = ["CJK"];
     in_description(character, &patterns)
 }
@@ -144,9 +144,9 @@ pub(crate) fn is_cjk(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_hiragana(character: &char) -> bool {
+pub(crate) fn is_hiragana(character: char) -> bool {
     let patterns = ["HIRAGANA"];
     in_description(character, &patterns)
 }
@@ -154,9 +154,9 @@ pub(crate) fn is_hiragana(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_katakana(character: &char) -> bool {
+pub(crate) fn is_katakana(character: char) -> bool {
     let patterns = ["KATAKANA"];
     in_description(character, &patterns)
 }
@@ -164,9 +164,9 @@ pub(crate) fn is_katakana(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_hangul(character: &char) -> bool {
+pub(crate) fn is_hangul(character: char) -> bool {
     let patterns = ["HANGUL"];
     in_description(character, &patterns)
 }
@@ -174,14 +174,14 @@ pub(crate) fn is_hangul(character: &char) -> bool {
 #[cached(
     type = "UnboundCache<char, bool>",
     create = "{ UnboundCache::with_capacity(*UTF8_MAXIMAL_ALLOCATION) }",
-    convert = r#"{ *character }"#
+    convert = r#"{ character }"#
 )]
-pub(crate) fn is_thai(character: &char) -> bool {
+pub(crate) fn is_thai(character: char) -> bool {
     let patterns = ["THAI"];
     in_description(character, &patterns)
 }
 
-pub(crate) fn is_case_variable(character: &char) -> bool {
+pub(crate) fn is_case_variable(character: char) -> bool {
     character.is_lowercase() != character.is_uppercase()
 }
 
@@ -192,8 +192,8 @@ pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
 }
 
 // Retrieve the Unicode range official name from a single character
-pub(crate) fn unicode_range(character: &char) -> Option<&'static str> {
-    let char_code = *character as u32;
+pub(crate) fn unicode_range(character: char) -> Option<&'static str> {
+    let char_code = character as u32;
     UNICODE_RANGES_COMBINED
         .iter()
         .find(|&(_, range)| range.contains(&char_code))
@@ -206,17 +206,17 @@ pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
     result.extend(
         decoded_sequence
             .chars()
-            .filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())),
+            .filter_map(|ch| unicode_range(ch).map(|r| r.to_string())),
     );
     result // decoded_sequence.chars().filter_map(|ch| unicode_range(&ch).map(|r| r.to_string())).collect()
 }
 
-pub(crate) fn remove_accent(ch: &char) -> char {
+pub(crate) fn remove_accent(ch: char) -> char {
     let mut base_char = None;
-    decompose_canonical(*ch, |c| {
+    decompose_canonical(ch, |c| {
         base_char.get_or_insert(c);
     });
-    base_char.map_or(*ch, |c| c)
+    base_char.map_or(ch, |c| c)
 }
 
 pub(crate) fn should_strip_sig_or_bom(_iana_encoding: &str) -> bool {

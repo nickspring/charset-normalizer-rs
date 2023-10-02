@@ -28,50 +28,50 @@ fn test_is_accentuated() {
         ('Ё', false),
     ];
     for test in &tests {
-        assert_eq!(is_accentuated(&test.0), test.1);
+        assert_eq!(is_accentuated(test.0), test.1);
     }
 }
 
 #[test]
 fn test_is_latin() {
-    assert!(!is_latin(&'я'));
-    assert!(is_latin(&'a'));
+    assert!(!is_latin('я'));
+    assert!(is_latin('a'));
 }
 
 #[test]
 fn test_is_cjk() {
-    assert!(!is_cjk(&'я'));
-    assert!(is_cjk(&'是'));
+    assert!(!is_cjk('я'));
+    assert!(is_cjk('是'));
 }
 
 #[test]
 fn test_is_hiragana() {
-    assert!(!is_hiragana(&'是'));
-    assert!(is_hiragana(&'お'));
+    assert!(!is_hiragana('是'));
+    assert!(is_hiragana('お'));
 }
 
 #[test]
 fn test_is_katakana() {
-    assert!(!is_katakana(&'お'));
-    assert!(is_katakana(&'キ'));
+    assert!(!is_katakana('お'));
+    assert!(is_katakana('キ'));
 }
 
 #[test]
 fn test_is_hangul() {
-    assert!(!is_hangul(&'キ'));
-    assert!(is_hangul(&'ㅂ'));
+    assert!(!is_hangul('キ'));
+    assert!(is_hangul('ㅂ'));
 }
 
 #[test]
 fn test_is_thai() {
-    assert!(!is_thai(&'キ'));
-    assert!(is_thai(&'ย'));
+    assert!(!is_thai('キ'));
+    assert!(is_thai('ย'));
 }
 
 #[test]
 fn test_is_case_variable() {
-    assert!(!is_case_variable(&'#'));
-    assert!(is_case_variable(&'я'));
+    assert!(!is_case_variable('#'));
+    assert!(is_case_variable('я'));
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn test_unicode_range() {
             ('ͽ', "Greek and Coptic"),
         ];
         for test in &tests {
-            assert_eq!(unicode_range(&test.0), Some(test.1));
+            assert_eq!(unicode_range(test.0), Some(test.1));
         }
     }
 }
@@ -115,7 +115,7 @@ fn test_is_ascii() {
 fn test_remove_accent() {
     let tests = [('á', 'a'), ('É', 'E'), ('Ǔ', 'U'), ('↓', '↓')];
     for test in &tests {
-        assert_eq!(remove_accent(&test.0), test.1);
+        assert_eq!(remove_accent(test.0), test.1);
     }
 }
 
@@ -133,7 +133,7 @@ fn test_range_scan() {
 fn test_is_punctuation() {
     let tests = [('!', true), ('?', true), ('a', false), (':', true)];
     for test in &tests {
-        assert_eq!(is_punctuation(&test.0), test.1);
+        assert_eq!(is_punctuation(test.0), test.1);
     }
 }
 
@@ -141,7 +141,7 @@ fn test_is_punctuation() {
 fn test_is_symbol() {
     let tests = [('+', true), ('∑', true), ('a', false), ('я', false)];
     for test in &tests {
-        assert_eq!(is_symbol(&test.0), test.1);
+        assert_eq!(is_symbol(test.0), test.1);
     }
 }
 
@@ -149,7 +149,7 @@ fn test_is_symbol() {
 fn test_is_emoticon() {
     let tests = [('🙂', true), ('∑', false), ('😂', true), ('я', false)];
     for test in &tests {
-        assert_eq!(is_emoticon(&test.0), test.1);
+        assert_eq!(is_emoticon(test.0), test.1);
     }
 }
 
@@ -157,7 +157,7 @@ fn test_is_emoticon() {
 fn test_is_separator() {
     let tests = [(' ', true), ('a', false), ('!', true), ('я', false)];
     for test in &tests {
-        assert_eq!(is_separator(&test.0), test.1);
+        assert_eq!(is_separator(test.0), test.1);
     }
 }
 
@@ -165,7 +165,7 @@ fn test_is_separator() {
 fn test_is_unprintable() {
     let tests = [(' ', false), ('a', false), ('!', false), ('\u{0000}', true)];
     for test in &tests {
-        assert_eq!(is_unprintable(&test.0), test.1);
+        assert_eq!(is_unprintable(test.0), test.1);
     }
 }
 

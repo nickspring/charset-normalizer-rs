@@ -57,8 +57,7 @@ fn test_alphabet_languages() {
     ];
     for (input, ignore_non_latin, expected) in tests {
         let characters = input.chars().collect::<Vec<char>>();
-        let characters_2 = characters.iter().collect();
-        let languages = alphabet_languages(&characters_2, ignore_non_latin);
+        let languages = alphabet_languages(characters, ignore_non_latin);
         if expected.is_none() {
             assert_eq!(languages.len(), 0);
         } else {

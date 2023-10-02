@@ -34,7 +34,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
             .decode(&[i], DecoderTrap::Ignore)
             .ok()
             .and_then(|chunk| chunk.chars().next())
-            .and_then(|first_char| unicode_range(&first_char))
+            .and_then(|first_char| unicode_range(first_char))
             .filter(|&range| !is_unicode_range_secondary(range))
             .map(|range| {
                 *result.entry(range).or_insert(0) += 1;
@@ -58,7 +58,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
         .filter_map(|(language, characters, _, _)| {
             characters
                 .chars()
-                .find(|char| unicode_range(char).unwrap_or_default() == primary_range)
+                .find(|char| unicode_range(*char).unwrap_or_default() == primary_range)
                 .map(|_| language)
         })
         .collect::<Vec<&Language>>()
@@ -90,12 +90,14 @@ pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
 // Return associated languages associated to given characters
 #[allow(clippy::ptr_arg)]
 pub(crate) fn alphabet_languages(
-    characters: &Vec<&char>,
+    characters: Vec<char>,
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
     let mut languages: Vec<(&Language, f32)> = vec![];
-    let source_characters_set: HashSet<_> = characters.iter().cloned().copied().collect();
-    let source_has_accents = source_characters_set.iter().any(is_accentuated);
+    let source_characters_set: HashSet<_> = characters.iter().copied().collect();
+    let source_has_accents = source_characters_set
+        .iter()
+        .any(|&char| is_accentuated(char));
 
     for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
     {
@@ -128,7 +130,7 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
     let mut layers: HashMap<&str, String> = HashMap::new();
 
     for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
-        if let Some(character_range) = unicode_range(&ch) {
+        if let Some(character_range) = unicode_range(ch) {
             let mut layer_target_range: Option<&str> = None;
             for discovered_range in layers.keys() {
                 if !is_suspiciously_successive_range(Some(discovered_range), Some(character_range))
@@ -219,21 +221,23 @@ pub(crate) fn coherence_ratio(
             continue;
         }
         let most_common = layer.chars().collect::<Counter<_>>().most_common_ordered();
-        let popular_character_ordered: Vec<&char> = most_common.iter().map(|(ch, _)| ch).collect();
+        let popular_character_ordered: Vec<char> = most_common.iter().map(|(ch, _)| *ch).collect();
 
         let languages = if include_languages.is_empty() {
-            alphabet_languages(&popular_character_ordered, ignore_non_latin)
+            alphabet_languages(popular_character_ordered.clone(), ignore_non_latin)
         } else {
             include_languages.clone()
         };
 
-        let popular_character_ordered_as_string: String =
-            popular_character_ordered.iter().copied().collect();
+        let popular_character_ordered_as_string =
+            popular_character_ordered.into_iter().collect::<String>();
 
         // Convert the String into a &str
         for language in languages {
-            let ratio: f32 =
-                characters_popularity_compare(language, &popular_character_ordered_as_string)?;
+            let ratio: f32 = characters_popularity_compare(
+                language,
+                popular_character_ordered_as_string.as_str(),
+            )?;
 
             if ratio < threshold {
                 continue;
