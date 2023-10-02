@@ -526,15 +526,14 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         // Most of the time its not relevant to run "language-detection" on it.
         let mut cd_ratios: Vec<CoherenceMatches> = vec![];
         if encoding_iana != "ascii" {
-            for chunk in md_chunks {
-                if let Ok(chunk_coherence_matches) = coherence_ratio(
-                    chunk,
+            cd_ratios.extend(md_chunks.iter().filter_map(|chunk| {
+                coherence_ratio(
+                    chunk.clone(),
                     Some(settings.language_threshold),
                     Some(target_languages.clone()),
-                ) {
-                    cd_ratios.push(chunk_coherence_matches);
-                }
-            }
+                )
+                .ok()
+            }));
         }
 
         // process cd ratios
