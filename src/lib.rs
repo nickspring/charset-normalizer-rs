@@ -145,7 +145,8 @@ use std::io::Read;
 use std::path::Path;
 
 pub mod assets;
-#[allow(clippy::cast_lossless)] // TODO: Revisit float conversions when we want to push for accuracy
+// TODO: Revisit float conversions when we want to push for accuracy
+#[allow(clippy::cast_lossless, clippy::cast_precision_loss)]
 mod cd;
 pub mod consts;
 pub mod entity;
