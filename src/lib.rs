@@ -140,11 +140,14 @@ use crate::utils::{
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
+use std::collections::VecDeque;
 use std::fs::{metadata, File};
 use std::io::Read;
 use std::path::Path;
 
 pub mod assets;
+// TODO: Revisit float conversions when we want to push for accuracy
+#[allow(clippy::cast_lossless, clippy::cast_precision_loss)]
 mod cd;
 pub mod consts;
 pub mod entity;
@@ -272,14 +275,14 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // add ascii & utf-8
-    prioritized_encodings.extend(["ascii", "utf-8"].iter().map(|s| s.to_string()));
+    prioritized_encodings.extend(["ascii".to_string(), "utf-8".to_string()]);
 
     // generate array of encodings for probing with prioritizing
-    let mut iana_encodings = IANA_SUPPORTED.clone();
+    let mut iana_encodings: VecDeque<&str> = VecDeque::from(IANA_SUPPORTED.clone());
     for pe in prioritized_encodings.iter().rev() {
         if let Some(index) = iana_encodings.iter().position(|x| *x == pe) {
-            let value = iana_encodings.remove(index);
-            iana_encodings.insert(0, value);
+            let value = iana_encodings.remove(index).unwrap();
+            iana_encodings.push_front(value);
         }
     }
 
@@ -504,12 +507,10 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                     decoded_payload,
                 ));
 
-                if encoding_iana == specified_encoding {
-                    fallback_specified = fallback_entry;
-                } else if encoding_iana == "ascii" {
-                    fallback_ascii = fallback_entry;
-                } else {
-                    fallback_u8 = fallback_entry;
+                match encoding_iana {
+                    e if e == specified_encoding => fallback_specified = fallback_entry,
+                    "ascii" => fallback_ascii = fallback_entry,
+                    _ => fallback_u8 = fallback_entry,
                 }
             }
             continue 'iana_encodings_loop;
@@ -525,15 +526,14 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         // Most of the time its not relevant to run "language-detection" on it.
         let mut cd_ratios: Vec<CoherenceMatches> = vec![];
         if encoding_iana != "ascii" {
-            for chunk in md_chunks {
-                if let Ok(chunk_coherence_matches) = coherence_ratio(
-                    chunk,
+            cd_ratios.extend(md_chunks.iter().filter_map(|chunk| {
+                coherence_ratio(
+                    chunk.clone(),
                     Some(settings.language_threshold),
                     Some(target_languages.clone()),
-                ) {
-                    cd_ratios.push(chunk_coherence_matches);
-                }
-            }
+                )
+                .ok()
+            }));
         }
 
         // process cd ratios
@@ -572,26 +572,24 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
     // fallbacks
     if results.is_empty() {
-        let mut fb: Option<&CharsetMatch> = None;
-        if fallback_specified.is_some() {
-            fb = Some(fallback_specified.as_ref().unwrap());
-        } else if fallback_u8.is_some()
-            && (fallback_ascii.is_none()
-                || (fallback_ascii.is_some()
-                    && fallback_u8.as_ref().unwrap().decoded_payload()
-                        != fallback_ascii.as_ref().unwrap().decoded_payload()))
-        {
-            fb = Some(fallback_u8.as_ref().unwrap());
-        } else if fallback_ascii.is_some() {
-            fb = Some(fallback_ascii.as_ref().unwrap());
-        }
+        let fb = match (&fallback_specified, &fallback_u8, &fallback_ascii) {
+            (Some(specified), _, _) => Some(specified),
+            (None, Some(u8_fallback), None) => Some(u8_fallback),
+            (None, Some(u8_fallback), Some(ascii))
+                if u8_fallback.decoded_payload() != ascii.decoded_payload() =>
+            {
+                Some(u8_fallback)
+            }
+            (None, _, Some(ascii)) => Some(ascii),
+            _ => None,
+        };
         if let Some(fb_to_pass) = fb {
             debug!(
                 "Encoding detection: will be used as a fallback match {}",
                 fb_to_pass.encoding()
             );
             results.append(fb_to_pass.clone());
-        }
+        };
     }
 
     // final logger information

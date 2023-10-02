@@ -157,7 +157,7 @@ impl CharsetMatch {
     }
 
     // Add submatch
-    pub fn add_submatch(&mut self, submatch: CharsetMatch) {
+    pub fn add_submatch(&mut self, submatch: &CharsetMatch) {
         self.submatch.push(submatch.clone());
         //self.decoded_payload = None;
     }
@@ -182,22 +182,22 @@ impl CharsetMatch {
     // Most probable language found in decoded sequence. If none were detected or inferred, the property will return
     // Language::Unknown
     pub fn most_probably_language(&self) -> &'static Language {
-        self.coherence_matches
-            .first()
-            .map(|lang| lang.language)
-            .unwrap_or_else(|| {
-                // Trying to infer the language based on the given encoding
-                // It's either English or we should not pronounce ourselves in certain cases.
+        self.coherence_matches.first().map_or_else(
+            // Default case: Trying to infer the language based on the given encoding
+            || {
                 if self.suitable_encodings().contains(&String::from("ascii")) {
-                    return &Language::English;
-                }
-                let languages = if is_multi_byte_encoding(&self.encoding) {
-                    mb_encoding_languages(&self.encoding)
+                    &Language::English
                 } else {
-                    encoding_languages(self.encoding.clone())
-                };
-                languages.first().unwrap_or(&&Language::Unknown)
-            })
+                    let languages = if is_multi_byte_encoding(&self.encoding) {
+                        mb_encoding_languages(&self.encoding)
+                    } else {
+                        encoding_languages(self.encoding.clone())
+                    };
+                    languages.first().copied().unwrap_or(&Language::Unknown)
+                }
+            },
+            |lang| lang.language,
+        )
     }
     // Return the complete list of possible languages found in decoded sequence.
     // Usually not really useful. Returned list may be empty even if 'language' property return something != 'Unknown'.
@@ -297,11 +297,11 @@ impl CharsetMatches {
         // We should disable the submatch factoring when the input file is too heavy
         // (conserve RAM usage)
         if item.payload.len() <= *TOO_BIG_SEQUENCE {
-            for m in self.items.iter_mut() {
+            for m in &mut self.items {
                 if m.decoded_payload() == item.decoded_payload()
-                    && m.mean_mess_ratio == item.mean_mess_ratio
+                    && (m.mean_mess_ratio - item.mean_mess_ratio).abs() < f32::EPSILON
                 {
-                    m.add_submatch(item.clone());
+                    m.add_submatch(&item);
                     return;
                 }
             }
