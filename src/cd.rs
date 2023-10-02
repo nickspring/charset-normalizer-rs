@@ -129,21 +129,15 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
 
     for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
         if let Some(character_range) = unicode_range(&ch) {
-            let mut layer_target_range: Option<&str> = None;
-            for discovered_range in layers.keys() {
-                if !is_suspiciously_successive_range(Some(discovered_range), Some(character_range))
-                {
-                    layer_target_range = Some(discovered_range);
-                    break;
-                }
-            }
-            let layer = layers
-                .entry(layer_target_range.get_or_insert(character_range))
-                .or_default();
+            let layer_key = layers.keys()
+                .find(|key| !is_suspiciously_successive_range(Some(key), Some(character_range)))
+                .copied()
+                .unwrap_or(character_range);
+            let layer = layers.entry(layer_key).or_default();
             layer.extend(ch.to_lowercase());
         }
     }
-    layers.values().cloned().collect()
+    layers.into_values().collect()
 }
 
 // Determine if a ordered characters list (by occurrence from most appearance to rarest) match a particular language.
