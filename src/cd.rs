@@ -204,9 +204,8 @@ pub(crate) fn coherence_ratio(
     include_languages: Option<Vec<&'static Language>>,
 ) -> Result<CoherenceMatches, String> {
     let threshold = f32::from(threshold.unwrap_or(OrderedFloat(0.1)));
-    let mut include_languages = include_languages.unwrap_or_default();
-    let ignore_non_latin =
-        include_languages.len() == 1 && include_languages.first() == Some(&&Language::Unknown);
+    let mut include_languages: Vec<&Language> = include_languages.unwrap_or_default();
+    let ignore_non_latin = include_languages == vec![&Language::Unknown];
     if ignore_non_latin {
         include_languages.clear();
     }
