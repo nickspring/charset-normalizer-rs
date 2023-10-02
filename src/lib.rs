@@ -141,7 +141,7 @@ use crate::utils::{
 use encoding::DecoderTrap;
 use log::{debug, trace};
 use std::collections::VecDeque;
-use std::fs::{metadata, File};
+use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
@@ -613,7 +613,7 @@ pub fn from_path(
 ) -> Result<CharsetMatches, String> {
     // read file
     let mut file = File::open(path).map_err(|e| format!("Error opening file: {e}"))?;
-    let file_size = metadata(path).map(|m| m.len()).unwrap_or_default();
+    let file_size = file.metadata().map(|m| m.len()).unwrap_or_default();
 
     let mut buffer = Vec::with_capacity(file_size as usize);
     file.read_to_end(&mut buffer)
