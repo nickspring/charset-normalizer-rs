@@ -299,9 +299,9 @@ impl CharsetMatches {
         // We should disable the submatch factoring when the input file is too heavy
         // (conserve RAM usage)
         if item.payload.len() <= *TOO_BIG_SEQUENCE {
-            for m in self.items.iter_mut() {
+            for m in &mut self.items {
                 if m.decoded_payload() == item.decoded_payload()
-                    && m.mean_mess_ratio == item.mean_mess_ratio
+                    && (m.mean_mess_ratio - item.mean_mess_ratio).abs() < f32::EPSILON
                 {
                     m.add_submatch(&item);
                     return;
