@@ -467,11 +467,10 @@ pub(crate) fn mess_ratio(
         .chain(std::iter::once('\n'))
         .enumerate()
     {
-        for detector in &mut *detectors {
-            if detector.eligible(ch) {
-                detector.feed(&ch);
-            }
-        }
+        detectors
+            .iter_mut()
+            .filter(|detector| detector.eligible(ch))
+            .for_each(|detector| detector.feed(&ch));
 
         if (index > 0 && index.rem_euclid(intermediary_mean_mess_ratio_calc) == 0)
             || index == length
