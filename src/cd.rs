@@ -101,8 +101,7 @@ pub(crate) fn alphabet_languages(
 
     for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
     {
-        if (ignore_non_latin && !*target_pure_latin)
-            || (!*target_have_accents && source_has_accents)
+        if (ignore_non_latin && !target_pure_latin) || (!target_have_accents && source_has_accents)
         {
             continue;
         }
