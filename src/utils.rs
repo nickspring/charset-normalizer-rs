@@ -548,7 +548,7 @@ pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
                     .split(',')
                     .map(|s| s.to_string())
                     .collect();
-                if encoding.len() == 1 && encoding.first()? == "largesets" {
+                if encoding.as_slice() == ["largesets"] {
                     return None; // None is ignored by filter_map
                 }
                 Some((path.to_string(), encoding)) // Return the tuple for the 'result'. unpacked by filter_map

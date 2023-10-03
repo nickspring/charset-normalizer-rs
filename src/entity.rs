@@ -175,7 +175,7 @@ impl CharsetMatch {
         IANA_SUPPORTED_ALIASES
             .get(self.encoding.as_str())
             .cloned()
-            .unwrap_or_default()
+            .expect("Problem with static HashMap IANA_SUPPORTED_ALIASES")
     }
     // byte_order_mark
     pub fn bom(&self) -> bool {
