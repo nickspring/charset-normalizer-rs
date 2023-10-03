@@ -94,7 +94,7 @@ pub(crate) fn alphabet_languages(
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
     let mut languages: Vec<(&Language, f32)> = vec![];
-    let source_characters_set: HashSet<_> = characters.iter().copied().collect();
+    let source_characters_set: HashSet<char> = characters.iter().copied().collect();
     let source_has_accents = source_characters_set
         .iter()
         .any(|&char| is_accentuated(char));
@@ -107,8 +107,8 @@ pub(crate) fn alphabet_languages(
             continue;
         }
 
-        let language_characters_set: HashSet<_> = language_characters.chars().collect();
-        let intersection: HashSet<_> = language_characters_set
+        let language_characters_set: HashSet<char> = language_characters.chars().collect();
+        let intersection: HashSet<char> = language_characters_set
             .intersection(&source_characters_set)
             .copied()
             .collect();
