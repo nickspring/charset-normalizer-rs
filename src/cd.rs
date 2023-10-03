@@ -1,5 +1,5 @@
 #![allow(unused_variables)]
-use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES};
+use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES, LANGUAGE_SUPPORTED_COUNT};
 use crate::consts::TOO_SMALL_SEQUENCE;
 use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
 use crate::utils::{
@@ -93,7 +93,7 @@ pub(crate) fn alphabet_languages(
     characters: &[char],
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
-    let mut languages: Vec<(&Language, f32)> = vec![];
+    let mut languages: Vec<(&Language, f32)> = Vec::with_capacity(*LANGUAGE_SUPPORTED_COUNT);
     let source_characters_set: HashSet<char> = characters.iter().copied().collect();
     let source_has_accents = source_characters_set
         .iter()
