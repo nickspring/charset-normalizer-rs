@@ -149,17 +149,15 @@ impl MessDetectorPlugin for SuspiciousDuplicateAccentPlugin {
     }
     fn feed(&mut self, character: char) {
         self.character_count += 1;
-        if self.last_latin_character.is_some()
-            && is_accentuated(character)
-            && is_accentuated(self.last_latin_character.unwrap())
-        {
-            if character.is_uppercase() && self.last_latin_character.unwrap().is_uppercase() {
-                self.successive_count += 1;
-            }
-
-            // Worse if its the same char duplicated with different accent.
-            if remove_accent(character) == remove_accent(self.last_latin_character.unwrap()) {
-                self.successive_count += 1;
+        if let Some(last_latin_char) = self.last_latin_character {
+            if is_accentuated(character) && is_accentuated(last_latin_char) {
+                if character.is_uppercase() && last_latin_char.is_uppercase() {
+                    self.successive_count += 1;
+                }
+                // Worse if its the same char duplicated with different accent.
+                if remove_accent(character) == remove_accent(last_latin_char) {
+                    self.successive_count += 1;
+                }
             }
         }
         self.last_latin_character = Some(character);
