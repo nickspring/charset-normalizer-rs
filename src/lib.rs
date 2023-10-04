@@ -136,7 +136,7 @@ use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSe
 use crate::md::mess_ratio;
 use crate::utils::{
     any_specified_encoding, decode, iana_name, identify_sig_or_bom, is_cp_similar,
-    is_multi_byte_encoding, should_strip_sig_or_bom,
+    is_multi_byte_encoding,
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
@@ -307,7 +307,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             continue;
         }
         let bom_or_sig_available: bool = sig_encoding == Some(encoding_iana.to_string());
-        let strip_sig_or_bom: bool = bom_or_sig_available && should_strip_sig_or_bom(encoding_iana);
+        // let strip_sig_or_bom = true // unlike python version this is always true in rust
         let is_multi_byte_decoder: bool = is_multi_byte_encoding(encoding_iana);
 
         // utf-16le & utf-16be cannot be identified without BOM
@@ -322,7 +322,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         // fast pre-check
         let mut decoded_payload: Option<&str> = None;
         let decoded_payload_result = decode(
-            &bytes[if strip_sig_or_bom {
+            &bytes[if bom_or_sig_available {
                 sig_payload.unwrap().len()
             } else {
                 0
@@ -405,7 +405,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 // Bytes processing
                 None => {
                     let offset_end = (offset + settings.chunk_size).min(seq_len);
-                    let cut_bytes_vec: Vec<u8> = if bom_or_sig_available && !strip_sig_or_bom {
+                    let cut_bytes_vec: Vec<u8> = if bom_or_sig_available && !bom_or_sig_available {
                         [sig_payload.as_ref().unwrap(), &bytes[offset..offset_end]].concat()
                     } else {
                         bytes[offset..offset_end].to_vec()
@@ -446,7 +446,8 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             if md_ratios.last().unwrap() >= &settings.threshold {
                 early_stop_count += 1;
             }
-            if early_stop_count >= max_chunk_gave_up || (bom_or_sig_available && !strip_sig_or_bom)
+            if early_stop_count >= max_chunk_gave_up
+                || (bom_or_sig_available && !bom_or_sig_available)
             {
                 break 'chunks_loop;
             }

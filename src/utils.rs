@@ -220,11 +220,6 @@ pub(crate) fn remove_accent(ch: char) -> char {
     base_char.map_or(ch, |c| c)
 }
 
-pub(crate) fn should_strip_sig_or_bom(_iana_encoding: &str) -> bool {
-    // it looks like we always remove it in Rust (but in Python version no)
-    true
-}
-
 // Verify is a specific encoding is a multi byte one based on it IANA name
 pub fn is_multi_byte_encoding(name: &str) -> bool {
     [
