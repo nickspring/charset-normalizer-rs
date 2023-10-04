@@ -1,5 +1,5 @@
 #![allow(unused_variables)]
-use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES};
+use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES, LANGUAGE_SUPPORTED_COUNT};
 use crate::consts::TOO_SMALL_SEQUENCE;
 use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
 use crate::utils::{
@@ -34,7 +34,7 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
             .decode(&[i], DecoderTrap::Ignore)
             .ok()
             .and_then(|chunk| chunk.chars().next())
-            .and_then(|first_char| unicode_range(&first_char))
+            .and_then(unicode_range)
             .filter(|&range| !is_unicode_range_secondary(range))
         {
             *result.entry(range).or_insert(0) += 1;
@@ -58,7 +58,7 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
         .filter_map(|(language, characters, _, _)| {
             characters
                 .chars()
-                .find(|char| unicode_range(char).unwrap_or_default() == primary_range)
+                .find(|char| unicode_range(*char).unwrap_or_default() == primary_range)
                 .map(|_| language)
         })
         .collect::<Vec<&Language>>()
@@ -90,23 +90,24 @@ pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
 // Return associated languages associated to given characters
 #[allow(clippy::ptr_arg)]
 pub(crate) fn alphabet_languages(
-    characters: &Vec<&char>,
+    characters: &[char],
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
-    let mut languages: Vec<(&Language, f32)> = vec![];
-    let source_characters_set: HashSet<char> = characters.iter().copied().copied().collect(); //take a look why copied/cloned is needed twice
-    let source_has_accents = source_characters_set.iter().any(is_accentuated);
+    let mut languages: Vec<(&Language, f32)> = Vec::with_capacity(*LANGUAGE_SUPPORTED_COUNT);
+    let source_characters_set: HashSet<char> = characters.iter().copied().collect();
+    let source_has_accents = source_characters_set
+        .iter()
+        .any(|&char| is_accentuated(char));
 
     for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
     {
-        if (ignore_non_latin && !*target_pure_latin)
-            || (!*target_have_accents && source_has_accents)
+        if (ignore_non_latin && !target_pure_latin) || (!target_have_accents && source_has_accents)
         {
             continue;
         }
 
-        let language_characters_set: HashSet<_> = language_characters.chars().collect();
-        let intersection: HashSet<_> = language_characters_set
+        let language_characters_set: HashSet<char> = language_characters.chars().collect();
+        let intersection: HashSet<char> = language_characters_set
             .intersection(&source_characters_set)
             .copied()
             .collect();
@@ -128,7 +129,7 @@ pub(crate) fn alpha_unicode_split(decoded_sequence: &str) -> Vec<String> {
     let mut layers: HashMap<&str, String> = HashMap::new();
 
     for ch in decoded_sequence.chars().filter(|c| c.is_alphabetic()) {
-        if let Some(character_range) = unicode_range(&ch) {
+        if let Some(character_range) = unicode_range(ch) {
             let layer_key: &str = layers
                 .keys()
                 .find(|key| !is_suspiciously_successive_range(Some(key), Some(character_range)))
@@ -213,7 +214,7 @@ pub(crate) fn coherence_ratio(
             continue;
         }
         let most_common = layer.chars().collect::<Counter<_>>().most_common_ordered();
-        let popular_character_ordered: Vec<&char> = most_common.iter().map(|(ch, _)| ch).collect();
+        let popular_character_ordered: Vec<char> = most_common.iter().map(|(ch, _)| *ch).collect();
 
         let languages = if include_languages.is_empty() {
             alphabet_languages(&popular_character_ordered, ignore_non_latin)
@@ -222,7 +223,7 @@ pub(crate) fn coherence_ratio(
         };
 
         let popular_character_ordered_as_string: String =
-            popular_character_ordered.iter().copied().collect();
+            popular_character_ordered.iter().collect();
 
         // Convert the String into a &str
         for language in languages {

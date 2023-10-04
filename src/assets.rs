@@ -3,7 +3,8 @@ use ahash::HashMap;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref LANGUAGES: Vec<(Language, &'static str, bool, bool)> = vec![
+    pub static ref LANGUAGE_SUPPORTED_COUNT: usize = 41;
+    pub static ref LANGUAGES: [(Language, &'static str, bool, bool);41] = [
         // language, alphabet, have_accents, pure_latin
         (Language::English, "eationsrhldcmufpgwbyvkjxzq", false, true, ),
         (Language::English, "eationsrhldcumfpgwybvkxjzq", false, true, ),
@@ -48,7 +49,7 @@ lazy_static! {
         (Language::Kazakh, "аыентрлідсмқкобиуғжңзшйпгө", false, false, ),
    ];
 
-   pub static ref LANGUAGE_SUPPORTED_COUNT: usize = LANGUAGES.len();
+
 
    // direct binding encoding to language
    pub(crate) static ref ENCODING_TO_LANGUAGE: HashMap<&'static str, Language> = HashMap::from_iter([

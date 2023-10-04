@@ -27,7 +27,7 @@ trait MessDetectorPlugin {
 
     // The main routine to be executed upon character.
     // Insert the logic in witch the text would be considered chaotic.
-    fn feed(&mut self, character: &char);
+    fn feed(&mut self, character: char);
 
     // Compute the chaos ratio based on what your feed() has seen.
     // Must NOT be lower than 0.; No restriction gt 0.
@@ -47,12 +47,12 @@ struct TooManySymbolOrPunctuationPlugin {
 
 impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
     fn eligible(&self, character: char) -> bool {
-        !is_unprintable(&character)
+        !is_unprintable(character)
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         self.character_count += 1;
-        if (self.last_printable_char.is_none() || *character != self.last_printable_char.unwrap())
-            && !COMMON_SAFE_ASCII_CHARACTERS.contains(*character)
+        if (self.last_printable_char.is_none() || character != self.last_printable_char.unwrap())
+            && !COMMON_SAFE_ASCII_CHARACTERS.contains(character)
         {
             if is_punctuation(character) {
                 self.punctuation_count += 1;
@@ -60,7 +60,7 @@ impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
                 self.symbol_count += 2;
             }
         }
-        self.last_printable_char = Some(*character);
+        self.last_printable_char = Some(character);
     }
     fn ratio(&self) -> f32 {
         if self.character_count == 0 {
@@ -90,7 +90,7 @@ impl MessDetectorPlugin for TooManyAccentuatedPlugin {
     fn eligible(&self, character: char) -> bool {
         character.is_alphabetic()
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         self.character_count += 1;
         if is_accentuated(character) {
             self.accentuated_count += 1
@@ -118,7 +118,7 @@ impl MessDetectorPlugin for UnprintablePlugin {
     fn eligible(&self, character: char) -> bool {
         true
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         if is_unprintable(character) {
             self.unprintable_count += 1;
         }
@@ -144,24 +144,24 @@ struct SuspiciousDuplicateAccentPlugin {
 
 impl MessDetectorPlugin for SuspiciousDuplicateAccentPlugin {
     fn eligible(&self, character: char) -> bool {
-        character.is_alphabetic() && is_latin(&character)
+        character.is_alphabetic() && is_latin(character)
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         self.character_count += 1;
         if self.last_latin_character.is_some()
             && is_accentuated(character)
-            && is_accentuated(&self.last_latin_character.unwrap())
+            && is_accentuated(self.last_latin_character.unwrap())
         {
             if character.is_uppercase() && self.last_latin_character.unwrap().is_uppercase() {
                 self.successive_count += 1;
             }
 
             // Worse if its the same char duplicated with different accent.
-            if remove_accent(character) == remove_accent(&self.last_latin_character.unwrap()) {
+            if remove_accent(character) == remove_accent(self.last_latin_character.unwrap()) {
                 self.successive_count += 1;
             }
         }
-        self.last_latin_character = Some(*character);
+        self.last_latin_character = Some(character);
     }
     fn ratio(&self) -> f32 {
         if self.character_count == 0 {
@@ -183,25 +183,25 @@ struct SuspiciousRangePlugin {
 
 impl MessDetectorPlugin for SuspiciousRangePlugin {
     fn eligible(&self, character: char) -> bool {
-        !is_unprintable(&character)
+        !is_unprintable(character)
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         self.character_count += 1;
 
         if character.is_whitespace()
             || is_punctuation(character)
-            || COMMON_SAFE_ASCII_CHARACTERS.contains(*character)
+            || COMMON_SAFE_ASCII_CHARACTERS.contains(character)
         {
             self.last_printable_char = None;
             return;
         }
 
         if self.last_printable_char.is_none() {
-            self.last_printable_char = Some(*character);
+            self.last_printable_char = Some(character);
             return;
         }
 
-        let tmp_a = &self.last_printable_char.unwrap();
+        let tmp_a = self.last_printable_char.unwrap();
         let unicode_range_a = unicode_range(tmp_a);
         let unicode_range_b = unicode_range(character);
 
@@ -209,7 +209,7 @@ impl MessDetectorPlugin for SuspiciousRangePlugin {
             self.suspicious_successive_range_count += 1;
         }
 
-        self.last_printable_char = Some(*character);
+        self.last_printable_char = Some(character);
     }
     fn ratio(&self) -> f32 {
         (self.character_count > 0)
@@ -240,12 +240,12 @@ struct SuperWeirdWordPlugin {
 }
 
 impl MessDetectorPlugin for SuperWeirdWordPlugin {
-    fn eligible(&self, _: char) -> bool {
+    fn eligible(&self, character: char) -> bool {
         true
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         if character.is_ascii_alphabetic() {
-            self.buffer.push(*character);
+            self.buffer.push(character);
             if is_accentuated(character) {
                 self.buffer_accent_count += 1;
             }
@@ -278,7 +278,7 @@ impl MessDetectorPlugin for SuperWeirdWordPlugin {
                 // Word/Buffer ending with an upper case accentuated letter are so rare,
                 // that we will consider them all as suspicious. Same weight as foreign_long suspicious.
                 let last_char = self.buffer.chars().last().unwrap();
-                if is_accentuated(&last_char) && last_char.is_uppercase() {
+                if is_accentuated(last_char) && last_char.is_uppercase() {
                     self.foreign_long_count += 1;
                     self.is_current_word_bad = true;
                 }
@@ -306,12 +306,12 @@ impl MessDetectorPlugin for SuperWeirdWordPlugin {
             self.foreign_long_watch = false;
             self.buffer.clear();
             self.buffer_accent_count = 0;
-        } else if !"<>-=~|_".contains(*character)
+        } else if !"<>-=~|_".contains(character)
             && !character.is_ascii_digit()
             && is_symbol(character)
         {
             self.is_current_word_bad = true;
-            self.buffer.push(*character);
+            self.buffer.push(character);
         }
     }
     fn ratio(&self) -> f32 {
@@ -337,8 +337,8 @@ impl MessDetectorPlugin for CjkInvalidStopPlugin {
     fn eligible(&self, _: char) -> bool {
         true
     }
-    fn feed(&mut self, character: &char) {
-        if "丅丄".contains(*character) {
+    fn feed(&mut self, character: char) {
+        if "丅丄".contains(character) {
             self.wrong_stop_count += 1;
             return;
         }
@@ -386,7 +386,7 @@ impl MessDetectorPlugin for ArchaicUpperLowerPlugin {
     fn eligible(&self, _: char) -> bool {
         true
     }
-    fn feed(&mut self, character: &char) {
+    fn feed(&mut self, character: char) {
         if !(character.is_alphabetic() && is_case_variable(character))
             && self.character_count_since_last_sep > 0
         {
@@ -426,7 +426,7 @@ impl MessDetectorPlugin for ArchaicUpperLowerPlugin {
 
         self.character_count += 1;
         self.character_count_since_last_sep += 1;
-        self.last_alpha_seen = Some(*character);
+        self.last_alpha_seen = Some(character);
     }
     fn ratio(&self) -> f32 {
         if self.character_count == 0 {
@@ -470,7 +470,7 @@ pub(crate) fn mess_ratio(
         detectors
             .iter_mut()
             .filter(|detector| detector.eligible(ch))
-            .for_each(|detector| detector.feed(&ch));
+            .for_each(|detector| detector.feed(ch));
 
         if (index > 0 && index.rem_euclid(intermediary_mean_mess_ratio_calc) == 0)
             || index == length
