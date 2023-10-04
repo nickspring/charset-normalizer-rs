@@ -248,16 +248,13 @@ impl MessDetectorPlugin for SuperWeirdWordPlugin {
             if is_accentuated(character) {
                 self.buffer_accent_count += 1;
             }
-            if !self.foreign_long_watch
-                && ((!is_latin(character) || is_accentuated(character))
+            self.foreign_long_watch |= (!is_latin(character) || is_accentuated(character))
                 && !is_cjk(character)
                 && !is_hangul(character)
                 && !is_katakana(character)
                 && !is_hiragana(character)
-                && !is_thai(character))
-            {
-                self.foreign_long_watch = true;
-            }
+                && !is_thai(character);
+
             return;
         }
         if self.buffer.is_empty() {
