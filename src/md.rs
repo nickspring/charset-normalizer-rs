@@ -51,9 +51,10 @@ impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
     }
     fn feed(&mut self, character: char) {
         self.character_count += 1;
-        let is_different_char = self.last_printable_char.map_or(true, |last_char| character != last_char);
-        if is_different_char && !COMMON_SAFE_ASCII_CHARACTERS.contains(character)
-        {
+        let is_different_char = self
+            .last_printable_char
+            .map_or(true, |last_char| character != last_char);
+        if is_different_char && !COMMON_SAFE_ASCII_CHARACTERS.contains(character) {
             if is_punctuation(character) {
                 self.punctuation_count += 1;
             } else if !character.is_numeric() && is_symbol(character) && !is_emoticon(character) {
