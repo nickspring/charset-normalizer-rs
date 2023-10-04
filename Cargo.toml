@@ -61,3 +61,7 @@ required-features = ["performance"]
 [[bin]]
 name = "normalizer"
 path = "src/normalizer.rs"
+
+[profile.release]
+opt-level = 3
+lto = "fat"

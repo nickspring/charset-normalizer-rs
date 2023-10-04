@@ -93,7 +93,7 @@ impl MessDetectorPlugin for TooManyAccentuatedPlugin {
     fn feed(&mut self, character: char) {
         self.character_count += 1;
         if is_accentuated(character) {
-            self.accentuated_count += 1
+            self.accentuated_count += 1;
         }
     }
     fn ratio(&self) -> f32 {

@@ -141,7 +141,7 @@ use crate::utils::{
 use encoding::DecoderTrap;
 use log::{debug, trace};
 use std::collections::VecDeque;
-use std::fs::{metadata, File};
+use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
@@ -381,45 +381,43 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
         // main loop over chunks in our input
         // we go over bytes or chars - it depends on previous code
-        let sequence_length = if let Some(payload) = decoded_payload {
-            payload.chars().count()
-        } else {
-            bytes_length
+        let seq_len = match decoded_payload {
+            Some(payload) => payload.chars().count(),
+            None => bytes_length,
         };
-        let offsets = ((if bom_or_sig_available && decoded_payload.is_none() {
-            sig_payload.unwrap().len()
-        } else {
-            0
-        })..sequence_length)
-            .step_by((sequence_length / settings.steps).max(1));
+        let starting_offset = match (bom_or_sig_available, decoded_payload) {
+            (true, None) => sig_payload.as_ref().unwrap().len(),
+            _ => 0,
+        };
+        let offsets = (starting_offset..seq_len).step_by((seq_len / settings.steps).max(1));
 
         // Chunks Loop
         // Iterate over chunks of bytes or chars
         let mut md_chunks: Vec<String> = vec![];
         'chunks_loop: for offset in offsets {
-            let decoded_chunk_result = if decoded_payload.is_some() {
+            let decoded_chunk_result = match &decoded_payload {
                 // Chars processing
-                Ok(decoded_payload
-                    .unwrap_or_default()
+                Some(payload) => Ok(payload
                     .chars()
                     .skip(offset)
                     .take(settings.chunk_size)
-                    .collect())
-            } else {
+                    .collect()),
                 // Bytes processing
-                let offset_end = (offset + settings.chunk_size).min(sequence_length);
-                let cut_bytes_vec: Vec<u8> = if bom_or_sig_available && !strip_sig_or_bom {
-                    [sig_payload.unwrap(), &bytes[offset..offset_end]].concat()
-                } else {
-                    bytes[offset..offset_end].to_vec()
-                };
-                decode(
-                    &cut_bytes_vec,
-                    encoding_iana,
-                    DecoderTrap::Strict,
-                    false,
-                    false,
-                )
+                None => {
+                    let offset_end = (offset + settings.chunk_size).min(seq_len);
+                    let cut_bytes_vec: Vec<u8> = if bom_or_sig_available && !strip_sig_or_bom {
+                        [sig_payload.as_ref().unwrap(), &bytes[offset..offset_end]].concat()
+                    } else {
+                        bytes[offset..offset_end].to_vec()
+                    };
+                    decode(
+                        &cut_bytes_vec,
+                        encoding_iana,
+                        DecoderTrap::Strict,
+                        false,
+                        false,
+                    )
+                }
             };
 
             // ascii in encodings means windows-1252 codepage with supports diacritis
@@ -615,7 +613,7 @@ pub fn from_path(
 ) -> Result<CharsetMatches, String> {
     // read file
     let mut file = File::open(path).map_err(|e| format!("Error opening file: {e}"))?;
-    let file_size = metadata(path).map(|m| m.len()).unwrap_or_default();
+    let file_size = file.metadata().map(|m| m.len()).unwrap_or_default();
 
     let mut buffer = Vec::with_capacity(file_size as usize);
     file.read_to_end(&mut buffer)
