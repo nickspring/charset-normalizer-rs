@@ -110,6 +110,20 @@ impl Debug for CharsetMatch {
     }
 }
 
+impl Default for CharsetMatch {
+    fn default() -> Self {
+        CharsetMatch {
+            payload: vec![],
+            encoding: "utf-8".to_string(),
+            mean_mess_ratio: 0.0,
+            coherence_matches: vec![],
+            has_sig_or_bom: false,
+            submatch: vec![],
+            decoded_payload: None,
+        }
+    }
+}
+
 impl PartialEq<Self> for CharsetMatch {
     fn eq(&self, other: &Self) -> bool {
         self.encoding == other.encoding && self.decoded_payload == other.decoded_payload

@@ -203,14 +203,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let bytes_length = bytes.len();
     if bytes_length == 0 {
         debug!("Encoding detection on empty bytes, assuming utf_8 intention.");
-        return CharsetMatches::new(Some(vec![CharsetMatch::new(
-            &[],
-            "utf-8",
-            0.0,
-            false,
-            &vec![],
-            None,
-        )]));
+        return CharsetMatches::new(Some(vec![CharsetMatch::default()]));
     }
 
     // check min length
