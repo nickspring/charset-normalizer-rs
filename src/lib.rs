@@ -306,7 +306,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         {
             continue;
         }
-        let bom_or_sig_available: bool = sig_encoding == Some(encoding_iana.to_string());
+        let bom_or_sig_available: bool = sig_encoding.as_deref() == Some(encoding_iana);
         // let strip_sig_or_bom = true // unlike python version this is always true in rust
         let is_multi_byte_decoder: bool = is_multi_byte_encoding(encoding_iana);
 
