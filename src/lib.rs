@@ -320,22 +320,24 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         }
 
         // fast pre-check
-        let mut decoded_payload: Option<&str> = None;
+        let start_idx = if bom_or_sig_available {
+            sig_payload.unwrap().len()
+        } else {
+            0
+        };
+        let end_idx = if is_too_large_sequence && !is_multi_byte_decoder {
+            *MAX_PROCESSED_BYTES
+        } else {
+            bytes_length
+        };
         let decoded_payload_result = decode(
-            &bytes[if bom_or_sig_available {
-                sig_payload.unwrap().len()
-            } else {
-                0
-            }..if is_too_large_sequence && !is_multi_byte_decoder {
-                *MAX_PROCESSED_BYTES
-            } else {
-                bytes_length
-            }],
+            &bytes[start_idx..end_idx],
             encoding_iana,
             DecoderTrap::Strict,
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
         );
+        let mut decoded_payload: Option<&str> = None;
         if let Ok(payload) = decoded_payload_result.as_ref() {
             if !is_too_large_sequence || is_multi_byte_decoder {
                 decoded_payload = Some(payload);
