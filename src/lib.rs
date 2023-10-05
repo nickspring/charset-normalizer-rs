@@ -248,7 +248,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // start to build prioritized encodings array
-    let mut prioritized_encodings: Vec<String> = vec![];
+    let mut prioritized_encodings: Vec<&str> = vec![];
 
     // search for encoding in the content
     let mut specified_encoding: String = String::new();
@@ -259,7 +259,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 &enc
             );
             specified_encoding = enc.to_string();
-            prioritized_encodings.push(enc);
+            prioritized_encodings.push(&specified_encoding);
         }
     }
 
@@ -271,16 +271,16 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             sig_pay.len(),
             sig_enc,
         );
-        prioritized_encodings.push(sig_enc.clone());
+        prioritized_encodings.push(&sig_enc);
     }
 
     // add ascii & utf-8
-    prioritized_encodings.extend(["ascii".to_string(), "utf-8".to_string()]);
+    prioritized_encodings.extend(&["ascii", "utf-8"]);
 
     // generate array of encodings for probing with prioritizing
     let mut iana_encodings: VecDeque<&str> = VecDeque::from(IANA_SUPPORTED.clone());
     for pe in prioritized_encodings.iter().rev() {
-        if let Some(index) = iana_encodings.iter().position(|x| *x == pe) {
+        if let Some(index) = iana_encodings.iter().position(|x| x == pe) {
             let value = iana_encodings.remove(index).unwrap();
             iana_encodings.push_front(value);
         }
@@ -489,7 +489,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             // Preparing those fallbacks in case we got nothing.
             if settings.enable_fallback
                 && !lazy_str_hard_failure
-                && prioritized_encodings.contains(&encoding_iana.to_string())
+                && prioritized_encodings.contains(&encoding_iana)
             {
                 let fallback_entry = Some(CharsetMatch::new(
                     bytes,
@@ -549,7 +549,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             decoded_payload.as_deref(),
         ));
 
-        if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana.to_string()))
+        if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana))
             || encoding_iana == sig_encoding.clone().unwrap_or_default()
         {
             debug!(
