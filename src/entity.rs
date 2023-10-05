@@ -313,6 +313,9 @@ impl CharsetMatches {
         CharsetMatches::resort(&mut items);
         CharsetMatches { items }
     }
+    pub fn from_single(item: CharsetMatch) -> Self {
+        CharsetMatches { items: vec![item] }
+    }
     // Insert a single match. Will be inserted accordingly to preserve sort.
     // Can be inserted as a submatch.
     pub fn append(&mut self, item: CharsetMatch) {

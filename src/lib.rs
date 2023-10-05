@@ -203,7 +203,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let bytes_length = bytes.len();
     if bytes_length == 0 {
         debug!("Encoding detection on empty bytes, assuming utf_8 intention.");
-        return CharsetMatches::new(Some(vec![CharsetMatch::default()]));
+        return CharsetMatches::from_single(CharsetMatch::default());
     }
 
     // check min length
@@ -543,10 +543,9 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 "Encoding detection: {} is most likely the one.",
                 encoding_iana
             );
-            return CharsetMatches::new(Some(vec![results
-                .get_by_encoding(encoding_iana)
-                .unwrap()
-                .clone()]));
+            return CharsetMatches::from_single(
+                results.get_by_encoding(encoding_iana).unwrap().clone(),
+            );
         }
     }
 
