@@ -405,9 +405,9 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 // Bytes processing
                 None => {
                     let offset_end = (offset + settings.chunk_size).min(seq_len);
-                    let cut_bytes_vec: Vec<u8> = bytes[offset..offset_end].to_vec();
+                    let cut_bytes_vec: &[u8] = &bytes[offset..offset_end];
                     decode(
-                        &cut_bytes_vec,
+                        cut_bytes_vec,
                         encoding_iana,
                         DecoderTrap::Strict,
                         false,
