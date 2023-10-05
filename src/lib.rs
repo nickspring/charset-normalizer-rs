@@ -204,7 +204,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     if bytes_length == 0 {
         debug!("Encoding detection on empty bytes, assuming utf_8 intention.");
         return CharsetMatches::new(Some(vec![CharsetMatch::new(
-            bytes,
+            &[],
             "utf-8",
             0.0,
             false,
