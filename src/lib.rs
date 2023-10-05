@@ -271,7 +271,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             sig_pay.len(),
             sig_enc,
         );
-        prioritized_encodings.push(&sig_enc);
+        prioritized_encodings.push(sig_enc);
     }
 
     // add ascii & utf-8
