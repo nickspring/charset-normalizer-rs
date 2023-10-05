@@ -51,9 +51,10 @@ impl MessDetectorPlugin for TooManySymbolOrPunctuationPlugin {
     }
     fn feed(&mut self, character: char) {
         self.character_count += 1;
-        if (self.last_printable_char.is_none() || character != self.last_printable_char.unwrap())
-            && !COMMON_SAFE_ASCII_CHARACTERS.contains(character)
-        {
+        let is_different_char = self
+            .last_printable_char
+            .map_or(true, |last_char| character != last_char);
+        if is_different_char && !COMMON_SAFE_ASCII_CHARACTERS.contains(character) {
             if is_punctuation(character) {
                 self.punctuation_count += 1;
             } else if !character.is_numeric() && is_symbol(character) && !is_emoticon(character) {
@@ -148,17 +149,15 @@ impl MessDetectorPlugin for SuspiciousDuplicateAccentPlugin {
     }
     fn feed(&mut self, character: char) {
         self.character_count += 1;
-        if self.last_latin_character.is_some()
-            && is_accentuated(character)
-            && is_accentuated(self.last_latin_character.unwrap())
-        {
-            if character.is_uppercase() && self.last_latin_character.unwrap().is_uppercase() {
-                self.successive_count += 1;
-            }
-
-            // Worse if its the same char duplicated with different accent.
-            if remove_accent(character) == remove_accent(self.last_latin_character.unwrap()) {
-                self.successive_count += 1;
+        if let Some(last_latin_char) = self.last_latin_character {
+            if is_accentuated(character) && is_accentuated(last_latin_char) {
+                if character.is_uppercase() && last_latin_char.is_uppercase() {
+                    self.successive_count += 1;
+                }
+                // Worse if its the same char duplicated with different accent.
+                if remove_accent(character) == remove_accent(last_latin_char) {
+                    self.successive_count += 1;
+                }
             }
         }
         self.last_latin_character = Some(character);
@@ -249,16 +248,13 @@ impl MessDetectorPlugin for SuperWeirdWordPlugin {
             if is_accentuated(character) {
                 self.buffer_accent_count += 1;
             }
-            if !self.foreign_long_watch
-                && (!is_latin(character) || is_accentuated(character))
+            self.foreign_long_watch |= (!is_latin(character) || is_accentuated(character))
                 && !is_cjk(character)
                 && !is_hangul(character)
                 && !is_katakana(character)
                 && !is_hiragana(character)
-                && !is_thai(character)
-            {
-                self.foreign_long_watch = true;
-            }
+                && !is_thai(character);
+
             return;
         }
         if self.buffer.is_empty() {

@@ -220,11 +220,6 @@ pub(crate) fn remove_accent(ch: char) -> char {
     base_char.map_or(ch, |c| c)
 }
 
-pub(crate) fn should_strip_sig_or_bom(_iana_encoding: &str) -> bool {
-    // it looks like we always remove it in Rust (but in Python version no)
-    true
-}
-
 // Verify is a specific encoding is a multi byte one based on it IANA name
 pub fn is_multi_byte_encoding(name: &str) -> bool {
     [
@@ -510,6 +505,16 @@ pub(crate) fn get_language_data(language: &Language) -> Result<(&'static str, bo
         }
     }
     Err(String::from("Language wasn't found"))
+}
+
+// ascii in encodings means windows-1252 codepage with supports diacritis
+// because of this we will check additionally it with is_ascii method
+pub(super) fn is_invalid_chunk(
+    decoded_chunk_result: &Result<String, String>,
+    encoding_iana: &str,
+) -> bool {
+    decoded_chunk_result.is_err()
+        || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().is_ok_and(|s| s.is_ascii()))
 }
 
 // Get large datasets

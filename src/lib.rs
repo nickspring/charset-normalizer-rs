@@ -136,7 +136,7 @@ use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSe
 use crate::md::mess_ratio;
 use crate::utils::{
     any_specified_encoding, decode, iana_name, identify_sig_or_bom, is_cp_similar,
-    is_multi_byte_encoding, should_strip_sig_or_bom,
+    is_invalid_chunk, is_multi_byte_encoding,
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
@@ -203,14 +203,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let bytes_length = bytes.len();
     if bytes_length == 0 {
         debug!("Encoding detection on empty bytes, assuming utf_8 intention.");
-        return CharsetMatches::new(Some(vec![CharsetMatch::new(
-            bytes,
-            "utf-8",
-            0.0,
-            false,
-            &vec![],
-            None,
-        )]));
+        return CharsetMatches::from_single(CharsetMatch::default());
     }
 
     // check min length
@@ -248,7 +241,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // start to build prioritized encodings array
-    let mut prioritized_encodings: Vec<String> = vec![];
+    let mut prioritized_encodings: Vec<&str> = vec![];
 
     // search for encoding in the content
     let mut specified_encoding: String = String::new();
@@ -259,7 +252,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 &enc
             );
             specified_encoding = enc.to_string();
-            prioritized_encodings.push(enc);
+            prioritized_encodings.push(&specified_encoding);
         }
     }
 
@@ -271,16 +264,16 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             sig_pay.len(),
             sig_enc,
         );
-        prioritized_encodings.push(sig_enc.clone());
+        prioritized_encodings.push(sig_enc);
     }
 
     // add ascii & utf-8
-    prioritized_encodings.extend(["ascii".to_string(), "utf-8".to_string()]);
+    prioritized_encodings.extend(&["ascii", "utf-8"]);
 
     // generate array of encodings for probing with prioritizing
     let mut iana_encodings: VecDeque<&str> = VecDeque::from(IANA_SUPPORTED.clone());
     for pe in prioritized_encodings.iter().rev() {
-        if let Some(index) = iana_encodings.iter().position(|x| *x == pe) {
+        if let Some(index) = iana_encodings.iter().position(|x| x == pe) {
             let value = iana_encodings.remove(index).unwrap();
             iana_encodings.push_front(value);
         }
@@ -306,8 +299,8 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         {
             continue;
         }
-        let bom_or_sig_available: bool = sig_encoding == Some(encoding_iana.to_string());
-        let strip_sig_or_bom: bool = bom_or_sig_available && should_strip_sig_or_bom(encoding_iana);
+        let bom_or_sig_available: bool = sig_encoding.as_deref() == Some(encoding_iana);
+        // let strip_sig_or_bom = true // unlike python version this is always true in rust
         let is_multi_byte_decoder: bool = is_multi_byte_encoding(encoding_iana);
 
         // utf-16le & utf-16be cannot be identified without BOM
@@ -320,34 +313,34 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         }
 
         // fast pre-check
-        let mut decoded_payload: Option<&str> = None;
-        let decoded_payload_result = decode(
-            &bytes[if strip_sig_or_bom {
-                sig_payload.unwrap().len()
-            } else {
-                0
-            }..if is_too_large_sequence && !is_multi_byte_decoder {
-                *MAX_PROCESSED_BYTES
-            } else {
-                bytes_length
-            }],
+        let start_idx = if bom_or_sig_available {
+            sig_payload.unwrap().len()
+        } else {
+            0
+        };
+        let end_idx = if is_too_large_sequence && !is_multi_byte_decoder {
+            *MAX_PROCESSED_BYTES
+        } else {
+            bytes_length
+        };
+        let decoded_payload: Option<String> = match decode(
+            &bytes[start_idx..end_idx],
             encoding_iana,
             DecoderTrap::Strict,
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
-        );
-        if let Ok(payload) = decoded_payload_result.as_ref() {
-            if !is_too_large_sequence || is_multi_byte_decoder {
-                decoded_payload = Some(payload);
+        ) {
+            Ok(payload) if !is_too_large_sequence || is_multi_byte_decoder => Some(payload),
+            Ok(_) => None,
+            Err(_) => {
+                trace!(
+                    "Code page {} does not fit given bytes sequence at ALL.",
+                    encoding_iana,
+                );
+                tested_but_hard_failure.push(encoding_iana);
+                continue 'iana_encodings_loop;
             }
-        } else {
-            trace!(
-                "Code page {} does not fit given bytes sequence at ALL.",
-                encoding_iana,
-            );
-            tested_but_hard_failure.push(encoding_iana);
-            continue 'iana_encodings_loop;
-        }
+        };
 
         // soft failed pre-check
         // important thing! it occurs sometimes fail detection
@@ -381,11 +374,11 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
         // main loop over chunks in our input
         // we go over bytes or chars - it depends on previous code
-        let seq_len = match decoded_payload {
+        let seq_len = match &decoded_payload {
             Some(payload) => payload.chars().count(),
             None => bytes_length,
         };
-        let starting_offset = match (bom_or_sig_available, decoded_payload) {
+        let starting_offset = match (bom_or_sig_available, &decoded_payload) {
             (true, None) => sig_payload.as_ref().unwrap().len(),
             _ => 0,
         };
@@ -405,13 +398,9 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 // Bytes processing
                 None => {
                     let offset_end = (offset + settings.chunk_size).min(seq_len);
-                    let cut_bytes_vec: Vec<u8> = if bom_or_sig_available && !strip_sig_or_bom {
-                        [sig_payload.as_ref().unwrap(), &bytes[offset..offset_end]].concat()
-                    } else {
-                        bytes[offset..offset_end].to_vec()
-                    };
+                    let cut_bytes_vec: &[u8] = &bytes[offset..offset_end];
                     decode(
-                        &cut_bytes_vec,
+                        cut_bytes_vec,
                         encoding_iana,
                         DecoderTrap::Strict,
                         false,
@@ -420,11 +409,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 }
             };
 
-            // ascii in encodings means windows-1252 codepage with supports diacritis
-            // because of this we will check additionally it with is_ascii method
-            if decoded_chunk_result.is_err()
-                || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().unwrap().is_ascii())
-            {
+            if is_invalid_chunk(&decoded_chunk_result, encoding_iana) {
                 trace!(
                     "LazyStr Loading: After MD chunk decode, code page {} \
                     does not fit given bytes sequence at ALL. {}",
@@ -446,8 +431,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             if md_ratios.last().unwrap() >= &settings.threshold {
                 early_stop_count += 1;
             }
-            if early_stop_count >= max_chunk_gave_up || (bom_or_sig_available && !strip_sig_or_bom)
-            {
+            if early_stop_count >= max_chunk_gave_up {
                 break 'chunks_loop;
             }
         }
@@ -462,9 +446,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 false,
                 false,
             );
-            if decoded_chunk_result.is_err()
-                || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().unwrap().is_ascii())
-            {
+            if is_invalid_chunk(&decoded_chunk_result, encoding_iana) {
                 trace!(
                     "LazyStr Loading: After final lookup, code page {} does not fit \
                     given bytes sequence at ALL. {}",
@@ -494,7 +476,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             // Preparing those fallbacks in case we got nothing.
             if settings.enable_fallback
                 && !lazy_str_hard_failure
-                && prioritized_encodings.contains(&encoding_iana.to_string())
+                && prioritized_encodings.contains(&encoding_iana)
             {
                 let fallback_entry = Some(CharsetMatch::new(
                     bytes,
@@ -502,7 +484,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                     f32::from(settings.threshold),
                     false,
                     &vec![],
-                    decoded_payload,
+                    decoded_payload.as_deref(),
                 ));
 
                 match encoding_iana {
@@ -551,20 +533,19 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             mean_mess_ratio,
             bom_or_sig_available,
             &cd_ratios_merged,
-            decoded_payload,
+            decoded_payload.as_deref(),
         ));
 
-        if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana.to_string()))
+        if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana))
             || encoding_iana == sig_encoding.clone().unwrap_or_default()
         {
             debug!(
                 "Encoding detection: {} is most likely the one.",
                 encoding_iana
             );
-            return CharsetMatches::new(Some(vec![results
-                .get_by_encoding(encoding_iana)
-                .unwrap()
-                .clone()]));
+            return CharsetMatches::from_single(
+                results.get_by_encoding(encoding_iana).unwrap().clone(),
+            );
         }
     }
 

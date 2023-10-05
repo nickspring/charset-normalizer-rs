@@ -110,6 +110,20 @@ impl Debug for CharsetMatch {
     }
 }
 
+impl Default for CharsetMatch {
+    fn default() -> Self {
+        CharsetMatch {
+            payload: vec![],
+            encoding: "utf-8".to_string(),
+            mean_mess_ratio: 0.0,
+            coherence_matches: vec![],
+            has_sig_or_bom: false,
+            submatch: vec![],
+            decoded_payload: None,
+        }
+    }
+}
+
 impl PartialEq<Self> for CharsetMatch {
     fn eq(&self, other: &Self) -> bool {
         self.encoding == other.encoding && self.decoded_payload == other.decoded_payload
@@ -298,6 +312,9 @@ impl CharsetMatches {
         let mut items = items.unwrap_or_default();
         CharsetMatches::resort(&mut items);
         CharsetMatches { items }
+    }
+    pub fn from_single(item: CharsetMatch) -> Self {
+        CharsetMatches { items: vec![item] }
     }
     // Insert a single match. Will be inserted accordingly to preserve sort.
     // Can be inserted as a submatch.
