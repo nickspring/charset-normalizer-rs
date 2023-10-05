@@ -136,7 +136,7 @@ use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSe
 use crate::md::mess_ratio;
 use crate::utils::{
     any_specified_encoding, decode, iana_name, identify_sig_or_bom, is_cp_similar,
-    is_multi_byte_encoding,
+    is_invalid_chunk, is_multi_byte_encoding,
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
@@ -416,12 +416,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 }
             };
 
-            // ascii in encodings means windows-1252 codepage with supports diacritis
-            // because of this we will check additionally it with is_ascii method
-            if decoded_chunk_result.is_err()
-                || (encoding_iana == "ascii"
-                    && !decoded_chunk_result.as_ref().is_ok_and(|s| s.is_ascii()))
-            {
+            if is_invalid_chunk(&decoded_chunk_result, encoding_iana) {
                 trace!(
                     "LazyStr Loading: After MD chunk decode, code page {} \
                     does not fit given bytes sequence at ALL. {}",
@@ -458,9 +453,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 false,
                 false,
             );
-            if decoded_chunk_result.is_err()
-                || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().unwrap().is_ascii())
-            {
+            if is_invalid_chunk(&decoded_chunk_result, encoding_iana) {
                 trace!(
                     "LazyStr Loading: After final lookup, code page {} does not fit \
                     given bytes sequence at ALL. {}",

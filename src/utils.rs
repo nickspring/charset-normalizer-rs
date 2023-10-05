@@ -507,6 +507,16 @@ pub(crate) fn get_language_data(language: &Language) -> Result<(&'static str, bo
     Err(String::from("Language wasn't found"))
 }
 
+// ascii in encodings means windows-1252 codepage with supports diacritis
+// because of this we will check additionally it with is_ascii method
+pub(super) fn is_invalid_chunk(
+    decoded_chunk_result: &Result<String, String>,
+    encoding_iana: &str,
+) -> bool {
+    decoded_chunk_result.is_err()
+        || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().is_ok_and(|s| s.is_ascii()))
+}
+
 // Get large datasets
 fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
