@@ -446,9 +446,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             if md_ratios.last().unwrap() >= &settings.threshold {
                 early_stop_count += 1;
             }
-            if early_stop_count >= max_chunk_gave_up
-                || (bom_or_sig_available && !bom_or_sig_available)
-            {
+            if early_stop_count >= max_chunk_gave_up {
                 break 'chunks_loop;
             }
         }
