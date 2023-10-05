@@ -1,14 +1,18 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::{is_suspiciously_successive_range, remove_accent, unicode_range};
+use crate::utils::{
+    is_accentuated, is_cjk, is_hangul, is_hiragana, is_katakana, is_latin, is_punctuation,
+    is_separator, is_suspiciously_successive_range, is_thai, remove_accent, unicode_range,
+};
 use bitflags::{bitflags, Flags};
 use cached::proc_macro::cached;
 use cached::UnboundCache;
 use log::trace;
 use ordered_float::OrderedFloat;
 use unic::char::property::EnumeratedCharProperty;
-use unic::ucd::{GeneralCategory, Name};
+use unic::ucd::{is_white_space, GeneralCategory, Name};
 
 //
 // Mess detection module
@@ -64,7 +68,6 @@ impl PartialEq for MessDetectorChar {
 }
 
 impl MessDetectorChar {
-
     pub fn new(character: char) -> Self {
         new_mess_detector_character(character)
     }
@@ -137,6 +140,7 @@ pub fn new_mess_detector_character(character: char) -> MessDetectorChar {
     // whitespace
     if character.is_whitespace() {
         flags.insert(MessDetectorCharFlags::WHITESPACE);
+        flags.insert(MessDetectorCharFlags::SEPARATOR);
     } else {
         // safe symbols (non-whitespace)
         if COMMON_SAFE_ASCII_CHARACTERS.contains(character) {
@@ -171,18 +175,21 @@ pub fn new_mess_detector_character(character: char) -> MessDetectorChar {
         // emoticon
         if MessDetectorChar::in_category(category, range, &[], &[], &["Emoticons"]) {
             flags.insert(MessDetectorCharFlags::EMOTICON);
-        } else {
-            // punctuation
-            if MessDetectorChar::in_category(category, range, &[], &["P"], &["Punctuation"]) {
-                flags.insert(MessDetectorCharFlags::PUNCTUATION);
-            }
+        }
 
-            // separator
-            if MessDetectorChar::in_category(category, range, &["Po", "Pd", "Pc"], &["Z"], &[]) {
-                flags.insert(MessDetectorCharFlags::SEPARATOR);
-            }
+        // separator
+        if ['｜', '+', '<', '>'].contains(&character)
+            || MessDetectorChar::in_category(category, range, &["Po", "Pd", "Pc"], &["Z"], &[])
+        {
+            flags.insert(MessDetectorCharFlags::SEPARATOR);
         }
     }
+
+    // punctuation
+    if MessDetectorChar::in_category(category, range, &[], &["P"], &["Punctuation"]) {
+        flags.insert(MessDetectorCharFlags::PUNCTUATION);
+    }
+
     // symbol
     if MessDetectorChar::in_category(category, range, &[], &["N", "S"], &["Forms"]) {
         flags.insert(MessDetectorCharFlags::SYMBOL);
