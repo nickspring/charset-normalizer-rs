@@ -330,26 +330,24 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         } else {
             bytes_length
         };
-        let decoded_payload_result = decode(
+        let decoded_payload: Option<String> = match decode(
             &bytes[start_idx..end_idx],
             encoding_iana,
             DecoderTrap::Strict,
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
-        );
-        let mut decoded_payload: Option<&str> = None;
-        if let Ok(payload) = decoded_payload_result.as_ref() {
-            if !is_too_large_sequence || is_multi_byte_decoder {
-                decoded_payload = Some(payload);
+        ) {
+            Ok(payload) if !is_too_large_sequence || is_multi_byte_decoder => Some(payload),
+            Ok(_) => None,
+            Err(_) => {
+                trace!(
+                    "Code page {} does not fit given bytes sequence at ALL.",
+                    encoding_iana,
+                );
+                tested_but_hard_failure.push(encoding_iana);
+                continue 'iana_encodings_loop;
             }
-        } else {
-            trace!(
-                "Code page {} does not fit given bytes sequence at ALL.",
-                encoding_iana,
-            );
-            tested_but_hard_failure.push(encoding_iana);
-            continue 'iana_encodings_loop;
-        }
+        };
 
         // soft failed pre-check
         // important thing! it occurs sometimes fail detection
@@ -383,11 +381,11 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
         // main loop over chunks in our input
         // we go over bytes or chars - it depends on previous code
-        let seq_len = match decoded_payload {
+        let seq_len = match &decoded_payload {
             Some(payload) => payload.chars().count(),
             None => bytes_length,
         };
-        let starting_offset = match (bom_or_sig_available, decoded_payload) {
+        let starting_offset = match (bom_or_sig_available, &decoded_payload) {
             (true, None) => sig_payload.as_ref().unwrap().len(),
             _ => 0,
         };
@@ -499,7 +497,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                     f32::from(settings.threshold),
                     false,
                     &vec![],
-                    decoded_payload,
+                    decoded_payload.as_deref(),
                 ));
 
                 match encoding_iana {
@@ -548,7 +546,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             mean_mess_ratio,
             bom_or_sig_available,
             &cd_ratios_merged,
-            decoded_payload,
+            decoded_payload.as_deref(),
         ));
 
         if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana.to_string()))
