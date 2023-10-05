@@ -18,7 +18,7 @@ lazy_static! {
     pub static ref TOO_SMALL_SEQUENCE: usize = 32;
     pub static ref TOO_BIG_SEQUENCE: usize = 1_000_000; // 10E6
 
-    pub(crate) static ref UTF8_MAXIMAL_ALLOCATION: usize = 128;
+    pub(crate) static ref UTF8_MAXIMAL_ALLOCATION: usize = 1_112_064;
     pub(crate) static ref UNICODE_RANGES_COMBINED: [(&'static str, RangeInclusive<u32>);279] = [
         ("Control character", 0..=31),
         ("Basic Latin", 32..=127),

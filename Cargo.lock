@@ -215,6 +215,7 @@ version = "1.0.6"
 dependencies = [
  "ahash",
  "assert_cmd",
+ "bitflags 2.4.0",
  "cached",
  "chardet",
  "chardetng",

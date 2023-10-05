@@ -33,6 +33,7 @@ fn test_mess_ratio() {
 
 #[test]
 fn test_datasets_mess_ratio() {
+    env_logger::init(); // TODO remove
     for (path, encoding) in &get_large_test_datasets().unwrap() {
         let file = File::open(path);
         if file.is_err() {
@@ -50,7 +51,14 @@ fn test_datasets_mess_ratio() {
             false,
         ) {
             let mr = mess_ratio(decoded_sequence, Some(OrderedFloat(1.0)));
-            assert!(mr < 0.2);
+            assert!(mr < 0.2, "Mess ration is very high = {} for {}", mr, path);
         }
     }
+}
+
+#[test]
+fn test_mess_detector_char() {
+    // whitespace
+    let mdc = MessDetectorChar::new(' ');
+    assert!(mdc.is(MessDetectorCharFlags::WHITESPACE));
 }
