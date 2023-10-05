@@ -419,7 +419,8 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             // ascii in encodings means windows-1252 codepage with supports diacritis
             // because of this we will check additionally it with is_ascii method
             if decoded_chunk_result.is_err()
-                || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().ok().unwrap().is_ascii())
+                || (encoding_iana == "ascii"
+                    && !decoded_chunk_result.as_ref().is_ok_and(|s| s.is_ascii()))
             {
                 trace!(
                     "LazyStr Loading: After MD chunk decode, code page {} \
