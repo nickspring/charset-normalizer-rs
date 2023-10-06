@@ -2,10 +2,7 @@
 #![allow(unused_imports)]
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::{
-    is_accentuated, is_cjk, is_hangul, is_hiragana, is_katakana, is_latin, is_punctuation,
-    is_separator, is_suspiciously_successive_range, is_thai, remove_accent, unicode_range,
-};
+use crate::utils::{is_suspiciously_successive_range, remove_accent, unicode_range};
 use bitflags::{bitflags, Flags};
 use cached::proc_macro::cached;
 use cached::UnboundCache;

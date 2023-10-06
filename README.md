@@ -24,9 +24,9 @@ Here are some numbers.
 
 | Package                                                                                     |  Accuracy  | Mean per file (ms) | File per sec (est) |
 |---------------------------------------------------------------------------------------------|:----------:|:------------------:|:------------------:|
-| [chardet](https://crates.io/crates/chardet)                                                 |   82.6 %   |       2.2 ms       |    450 file/sec    |
+| [chardet](https://crates.io/crates/chardet)                                                 |   82.6 %   |        3 ms        |    333 file/sec    |
 | [chardetng](https://crates.io/crates/chardetng)                                             |   90.7 %   |       1.6 ms       |    625 file/sec    |
-| charset-normalizer-rs                                                                       | **97.1 %** |     **1.8 ms**     |    555 file/sec    |
+| charset-normalizer-rs                                                                       | **97.1 %** |     **1.5 ms**     |    666 file/sec    |
 | [charset-normalizer](https://github.com/Ousret/charset_normalizer) (Python + MYPYC version) |  **98 %**  |      **8 ms**      |    125 file/sec    |
 
 | Package                                                                                     | 99th percentile | 95th percentile | 50th percentile |
