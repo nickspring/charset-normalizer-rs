@@ -50,7 +50,168 @@ fn test_datasets_mess_ratio() {
             false,
         ) {
             let mr = mess_ratio(decoded_sequence, Some(OrderedFloat(1.0)));
-            assert!(mr < 0.2);
+            assert!(mr < 0.2, "Mess ratio is very high = {} for {}", mr, path);
         }
+    }
+}
+
+#[test]
+fn test_is_accentuated() {
+    let tests = [
+        ('é', true),
+        ('è', true),
+        ('à', true),
+        ('À', true),
+        ('Ù', true),
+        ('ç', true),
+        ('a', false),
+        ('€', false),
+        ('&', false),
+        ('Ö', true),
+        ('ü', true),
+        ('ê', true),
+        ('Ñ', true),
+        ('Ý', true),
+        ('Ω', false),
+        ('ø', false),
+        ('Ё', false),
+    ];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::ACCENTUATED),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_latin() {
+    let tests = [('я', false), ('a', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::LATIN),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_cjk() {
+    let tests = [('я', false), ('是', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::CJK),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_hiragana() {
+    let tests = [('是', false), ('お', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::HIRAGANA),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_katakana() {
+    let tests = [('お', false), ('キ', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::KATAKANA),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_hangul() {
+    let tests = [('キ', false), ('ㅂ', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::HANGUL),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_thai() {
+    let tests = [('キ', false), ('ย', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::THAI),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_case_variable() {
+    let tests = [('#', false), ('я', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::CASE_VARIABLE),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_punctuation() {
+    let tests = [('!', true), ('?', true), ('a', false), (':', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::PUNCTUATION),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_symbol() {
+    let tests = [('+', true), ('∑', true), ('a', false), ('я', false)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::SYMBOL),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_emoticon() {
+    let tests = [('🙂', true), ('∑', false), ('😂', true), ('я', false)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::EMOTICON),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_separator() {
+    let tests = [(' ', true), ('a', false), ('!', true), ('я', false)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::SEPARATOR),
+            test.1,
+        );
+    }
+}
+
+#[test]
+fn test_is_unprintable() {
+    let tests = [(' ', false), ('a', false), ('!', false), ('\u{0000}', true)];
+    for test in &tests {
+        assert_eq!(
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::UNPRINTABLE),
+            test.1,
+        );
     }
 }

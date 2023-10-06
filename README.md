@@ -18,22 +18,22 @@ Python version supports more encodings, but a lot of them are old almost unused 
 
 ## ⚡ Performance
 
-This package offer better performance than Python version (3 times faster, than MYPYC version of charset-normalizer, 6 times faster than usual Python version).
-However, in comparison with `chardet` and `chardetng` packages it is slower but more accurate (I guess because it process whole file chunk by chunk). 
+This package offer better performance than Python version (4 times faster, than MYPYC version of charset-normalizer, 8 times faster than usual Python version).
+In comparison with `chardet` and `chardetng` packages it has approximately the same speed but more accurate. 
 Here are some numbers.
 
 | Package                                                                                     |  Accuracy  | Mean per file (ms) | File per sec (est) |
 |---------------------------------------------------------------------------------------------|:----------:|:------------------:|:------------------:|
-| [chardet](https://crates.io/crates/chardet)                                                 |   82.6 %   |       2.2 ms       |    450 file/sec    |
+| [chardet](https://crates.io/crates/chardet)                                                 |   82.6 %   |        3 ms        |    333 file/sec    |
 | [chardetng](https://crates.io/crates/chardetng)                                             |   90.7 %   |       1.6 ms       |    625 file/sec    |
-| charset-normalizer-rs                                                                       | **97.1 %** |     **2.7 ms**     |    370 file/sec    |
+| charset-normalizer-rs                                                                       | **97.1 %** |     **1.5 ms**     |    666 file/sec    |
 | [charset-normalizer](https://github.com/Ousret/charset_normalizer) (Python + MYPYC version) |  **98 %**  |      **8 ms**      |    125 file/sec    |
 
 | Package                                                                                     | 99th percentile | 95th percentile | 50th percentile |
 |---------------------------------------------------------------------------------------------|:---------------:|:---------------:|:---------------:|
 | [chardet](https://crates.io/crates/chardet)                                                 |      8 ms       |      2 ms       |     0.2 ms      |
 | [chardetng](https://crates.io/crates/chardetng)                                             |      14 ms      |      5 ms       |     0.5 ms      |
-| charset-normalizer-rs                                                                       |      19 ms       |      7 ms       |     1.2 ms      |
+| charset-normalizer-rs                                                                       |      12 ms      |      5 ms       |     0.7 ms      |
 | [charset-normalizer](https://github.com/Ousret/charset_normalizer) (Python + MYPYC version) |      94 ms      |      37 ms      |      3 ms       |
 
 Stats are generated using 400+ files using default parameters. These results might change at any time. 

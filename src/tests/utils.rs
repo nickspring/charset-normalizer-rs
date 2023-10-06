@@ -7,74 +7,6 @@ use std::io::Read;
 use std::path::PathBuf;
 
 #[test]
-fn test_is_accentuated() {
-    let tests = [
-        ('é', true),
-        ('è', true),
-        ('à', true),
-        ('À', true),
-        ('Ù', true),
-        ('ç', true),
-        ('a', false),
-        ('€', false),
-        ('&', false),
-        ('Ö', true),
-        ('ü', true),
-        ('ê', true),
-        ('Ñ', true),
-        ('Ý', true),
-        ('Ω', false),
-        ('ø', false),
-        ('Ё', false),
-    ];
-    for test in &tests {
-        assert_eq!(is_accentuated(test.0), test.1);
-    }
-}
-
-#[test]
-fn test_is_latin() {
-    assert!(!is_latin('я'));
-    assert!(is_latin('a'));
-}
-
-#[test]
-fn test_is_cjk() {
-    assert!(!is_cjk('я'));
-    assert!(is_cjk('是'));
-}
-
-#[test]
-fn test_is_hiragana() {
-    assert!(!is_hiragana('是'));
-    assert!(is_hiragana('お'));
-}
-
-#[test]
-fn test_is_katakana() {
-    assert!(!is_katakana('お'));
-    assert!(is_katakana('キ'));
-}
-
-#[test]
-fn test_is_hangul() {
-    assert!(!is_hangul('キ'));
-    assert!(is_hangul('ㅂ'));
-}
-
-#[test]
-fn test_is_thai() {
-    assert!(!is_thai('キ'));
-    assert!(is_thai('ย'));
-}
-
-#[test]
-fn test_is_case_variable() {
-    assert!(!is_case_variable('#'));
-    assert!(is_case_variable('я'));
-}
-
-#[test]
 fn test_is_unicode_range_secondary() {
     assert!(!is_unicode_range_secondary("Something"));
     assert!(is_unicode_range_secondary("Extended"));
@@ -127,46 +59,6 @@ fn test_range_scan() {
     assert!(res.contains("Basic Latin"));
     assert!(res.contains("Latin-1 Supplement"));
     assert!(res.contains("Cyrillic"));
-}
-
-#[test]
-fn test_is_punctuation() {
-    let tests = [('!', true), ('?', true), ('a', false), (':', true)];
-    for test in &tests {
-        assert_eq!(is_punctuation(test.0), test.1);
-    }
-}
-
-#[test]
-fn test_is_symbol() {
-    let tests = [('+', true), ('∑', true), ('a', false), ('я', false)];
-    for test in &tests {
-        assert_eq!(is_symbol(test.0), test.1);
-    }
-}
-
-#[test]
-fn test_is_emoticon() {
-    let tests = [('🙂', true), ('∑', false), ('😂', true), ('я', false)];
-    for test in &tests {
-        assert_eq!(is_emoticon(test.0), test.1);
-    }
-}
-
-#[test]
-fn test_is_separator() {
-    let tests = [(' ', true), ('a', false), ('!', true), ('я', false)];
-    for test in &tests {
-        assert_eq!(is_separator(test.0), test.1);
-    }
-}
-
-#[test]
-fn test_is_unprintable() {
-    let tests = [(' ', false), ('a', false), ('!', false), ('\u{0000}', true)];
-    for test in &tests {
-        assert_eq!(is_unprintable(test.0), test.1);
-    }
 }
 
 #[test]
