@@ -122,7 +122,7 @@ fn test_is_katakana() {
     let tests = [('お', false), ('キ', true)];
     for test in &tests {
         assert_eq!(
-            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::HIRAGANA),
+            MessDetectorChar::new(test.0).is(MessDetectorCharFlags::KATAKANA),
             test.1,
         );
     }

@@ -489,17 +489,13 @@ impl MessDetectorPlugin for SuperWeirdWordPlugin {
             if character.is(MessDetectorCharFlags::ACCENTUATED) {
                 self.buffer_accent_count += 1;
             }
-            if !self.foreign_long_watch
-                && (!character.is(MessDetectorCharFlags::LATIN)
-                    || character.is(MessDetectorCharFlags::ACCENTUATED))
+            self.foreign_long_watch |= (!character.is(MessDetectorCharFlags::LATIN)
+                || character.is(MessDetectorCharFlags::ACCENTUATED))
                 && !character.is(MessDetectorCharFlags::CJK)
                 && !character.is(MessDetectorCharFlags::HANGUL)
                 && !character.is(MessDetectorCharFlags::KATAKANA)
                 && !character.is(MessDetectorCharFlags::HIRAGANA)
-                && !character.is(MessDetectorCharFlags::THAI)
-            {
-                self.foreign_long_watch = true;
-            }
+                && !character.is(MessDetectorCharFlags::THAI);
             return;
         }
         if self.buffer.is_empty() {
