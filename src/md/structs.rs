@@ -1,10 +1,10 @@
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
 use crate::utils::unicode_range;
-use bitflags::{bitflags, Flags};
+use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
 use unic::char::property::EnumeratedCharProperty;
-use unic::ucd::{is_white_space, GeneralCategory, Name};
+use unic::ucd::{GeneralCategory, Name};
 
 // Mess Plugin Char representation
 // used to collect additional information about char

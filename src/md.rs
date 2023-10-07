@@ -1,15 +1,10 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::{is_suspiciously_successive_range, remove_accent, unicode_range};
-use bitflags::{bitflags, Flags};
+use crate::utils::{is_suspiciously_successive_range, remove_accent};
 use cached::proc_macro::cached;
-use cached::UnboundCache;
 use log::trace;
 use ordered_float::OrderedFloat;
-use unic::char::property::EnumeratedCharProperty;
-use unic::ucd::{is_white_space, GeneralCategory, Name};
 
 pub(crate) mod structs;
 
@@ -104,7 +99,7 @@ struct UnprintablePlugin {
 }
 
 impl MessDetectorPlugin for UnprintablePlugin {
-    fn eligible(&self, character: &MessDetectorChar) -> bool {
+    fn eligible(&self, _character: &MessDetectorChar) -> bool {
         true
     }
     fn feed(&mut self, character: &MessDetectorChar) {
@@ -239,7 +234,7 @@ struct SuperWeirdWordPlugin {
 }
 
 impl MessDetectorPlugin for SuperWeirdWordPlugin {
-    fn eligible(&self, character: &MessDetectorChar) -> bool {
+    fn eligible(&self, _character: &MessDetectorChar) -> bool {
         true
     }
     fn feed(&mut self, character: &MessDetectorChar) {
