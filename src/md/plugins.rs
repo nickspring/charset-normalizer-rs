@@ -1,7 +1,27 @@
 use crate::{
-    md::structs::*,
+    md::structs::{MessDetectorChar, MessDetectorCharFlags},
     utils::{is_suspiciously_successive_range, remove_accent},
 };
+
+// Base abstract trait used for mess detection plugins.
+// All detectors MUST extend and implement given methods.
+pub trait MessDetectorPlugin {
+    // Name of plugin
+    fn name(&self) -> &str {
+        std::any::type_name::<Self>().split("::").last().unwrap()
+    }
+
+    // Determine if given character should be fed in
+    fn eligible(&self, character: &MessDetectorChar) -> bool;
+
+    // The main routine to be executed upon character.
+    // Insert the logic in witch the text would be considered chaotic.
+    fn feed(&mut self, character: &MessDetectorChar);
+
+    // Compute the chaos ratio based on what your feed() has seen.
+    // Must NOT be lower than 0.; No restriction gt 0.
+    fn ratio(&self) -> f32;
+}
 
 //
 // TooManySymbolOrPunctuationPlugin implementation
