@@ -1,7 +1,3 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-
-use crate::utils::{is_suspiciously_successive_range, remove_accent};
 use cached::proc_macro::cached;
 use log::trace;
 use ordered_float::OrderedFloat;
@@ -13,7 +9,7 @@ use plugins::{
     SuspiciousDuplicateAccentPlugin, SuspiciousRangePlugin, TooManyAccentuatedPlugin,
     TooManySymbolOrPunctuationPlugin, UnprintablePlugin,
 };
-use structs::{MessDetectorChar, MessDetectorCharFlags, MessDetectorPlugin};
+use structs::{MessDetectorChar, MessDetectorPlugin};
 
 //
 // Mess detection module
