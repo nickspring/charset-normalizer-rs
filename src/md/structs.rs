@@ -43,7 +43,7 @@ bitflags! {
 }
 
 #[derive(Copy, Clone)]
-pub struct MessDetectorChar {
+pub(crate) struct MessDetectorChar {
     pub character: char,
     pub flags: MessDetectorCharFlags,
     pub unicode_range: Option<&'static str>,
