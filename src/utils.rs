@@ -6,16 +6,18 @@ use crate::consts::{
     UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD,
 };
 use crate::entity::Language;
+
 use ahash::{HashSet, HashSetExt};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
+use icu_normalizer::DecomposingNormalizer;
+use unicode_names2::name;
 
 use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
-//use unic::ucd::normal::decompose_canonical;
-use icu_normalizer::DecomposingNormalizer;
-use unicode_names2::name;
+
+
 
 // Utils module
 
