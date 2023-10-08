@@ -13,7 +13,7 @@ use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
 use unic::ucd::normal::decompose_canonical;
-use unic::ucd::Name;
+use unicode_names2::name;
 
 // Utils module
 
@@ -26,10 +26,10 @@ pub(crate) fn is_accentuated(character: char) -> bool {
         "WITH CIRCUMFLEX",
         "WITH TILDE",
     ];
-    Name::of(character).is_some_and(|description| {
+    name(character).is_some_and(|ucd_name| {
         patterns
             .iter()
-            .any(|&s| description.to_string().contains(s))
+            .any(|&s| ucd_name.to_string().contains(s))
     })
 }
 
