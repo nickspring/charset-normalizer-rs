@@ -3,10 +3,9 @@ use cached::proc_macro::cached;
 use cached::UnboundCache;
 use unic::char::property::EnumeratedCharProperty;
 use unic::ucd::GeneralCategory;
-use unicode_names2::{name, Name};
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::unicode_range;
+use crate::utils::{in_description, is_accentuated, unicode_range, in_category};
 
 // Mess Plugin Char representation
 // used to collect additional information about char
@@ -60,35 +59,6 @@ impl MessDetectorChar {
     pub fn new(character: char) -> Self {
         new_mess_detector_character(character)
     }
-    pub fn in_category(
-        category: &str,
-        range: Option<&str>,
-        categories_exact: &[&str],
-        categories_partial: &[&str],
-        ranges_partial: &[&str],
-    ) -> bool {
-        // unicode category part
-        if categories_exact.contains(&category)
-            || categories_partial.iter().any(|&cp| category.contains(cp))
-        {
-            return true;
-        }
-        // unicode range part
-        if !ranges_partial.is_empty() {
-            if let Some(range) = range {
-                return ranges_partial.iter().any(|&r| range.contains(r));
-            }
-        }
-        false
-    }
-
-    pub fn in_description(name: &Option<Name>, patterns: &[&str]) -> bool {
-        name.as_ref().is_some_and(|ucd_name| {
-            patterns
-                .iter()
-                .any(|&s| ucd_name.to_string().contains(s))
-        })
-    }
 
     pub fn is(&self, flag: MessDetectorCharFlags) -> bool {
         self.flags.contains(flag)
@@ -122,7 +92,7 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // unicode information
-    let name = name(character);
+    // let name = name(character);
     let category = GeneralCategory::of(character).abbr_name();
     let range = unicode_range(character);
 
@@ -156,72 +126,63 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
             }
         } else if !flags.contains(MessDetectorCharFlags::ASCII_GRAPHIC)
             && !['\x1A', '\u{FEFF}'].contains(&character)
-            && MessDetectorChar::in_category(category, range, &["Cc"], &[], &["Control character"])
+            && in_category(category, range, &["Cc"], &[], &["Control character"])
         {
             flags.insert(MessDetectorCharFlags::UNPRINTABLE);
         }
 
         // emoticon
-        if MessDetectorChar::in_category(category, range, &[], &[], &["Emoticons"]) {
+        if in_category(category, range, &[], &[], &["Emoticons"]) {
             flags.insert(MessDetectorCharFlags::EMOTICON);
         }
 
         // separator
         if ['｜', '+', '<', '>'].contains(&character)
-            || MessDetectorChar::in_category(category, range, &["Po", "Pd", "Pc"], &["Z"], &[])
+            || in_category(category, range, &["Po", "Pd", "Pc"], &["Z"], &[])
         {
             flags.insert(MessDetectorCharFlags::SEPARATOR);
         }
     }
 
     // punctuation
-    if MessDetectorChar::in_category(category, range, &[], &["P"], &["Punctuation"]) {
+    if in_category(category, range, &[], &["P"], &["Punctuation"]) {
         flags.insert(MessDetectorCharFlags::PUNCTUATION);
     }
 
     // symbol
-    if MessDetectorChar::in_category(category, range, &[], &["N", "S"], &["Forms"]) {
+    if in_category(category, range, &[], &["N", "S"], &["Forms"]) {
         flags.insert(MessDetectorCharFlags::SYMBOL);
     }
 
     // latin
-    if MessDetectorChar::in_description(&name, &["LATIN"]) {
+    if in_description(character, &["LATIN"]) {
         flags.insert(MessDetectorCharFlags::LATIN);
     } else {
         // cjk
-        if MessDetectorChar::in_description(&name, &["CJK"]) {
+        if in_description(character, &["CJK"]) {
             flags.insert(MessDetectorCharFlags::CJK);
         }
         // hangul
-        if MessDetectorChar::in_description(&name, &["HANGUL"]) {
+        if in_description(character, &["HANGUL"]) {
             flags.insert(MessDetectorCharFlags::HANGUL);
         }
         // katakana
-        if MessDetectorChar::in_description(&name, &["KATAKANA"]) {
+        if in_description(character, &["KATAKANA"]) {
             flags.insert(MessDetectorCharFlags::KATAKANA);
         }
         // hiragana
-        if MessDetectorChar::in_description(&name, &["HIRAGANA"]) {
+        if in_description(character, &["HIRAGANA"]) {
             flags.insert(MessDetectorCharFlags::HIRAGANA);
         }
         // thai
-        if MessDetectorChar::in_description(&name, &["THAI"]) {
+        if in_description(character, &["THAI"]) {
             flags.insert(MessDetectorCharFlags::THAI);
         }
     }
 
     // accentuated
-    if MessDetectorChar::in_description(
-        &name,
-        &[
-            "WITH GRAVE",
-            "WITH ACUTE",
-            "WITH CEDILLA",
-            "WITH DIAERESIS",
-            "WITH CIRCUMFLEX",
-            "WITH TILDE",
-        ],
-    ) {
+
+    if is_accentuated(character) {
         flags.insert(MessDetectorCharFlags::ACCENTUATED);
     }
 

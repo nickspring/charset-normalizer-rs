@@ -17,6 +17,35 @@ use unicode_names2::name;
 
 // Utils module
 
+#[inline]
+pub(crate) fn in_category(
+    category: &str,
+    range: Option<&str>,
+    categories_exact: &[&str],
+    categories_partial: &[&str],
+    ranges_partial: &[&str],
+) -> bool {
+    // unicode category part
+    if categories_exact.contains(&category)
+        || categories_partial.iter().any(|&cp| category.contains(cp))
+    {
+        return true;
+    }
+    // unicode range part
+    if !ranges_partial.is_empty() {
+        if let Some(range) = range {
+            return ranges_partial.iter().any(|&r| range.contains(r));
+        }
+    }
+    false
+}
+
+#[inline]
+pub(crate) fn in_description(character: char, patterns: &[&str]) -> bool {
+    name(character)
+        .is_some_and(|ucd_name| patterns.iter().any(|&s| ucd_name.to_string().contains(s)))
+}
+
 pub(crate) fn is_accentuated(character: char) -> bool {
     let patterns = [
         "WITH GRAVE",
@@ -26,11 +55,7 @@ pub(crate) fn is_accentuated(character: char) -> bool {
         "WITH CIRCUMFLEX",
         "WITH TILDE",
     ];
-    name(character).is_some_and(|ucd_name| {
-        patterns
-            .iter()
-            .any(|&s| ucd_name.to_string().contains(s))
-    })
+    in_description(character, &patterns)
 }
 
 pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
