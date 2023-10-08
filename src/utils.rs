@@ -9,10 +9,12 @@ use crate::entity::Language;
 use ahash::{HashSet, HashSetExt};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
+
 use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
-use unic::ucd::normal::decompose_canonical;
+//use unic::ucd::normal::decompose_canonical;
+use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
 // Utils module
@@ -85,11 +87,11 @@ pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
 }
 
 pub(crate) fn remove_accent(ch: char) -> char {
-    let mut base_char = None;
-    decompose_canonical(ch, |c| {
-        base_char.get_or_insert(c);
-    });
-    base_char.map_or(ch, |c| c)
+    DecomposingNormalizer::new_nfd() //initialize decomposer
+        .normalize(ch.to_string().as_str()) //normalize into String
+        .chars()
+        .next()// retrieve first component(unaccented char)
+        .unwrap_or(ch) //if fail, return the original char
 }
 
 // Verify is a specific encoding is a multi byte one based on it IANA name

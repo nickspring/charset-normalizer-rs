@@ -5,7 +5,7 @@ use unic::char::property::EnumeratedCharProperty;
 use unic::ucd::GeneralCategory;
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::{in_description, is_accentuated, unicode_range, in_category};
+use crate::utils::{in_category, in_description, is_accentuated, unicode_range};
 
 // Mess Plugin Char representation
 // used to collect additional information about char
