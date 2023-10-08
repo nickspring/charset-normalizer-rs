@@ -5,7 +5,7 @@ use crate::{
 
 // Base abstract trait used for mess detection plugins.
 // All detectors MUST extend and implement given methods.
-pub trait MessDetectorPlugin {
+pub(super) trait MessDetectorPlugin {
     // Name of plugin
     fn name(&self) -> &str {
         std::any::type_name::<Self>().split("::").last().unwrap()
