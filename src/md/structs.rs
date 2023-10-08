@@ -2,7 +2,8 @@ use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
 use unic::char::property::EnumeratedCharProperty;
-use unic::ucd::{GeneralCategory, Name};
+use unic::ucd::GeneralCategory;
+use unicode_names2::{name, Name};
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
 use crate::utils::unicode_range;
@@ -81,11 +82,11 @@ impl MessDetectorChar {
         false
     }
 
-    pub fn in_description(name: Option<Name>, patterns: &[&str]) -> bool {
-        name.is_some_and(|description| {
+    pub fn in_description(name: &Option<Name>, patterns: &[&str]) -> bool {
+        name.as_ref().is_some_and(|ucd_name| {
             patterns
                 .iter()
-                .any(|&s| description.to_string().contains(s))
+                .any(|&s| ucd_name.to_string().contains(s))
         })
     }
 
@@ -121,7 +122,7 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // unicode information
-    let name = Name::of(character);
+    let name = name(character);
     let category = GeneralCategory::of(character).abbr_name();
     let range = unicode_range(character);
 
@@ -184,34 +185,34 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // latin
-    if MessDetectorChar::in_description(name, &["LATIN"]) {
+    if MessDetectorChar::in_description(&name, &["LATIN"]) {
         flags.insert(MessDetectorCharFlags::LATIN);
     } else {
         // cjk
-        if MessDetectorChar::in_description(name, &["CJK"]) {
+        if MessDetectorChar::in_description(&name, &["CJK"]) {
             flags.insert(MessDetectorCharFlags::CJK);
         }
         // hangul
-        if MessDetectorChar::in_description(name, &["HANGUL"]) {
+        if MessDetectorChar::in_description(&name, &["HANGUL"]) {
             flags.insert(MessDetectorCharFlags::HANGUL);
         }
         // katakana
-        if MessDetectorChar::in_description(name, &["KATAKANA"]) {
+        if MessDetectorChar::in_description(&name, &["KATAKANA"]) {
             flags.insert(MessDetectorCharFlags::KATAKANA);
         }
         // hiragana
-        if MessDetectorChar::in_description(name, &["HIRAGANA"]) {
+        if MessDetectorChar::in_description(&name, &["HIRAGANA"]) {
             flags.insert(MessDetectorCharFlags::HIRAGANA);
         }
         // thai
-        if MessDetectorChar::in_description(name, &["THAI"]) {
+        if MessDetectorChar::in_description(&name, &["THAI"]) {
             flags.insert(MessDetectorCharFlags::THAI);
         }
     }
 
     // accentuated
     if MessDetectorChar::in_description(
-        name,
+        &name,
         &[
             "WITH GRAVE",
             "WITH ACUTE",
