@@ -1,5 +1,5 @@
 use cached::proc_macro::cached;
-use log::trace;
+use log::{log_enabled, trace};
 use ordered_float::OrderedFloat;
 
 pub(crate) mod plugins;
@@ -62,38 +62,42 @@ pub(crate) fn mess_ratio(
         }
     }
     let return_ratio = mean_mess_ratio.unwrap_or(detectors.iter().map(|x| x.ratio()).sum());
-    trace!(
-        "Mess-detector extended-analysis start: \
-        early_calc_period={}, \
-        mean_mess_ratio={}, \
-        maximum_threshold={}",
-        early_calc_period,
-        return_ratio,
-        maximum_threshold,
-    );
 
-    /*if decoded_sequence.len() > 16 {
+    if log_enabled!(log::Level::Trace) {
         trace!(
-            "Chunk: {} ..... {}",
-            &decoded_sequence[..decoded_sequence
-                .char_indices()
-                .nth(16)
-                .map(|(i, _)| i)
-                .unwrap_or(decoded_sequence.chars().count())],
-            &decoded_sequence[decoded_sequence
-                .char_indices()
-                .nth(decoded_sequence.chars().count() - 16)
-                .map(|(i, _)| i)
-                .unwrap_or(decoded_sequence.chars().count())..],
+            "Mess-detector extended-analysis start: \
+            early_calc_period={}, \
+            mean_mess_ratio={}, \
+            maximum_threshold={}",
+            early_calc_period,
+            return_ratio,
+            maximum_threshold,
         );
-    }
-     */
 
-    for detector in &detectors {
-        if detector.ratio() > 0.0 {
-            trace!("{} produces ratio: {}", detector.name(), detector.ratio());
+        /*if decoded_sequence.len() > 16 {
+            trace!(
+                "Chunk: {} ..... {}",
+                &decoded_sequence[..decoded_sequence
+                    .char_indices()
+                    .nth(16)
+                    .map(|(i, _)| i)
+                    .unwrap_or(decoded_sequence.chars().count())],
+                &decoded_sequence[decoded_sequence
+                    .char_indices()
+                    .nth(decoded_sequence.chars().count() - 16)
+                    .map(|(i, _)| i)
+                    .unwrap_or(decoded_sequence.chars().count())..],
+            );
         }
+         */
+
+        for detector in &detectors {
+            if detector.ratio() > 0.0 {
+                trace!("{} produces ratio: {}", detector.name(), detector.ratio());
+            }
+        }
+        trace!("===");
     }
-    trace!("===");
+
     return_ratio
 }
