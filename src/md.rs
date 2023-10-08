@@ -35,7 +35,7 @@ pub(crate) fn mess_ratio(
     ];
 
     let length = decoded_sequence.chars().count();
-    let mut mean_mess_ratio: f32 = 0.0;
+    let mut mean_mess_ratio: f32;
     let early_calc_period: usize = match length {
         ..=510 => 32,
         511..=1023 => 64,
@@ -61,6 +61,7 @@ pub(crate) fn mess_ratio(
         }
     }
 
+    mean_mess_ratio = detectors.iter().map(|x| x.ratio()).sum();
     trace!(
         "Mess-detector extended-analysis start: \
         early_calc_period={}, \
@@ -94,5 +95,5 @@ pub(crate) fn mess_ratio(
         }
     }
     trace!("===");
-    detectors.iter().map(|x| x.ratio()).sum()
+    mean_mess_ratio
 }
