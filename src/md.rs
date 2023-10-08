@@ -35,7 +35,7 @@ pub(crate) fn mess_ratio(
     ];
 
     let length = decoded_sequence.chars().count();
-    let mut mean_mess_ratio: f32;
+    let mut mean_mess_ratio: Option<f32> = None;
     let early_calc_period: usize = match length {
         ..=510 => 32,
         511..=1023 => 64,
@@ -54,21 +54,21 @@ pub(crate) fn mess_ratio(
             .for_each(|detector| detector.feed(&mess_char));
 
         if index.rem_euclid(early_calc_period) == early_calc_period - 1 {
-            mean_mess_ratio = detectors.iter().map(|x| x.ratio()).sum();
-            if mean_mess_ratio >= maximum_threshold {
+            let early_mess_ratio: f32 = detectors.iter().map(|x| x.ratio()).sum();
+            if early_mess_ratio >= maximum_threshold {
+                mean_mess_ratio = Some(early_mess_ratio);
                 break;
             }
         }
     }
-
-    mean_mess_ratio = detectors.iter().map(|x| x.ratio()).sum();
+    let return_ratio = mean_mess_ratio.unwrap_or(detectors.iter().map(|x| x.ratio()).sum());
     trace!(
         "Mess-detector extended-analysis start: \
         early_calc_period={}, \
         mean_mess_ratio={}, \
         maximum_threshold={}",
         early_calc_period,
-        mean_mess_ratio,
+        return_ratio,
         maximum_threshold,
     );
 
@@ -95,5 +95,5 @@ pub(crate) fn mess_ratio(
         }
     }
     trace!("===");
-    mean_mess_ratio
+    return_ratio
 }
