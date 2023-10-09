@@ -1,9 +1,7 @@
 use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
-use icu_properties::{
-    maps, sets, GeneralCategory, GeneralCategoryGroup, Script,
-};
+use icu_properties::{maps, sets, GeneralCategory, GeneralCategoryGroup, Script};
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
 use crate::utils::{in_range, is_accentuated, unicode_range};
@@ -73,6 +71,7 @@ impl MessDetectorChar {
 )]
 fn new_mess_detector_character(character: char) -> MessDetectorChar {
     let mut flags = MessDetectorCharFlags::empty();
+    // unicode information
     let gc = maps::general_category().get(character);
 
     // PLEASE NOTE! In case of idiomatic refactoring
@@ -93,8 +92,6 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
         }
     }
 
-    // unicode information
-    // let name = name(character);
     let range = unicode_range(character);
 
     // whitespace
