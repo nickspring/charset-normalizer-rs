@@ -2,13 +2,11 @@ use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
 use icu_properties::{
-    maps, sets, GeneralCategory as _GeneralCategory, GeneralCategoryGroup, Script,
+    maps, sets, GeneralCategory, GeneralCategoryGroup, Script,
 };
-use unic::char::property::EnumeratedCharProperty;
-use unic::ucd::GeneralCategory;
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::{in_category, is_accentuated, unicode_range};
+use crate::utils::{in_range, is_accentuated, unicode_range};
 
 // Mess Plugin Char representation
 // used to collect additional information about char
@@ -97,7 +95,6 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
 
     // unicode information
     // let name = name(character);
-    let category = GeneralCategory::of(character).abbr_name();
     let range = unicode_range(character);
 
     // whitespace
@@ -150,9 +147,9 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
             || GeneralCategoryGroup::Separator.contains(gc)
             || matches!(
                 gc,
-                _GeneralCategory::OtherPunctuation
-                    | _GeneralCategory::DashPunctuation
-                    | _GeneralCategory::ConnectorPunctuation
+                GeneralCategory::OtherPunctuation
+                    | GeneralCategory::DashPunctuation
+                    | GeneralCategory::ConnectorPunctuation
             )
         {
             flags.insert(MessDetectorCharFlags::SEPARATOR);
@@ -165,10 +162,10 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // symbol
-    if in_category(category, range, &[], &["N", "S"], &["Forms"])||
-    GeneralCategoryGroup::Number.contains(gc) ||
-    GeneralCategoryGroup::Symbol.contains(gc)
-     {
+    if GeneralCategoryGroup::Number.contains(gc)
+        || GeneralCategoryGroup::Symbol.contains(gc)
+        || in_range(range, &["Forms"])
+    {
         flags.insert(MessDetectorCharFlags::SYMBOL);
     }
 
@@ -190,7 +187,6 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // accentuated
-
     if is_accentuated(character) {
         flags.insert(MessDetectorCharFlags::ACCENTUATED);
     }

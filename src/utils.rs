@@ -20,19 +20,7 @@ use std::path::{Path, PathBuf};
 // Utils module
 
 #[inline]
-pub(crate) fn in_category(
-    category: &str,
-    range: Option<&str>,
-    categories_exact: &[&str],
-    categories_partial: &[&str],
-    ranges_partial: &[&str],
-) -> bool {
-    // unicode category part
-    if categories_exact.contains(&category)
-        || categories_partial.iter().any(|&cp| category.contains(cp))
-    {
-        return true;
-    }
+pub(crate) fn in_range(range: Option<&str>, ranges_partial: &[&str]) -> bool {
     // unicode range part
     if !ranges_partial.is_empty() {
         if let Some(range) = range {
