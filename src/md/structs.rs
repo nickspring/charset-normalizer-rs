@@ -1,7 +1,9 @@
 use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
-use icu_properties::{maps, sets, GeneralCategoryGroup, Script};
+use icu_properties::{
+    maps, sets, GeneralCategory as _GeneralCategory, GeneralCategoryGroup, Script,
+};
 use unic::char::property::EnumeratedCharProperty;
 use unic::ucd::GeneralCategory;
 
@@ -134,13 +136,24 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
         }
 
         // emoticon
-        if in_category(category, range, &[], &[], &["Emoticons"]) {
+        if sets::emoji_component().contains(character)
+            || sets::emoji_modifier().contains(character)
+            || sets::emoji_modifier_base().contains(character)
+            || sets::emoji_presentation().contains(character)
+        //    || sets::emoji().contains(character) //tests::md::test_mess_ratio fails
+        {
             flags.insert(MessDetectorCharFlags::EMOTICON);
         }
 
         // separator
         if ['｜', '+', '<', '>'].contains(&character)
-            || in_category(category, range, &["Po", "Pd", "Pc"], &["Z"], &[])
+            || GeneralCategoryGroup::Separator.contains(gc)
+            || matches!(
+                gc,
+                _GeneralCategory::OtherPunctuation
+                    | _GeneralCategory::DashPunctuation
+                    | _GeneralCategory::ConnectorPunctuation
+            )
         {
             flags.insert(MessDetectorCharFlags::SEPARATOR);
         }
@@ -152,20 +165,25 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // symbol
-    if in_category(category, range, &[], &["N", "S"], &["Forms"]) {
+    if in_category(category, range, &[], &["N", "S"], &["Forms"])||
+    GeneralCategoryGroup::Number.contains(gc) ||
+    GeneralCategoryGroup::Symbol.contains(gc)
+     {
         flags.insert(MessDetectorCharFlags::SYMBOL);
     }
 
     match maps::script().get(character) {
         Script::Latin => flags.insert(MessDetectorCharFlags::LATIN), // latin
-        Script::Han => flags.insert(MessDetectorCharFlags::CJK),     // cjk
+        Script::Han => flags.insert(MessDetectorCharFlags::CJK),     // han implies cjk
         Script::Hangul => flags.insert(MessDetectorCharFlags::HANGUL),
         Script::Katakana => flags.insert(MessDetectorCharFlags::KATAKANA),
         Script::Hiragana => flags.insert(MessDetectorCharFlags::HIRAGANA),
         Script::Thai => flags.insert(MessDetectorCharFlags::THAI),
         _ => {
-            if sets::ideographic().contains(character) {
-                // Some characters such as vietnamese might not be Han but still be part of CJK(V) ideographs
+            // ideographic() includes some characters such as vietnamese that might not be Han
+            // but still be part of the expanded CJK(V) ideographs
+            // if sets::ideographic().contains(character)
+            if sets::unified_ideograph().contains(character) {
                 flags.insert(MessDetectorCharFlags::CJK)
             }
         }
