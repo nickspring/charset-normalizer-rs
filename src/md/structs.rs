@@ -1,11 +1,12 @@
 use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
+use icu_properties::{maps, sets, GeneralCategoryGroup, Script};
 use unic::char::property::EnumeratedCharProperty;
 use unic::ucd::GeneralCategory;
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::{in_category, in_description, is_accentuated, unicode_range};
+use crate::utils::{in_category, is_accentuated, unicode_range};
 
 // Mess Plugin Char representation
 // used to collect additional information about char
@@ -72,6 +73,7 @@ impl MessDetectorChar {
 )]
 fn new_mess_detector_character(character: char) -> MessDetectorChar {
     let mut flags = MessDetectorCharFlags::empty();
+    let gc = maps::general_category().get(character);
 
     // PLEASE NOTE! In case of idiomatic refactoring
     // take in account performance. Sometimes match could be used but it
@@ -126,7 +128,7 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
             }
         } else if !flags.contains(MessDetectorCharFlags::ASCII_GRAPHIC)
             && !['\x1A', '\u{FEFF}'].contains(&character)
-            && in_category(category, range, &["Cc"], &[], &["Control character"])
+            && GeneralCategoryGroup::Control.contains(gc)
         {
             flags.insert(MessDetectorCharFlags::UNPRINTABLE);
         }
@@ -145,7 +147,7 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
     }
 
     // punctuation
-    if in_category(category, range, &[], &["P"], &["Punctuation"]) {
+    if GeneralCategoryGroup::Punctuation.contains(gc) {
         flags.insert(MessDetectorCharFlags::PUNCTUATION);
     }
 
@@ -154,29 +156,18 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
         flags.insert(MessDetectorCharFlags::SYMBOL);
     }
 
-    // latin
-    if in_description(character, &["LATIN"]) {
-        flags.insert(MessDetectorCharFlags::LATIN);
-    } else {
-        // cjk
-        if in_description(character, &["CJK"]) {
-            flags.insert(MessDetectorCharFlags::CJK);
-        }
-        // hangul
-        if in_description(character, &["HANGUL"]) {
-            flags.insert(MessDetectorCharFlags::HANGUL);
-        }
-        // katakana
-        if in_description(character, &["KATAKANA"]) {
-            flags.insert(MessDetectorCharFlags::KATAKANA);
-        }
-        // hiragana
-        if in_description(character, &["HIRAGANA"]) {
-            flags.insert(MessDetectorCharFlags::HIRAGANA);
-        }
-        // thai
-        if in_description(character, &["THAI"]) {
-            flags.insert(MessDetectorCharFlags::THAI);
+    match maps::script().get(character) {
+        Script::Latin => flags.insert(MessDetectorCharFlags::LATIN), // latin
+        Script::Han => flags.insert(MessDetectorCharFlags::CJK),     // cjk
+        Script::Hangul => flags.insert(MessDetectorCharFlags::HANGUL),
+        Script::Katakana => flags.insert(MessDetectorCharFlags::KATAKANA),
+        Script::Hiragana => flags.insert(MessDetectorCharFlags::HIRAGANA),
+        Script::Thai => flags.insert(MessDetectorCharFlags::THAI),
+        _ => {
+            if sets::ideographic().contains(character) {
+                // Some characters such as vietnamese might not be Han but still be part of CJK(V) ideographs
+                flags.insert(MessDetectorCharFlags::CJK)
+            }
         }
     }
 
