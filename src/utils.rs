@@ -17,8 +17,6 @@ use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-
-
 // Utils module
 
 #[inline]
@@ -92,7 +90,7 @@ pub(crate) fn remove_accent(ch: char) -> char {
     DecomposingNormalizer::new_nfd() //initialize decomposer
         .normalize(ch.to_string().as_str()) //normalize into String
         .chars()
-        .next()// retrieve first component(unaccented char)
+        .next() // retrieve first component(unaccented char)
         .unwrap_or(ch) //if fail, return the original char
 }
 
