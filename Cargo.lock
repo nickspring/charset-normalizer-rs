@@ -226,6 +226,7 @@ dependencies = [
  "encoding",
  "env_logger",
  "icu_normalizer",
+ "icu_properties",
  "lazy_static",
  "log",
  "ordered-float",
