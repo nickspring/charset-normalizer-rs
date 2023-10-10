@@ -1,11 +1,10 @@
 use bitflags::bitflags;
 use cached::proc_macro::cached;
 use cached::UnboundCache;
-use unic::char::property::EnumeratedCharProperty;
-use unic::ucd::{GeneralCategory, Name};
+use icu_properties::{maps, sets, GeneralCategory, GeneralCategoryGroup, Script};
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
-use crate::utils::unicode_range;
+use crate::utils::{in_range, is_accentuated, unicode_range};
 
 // Mess Plugin Char representation
 // used to collect additional information about char
@@ -59,35 +58,6 @@ impl MessDetectorChar {
     pub fn new(character: char) -> Self {
         new_mess_detector_character(character)
     }
-    pub fn in_category(
-        category: &str,
-        range: Option<&str>,
-        categories_exact: &[&str],
-        categories_partial: &[&str],
-        ranges_partial: &[&str],
-    ) -> bool {
-        // unicode category part
-        if categories_exact.contains(&category)
-            || categories_partial.iter().any(|&cp| category.contains(cp))
-        {
-            return true;
-        }
-        // unicode range part
-        if !ranges_partial.is_empty() {
-            if let Some(range) = range {
-                return ranges_partial.iter().any(|&r| range.contains(r));
-            }
-        }
-        false
-    }
-
-    pub fn in_description(name: Option<Name>, patterns: &[&str]) -> bool {
-        name.is_some_and(|description| {
-            patterns
-                .iter()
-                .any(|&s| description.to_string().contains(s))
-        })
-    }
 
     pub fn is(&self, flag: MessDetectorCharFlags) -> bool {
         self.flags.contains(flag)
@@ -101,6 +71,8 @@ impl MessDetectorChar {
 )]
 fn new_mess_detector_character(character: char) -> MessDetectorChar {
     let mut flags = MessDetectorCharFlags::empty();
+    // unicode information
+    let gc = maps::general_category().get(character);
 
     // PLEASE NOTE! In case of idiomatic refactoring
     // take in account performance. Sometimes match could be used but it
@@ -120,9 +92,6 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
         }
     }
 
-    // unicode information
-    let name = Name::of(character);
-    let category = GeneralCategory::of(character).abbr_name();
     let range = unicode_range(character);
 
     // whitespace
@@ -155,72 +124,67 @@ fn new_mess_detector_character(character: char) -> MessDetectorChar {
             }
         } else if !flags.contains(MessDetectorCharFlags::ASCII_GRAPHIC)
             && !['\x1A', '\u{FEFF}'].contains(&character)
-            && MessDetectorChar::in_category(category, range, &["Cc"], &[], &["Control character"])
+            && GeneralCategoryGroup::Control.contains(gc)
         {
             flags.insert(MessDetectorCharFlags::UNPRINTABLE);
         }
 
         // emoticon
-        if MessDetectorChar::in_category(category, range, &[], &[], &["Emoticons"]) {
+        if sets::emoji_component().contains(character)
+            || sets::emoji_modifier().contains(character)
+            || sets::emoji_modifier_base().contains(character)
+            || sets::emoji_presentation().contains(character)
+        //    || sets::emoji().contains(character) //tests::md::test_mess_ratio fails
+        {
             flags.insert(MessDetectorCharFlags::EMOTICON);
         }
 
         // separator
         if ['｜', '+', '<', '>'].contains(&character)
-            || MessDetectorChar::in_category(category, range, &["Po", "Pd", "Pc"], &["Z"], &[])
+            || GeneralCategoryGroup::Separator.contains(gc)
+            || matches!(
+                gc,
+                GeneralCategory::OtherPunctuation
+                    | GeneralCategory::DashPunctuation
+                    | GeneralCategory::ConnectorPunctuation
+            )
         {
             flags.insert(MessDetectorCharFlags::SEPARATOR);
         }
     }
 
     // punctuation
-    if MessDetectorChar::in_category(category, range, &[], &["P"], &["Punctuation"]) {
+    if GeneralCategoryGroup::Punctuation.contains(gc) {
         flags.insert(MessDetectorCharFlags::PUNCTUATION);
     }
 
     // symbol
-    if MessDetectorChar::in_category(category, range, &[], &["N", "S"], &["Forms"]) {
+    if GeneralCategoryGroup::Number.contains(gc)
+        || GeneralCategoryGroup::Symbol.contains(gc)
+        || in_range(range, &["Forms"])
+    {
         flags.insert(MessDetectorCharFlags::SYMBOL);
     }
 
-    // latin
-    if MessDetectorChar::in_description(name, &["LATIN"]) {
-        flags.insert(MessDetectorCharFlags::LATIN);
-    } else {
-        // cjk
-        if MessDetectorChar::in_description(name, &["CJK"]) {
-            flags.insert(MessDetectorCharFlags::CJK);
-        }
-        // hangul
-        if MessDetectorChar::in_description(name, &["HANGUL"]) {
-            flags.insert(MessDetectorCharFlags::HANGUL);
-        }
-        // katakana
-        if MessDetectorChar::in_description(name, &["KATAKANA"]) {
-            flags.insert(MessDetectorCharFlags::KATAKANA);
-        }
-        // hiragana
-        if MessDetectorChar::in_description(name, &["HIRAGANA"]) {
-            flags.insert(MessDetectorCharFlags::HIRAGANA);
-        }
-        // thai
-        if MessDetectorChar::in_description(name, &["THAI"]) {
-            flags.insert(MessDetectorCharFlags::THAI);
+    match maps::script().get(character) {
+        Script::Latin => flags.insert(MessDetectorCharFlags::LATIN), // latin
+        Script::Han => flags.insert(MessDetectorCharFlags::CJK),     // han implies cjk
+        Script::Hangul => flags.insert(MessDetectorCharFlags::HANGUL),
+        Script::Katakana => flags.insert(MessDetectorCharFlags::KATAKANA),
+        Script::Hiragana => flags.insert(MessDetectorCharFlags::HIRAGANA),
+        Script::Thai => flags.insert(MessDetectorCharFlags::THAI),
+        _ => {
+            // ideographic() includes some characters such as vietnamese that might not be Han
+            // but still be part of the expanded CJK(V) ideographs
+            // if sets::ideographic().contains(character)
+            if sets::unified_ideograph().contains(character) {
+                flags.insert(MessDetectorCharFlags::CJK)
+            }
         }
     }
 
     // accentuated
-    if MessDetectorChar::in_description(
-        name,
-        &[
-            "WITH GRAVE",
-            "WITH ACUTE",
-            "WITH CEDILLA",
-            "WITH DIAERESIS",
-            "WITH CIRCUMFLEX",
-            "WITH TILDE",
-        ],
-    ) {
+    if is_accentuated(character) {
         flags.insert(MessDetectorCharFlags::ACCENTUATED);
     }
 

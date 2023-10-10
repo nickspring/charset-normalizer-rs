@@ -6,16 +6,35 @@ use crate::consts::{
     UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD,
 };
 use crate::entity::Language;
+
 use ahash::{HashSet, HashSetExt};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
+use icu_normalizer::DecomposingNormalizer;
+use unicode_names2::name;
+
 use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
-use unic::ucd::normal::decompose_canonical;
-use unic::ucd::Name;
 
 // Utils module
+
+#[inline]
+pub(crate) fn in_range(range: Option<&str>, ranges_partial: &[&str]) -> bool {
+    // unicode range part
+    if !ranges_partial.is_empty() {
+        if let Some(range) = range {
+            return ranges_partial.iter().any(|&r| range.contains(r));
+        }
+    }
+    false
+}
+
+#[inline]
+pub(crate) fn in_description(character: char, patterns: &[&str]) -> bool {
+    name(character)
+        .is_some_and(|ucd_name| patterns.iter().any(|&s| ucd_name.to_string().contains(s)))
+}
 
 pub(crate) fn is_accentuated(character: char) -> bool {
     let patterns = [
@@ -26,11 +45,7 @@ pub(crate) fn is_accentuated(character: char) -> bool {
         "WITH CIRCUMFLEX",
         "WITH TILDE",
     ];
-    Name::of(character).is_some_and(|description| {
-        patterns
-            .iter()
-            .any(|&s| description.to_string().contains(s))
-    })
+    in_description(character, &patterns)
 }
 
 pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
@@ -60,11 +75,11 @@ pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
 }
 
 pub(crate) fn remove_accent(ch: char) -> char {
-    let mut base_char = None;
-    decompose_canonical(ch, |c| {
-        base_char.get_or_insert(c);
-    });
-    base_char.map_or(ch, |c| c)
+    DecomposingNormalizer::new_nfd() //initialize decomposer
+        .normalize(ch.to_string().as_str()) //normalize into String
+        .chars()
+        .next() // retrieve first component(unaccented char)
+        .unwrap_or(ch) //if fail, return the original char
 }
 
 // Verify is a specific encoding is a multi byte one based on it IANA name
