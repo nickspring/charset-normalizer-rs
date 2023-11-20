@@ -330,8 +330,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
         ) {
-            Ok(payload) if !is_too_large_sequence || is_multi_byte_decoder => Some(payload),
-            Ok(_) => None,
+            Ok(payload) => (!is_too_large_sequence || is_multi_byte_decoder).then_some(payload),
             Err(_) => {
                 trace!(
                     "Code page {} does not fit given bytes sequence at ALL.",
@@ -396,17 +395,13 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                     .take(settings.chunk_size)
                     .collect()),
                 // Bytes processing
-                None => {
-                    let offset_end = (offset + settings.chunk_size).min(seq_len);
-                    let cut_bytes_vec: &[u8] = &bytes[offset..offset_end];
-                    decode(
-                        cut_bytes_vec,
-                        encoding_iana,
-                        DecoderTrap::Strict,
-                        false,
-                        false,
-                    )
-                }
+                None => decode(
+                    &bytes[offset..(offset + settings.chunk_size).min(seq_len)],
+                    encoding_iana,
+                    DecoderTrap::Strict,
+                    false,
+                    false,
+                ),
             };
 
             if is_invalid_chunk(&decoded_chunk_result, encoding_iana) {
