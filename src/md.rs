@@ -34,9 +34,8 @@ pub(crate) fn mess_ratio(
         Box::<ArchaicUpperLowerPlugin>::default(),
     ];
 
-    let length = decoded_sequence.chars().count();
     let mut mean_mess_ratio: Option<f32> = None;
-    let early_calc_period: usize = match length {
+    let early_calc_period: usize = match decoded_sequence.chars().count() {
         ..=510 => 32,
         511..=1023 => 64,
         _ => 128,
@@ -53,7 +52,7 @@ pub(crate) fn mess_ratio(
             .filter(|detector| detector.eligible(&mess_char))
             .for_each(|detector| detector.feed(&mess_char));
 
-        if index.rem_euclid(early_calc_period) == early_calc_period - 1 {
+        if index % early_calc_period == early_calc_period - 1 {
             let early_mess_ratio: f32 = detectors.iter().map(|x| x.ratio()).sum();
             if early_mess_ratio >= maximum_threshold {
                 mean_mess_ratio = Some(early_mess_ratio);
@@ -65,38 +64,18 @@ pub(crate) fn mess_ratio(
 
     if log_enabled!(log::Level::Trace) {
         trace!(
-            "Mess-detector extended-analysis start: \
-            early_calc_period={}, \
-            mean_mess_ratio={}, \
-            maximum_threshold={}",
+            "Mess-detector extended-analysis start: early_calc_period={}, mean_mess_ratio={}, maximum_threshold={} \
+            {}",
             early_calc_period,
             return_ratio,
             maximum_threshold,
+            detectors
+            .iter()
+            .filter(|d| d.ratio() > 0.0)
+            .map(|d| format!("{} produces ratio: {}", d.name(), d.ratio()))
+            .collect::<Vec<String>>()
+            .join("===")
         );
-
-        /*if decoded_sequence.len() > 16 {
-            trace!(
-                "Chunk: {} ..... {}",
-                &decoded_sequence[..decoded_sequence
-                    .char_indices()
-                    .nth(16)
-                    .map(|(i, _)| i)
-                    .unwrap_or(decoded_sequence.chars().count())],
-                &decoded_sequence[decoded_sequence
-                    .char_indices()
-                    .nth(decoded_sequence.chars().count() - 16)
-                    .map(|(i, _)| i)
-                    .unwrap_or(decoded_sequence.chars().count())..],
-            );
-        }
-         */
-
-        for detector in &detectors {
-            if detector.ratio() > 0.0 {
-                trace!("{} produces ratio: {}", detector.name(), detector.ratio());
-            }
-        }
-        trace!("===");
     }
 
     return_ratio
