@@ -313,32 +313,29 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         }
 
         // fast pre-check
-        let start_idx = if bom_or_sig_available {
-            sig_payload.unwrap().len()
-        } else {
-            0
+        let start_idx = match bom_or_sig_available {
+            true => sig_payload.unwrap().len(),
+            false => 0,
         };
-        let end_idx = if is_too_large_sequence && !is_multi_byte_decoder {
-            *MAX_PROCESSED_BYTES
-        } else {
-            bytes_length
+        let end_idx = match is_too_large_sequence && !is_multi_byte_decoder {
+            true => *MAX_PROCESSED_BYTES,
+            false => bytes_length,
         };
-        let decoded_payload: Option<String> = match decode(
+        let decoded_payload: Option<String> = if let Ok(payload) = decode(
             &bytes[start_idx..end_idx],
             encoding_iana,
             DecoderTrap::Strict,
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
         ) {
-            Ok(payload) => (!is_too_large_sequence || is_multi_byte_decoder).then_some(payload),
-            Err(_) => {
-                trace!(
-                    "Code page {} does not fit given bytes sequence at ALL.",
-                    encoding_iana,
-                );
-                tested_but_hard_failure.push(encoding_iana);
-                continue 'iana_encodings_loop;
-            }
+            (!is_too_large_sequence || is_multi_byte_decoder).then_some(payload)
+        } else {
+            trace!(
+                "Code page {} does not fit given bytes sequence at ALL.",
+                encoding_iana,
+            );
+            tested_but_hard_failure.push(encoding_iana);
+            continue 'iana_encodings_loop;
         };
 
         // soft failed pre-check
@@ -378,7 +375,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             None => bytes_length,
         };
         let starting_offset = match (bom_or_sig_available, &decoded_payload) {
-            (true, None) => sig_payload.as_ref().unwrap().len(),
+            (true, None) => start_idx,
             _ => 0,
         };
         let offsets = (starting_offset..seq_len).step_by((seq_len / settings.steps).max(1));
