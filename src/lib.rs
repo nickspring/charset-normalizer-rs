@@ -224,7 +224,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // too small length
-    if bytes_length < *TOO_SMALL_SEQUENCE {
+    if bytes_length < TOO_SMALL_SEQUENCE {
         trace!(
             "Trying to detect encoding from a tiny portion of ({}) byte(s).",
             bytes_length
@@ -232,7 +232,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     }
 
     // too big length
-    let is_too_large_sequence = bytes_length > *TOO_BIG_SEQUENCE;
+    let is_too_large_sequence = bytes_length > TOO_BIG_SEQUENCE;
     if is_too_large_sequence {
         trace!(
             "Using lazy str decoding because the payload is quite large, ({}) byte(s).",
@@ -318,7 +318,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
             false => 0,
         };
         let end_idx = match is_too_large_sequence && !is_multi_byte_decoder {
-            true => *MAX_PROCESSED_BYTES,
+            true => MAX_PROCESSED_BYTES,
             false => bytes_length,
         };
         let decoded_payload: Option<String> = if let Ok(payload) = decode(
@@ -432,7 +432,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         // Only if initial MD tests passes
         if !lazy_str_hard_failure && is_too_large_sequence && !is_multi_byte_decoder {
             let decoded_chunk_result = decode(
-                &bytes[*MAX_PROCESSED_BYTES..],
+                &bytes[MAX_PROCESSED_BYTES..],
                 encoding_iana,
                 DecoderTrap::Strict,
                 false,

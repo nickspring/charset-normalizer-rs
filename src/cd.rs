@@ -210,7 +210,7 @@ pub(crate) fn coherence_ratio(
     let mut sufficient_match_count: u64 = 0;
 
     for layer in alpha_unicode_split(&decoded_sequence) {
-        if layer.chars().count() <= *TOO_SMALL_SEQUENCE {
+        if layer.chars().count() <= TOO_SMALL_SEQUENCE {
             continue;
         }
         let most_common = layer.chars().collect::<Counter<_>>().most_common_ordered();
