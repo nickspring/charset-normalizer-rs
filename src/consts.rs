@@ -4,6 +4,12 @@ use encoding::all::encodings;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+pub static TOO_BIG_SEQUENCE: usize = 1_000_000; // 10E6
+pub(crate) static MAX_PROCESSED_BYTES: usize = 500_000;
+pub(crate) static TOO_SMALL_SEQUENCE: usize = 32;
+pub(crate) static UTF8_MAXIMAL_ALLOCATION: usize = 1_112_064;
+pub(crate) static COMMON_SAFE_ASCII_CHARACTERS: &'static str = "<>=:/&;{}[],|\"-";
+
 // Contain for each eligible encoding a list of/item bytes SIG/BOM
 pub(crate) static ENCODING_MARKS: Lazy<HashMap<&'static str, &'static [u8]>> = Lazy::new(|| {
     HashMap::from_iter([
@@ -13,11 +19,6 @@ pub(crate) static ENCODING_MARKS: Lazy<HashMap<&'static str, &'static [u8]>> = L
         ("utf-16be", b"\xfe\xff".as_slice()),
     ])
 });
-
-pub static TOO_BIG_SEQUENCE: usize = 1_000_000; // 10E6
-pub(crate) static MAX_PROCESSED_BYTES: usize = 500_000;
-pub(crate) static TOO_SMALL_SEQUENCE: usize = 32;
-pub(crate) static UTF8_MAXIMAL_ALLOCATION: usize = 1_112_064;
 
 pub(crate) static UNICODE_RANGES_COMBINED: Lazy<[(&'static str, RangeInclusive<u32>); 279]> =
     Lazy::new(|| {
@@ -326,8 +327,6 @@ pub(crate) static UNICODE_SECONDARY_RANGE_KEYWORD: Lazy<HashSet<&'static str>> =
         "Tags",
     ])
 });
-
-pub(crate) static COMMON_SAFE_ASCII_CHARACTERS: &'static str = "<>=:/&;{}[],|\"-";
 
 pub(crate) static RE_POSSIBLE_ENCODING_INDICATION: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
