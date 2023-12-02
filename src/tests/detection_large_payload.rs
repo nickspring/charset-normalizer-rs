@@ -4,7 +4,7 @@ use crate::from_bytes;
 #[test]
 fn test_large_payload_utf8_sig_basic_entry() {
     let mut payload = b"\xef\xbb\xbf".as_slice().to_vec();
-    payload.extend(b"0".repeat(*TOO_BIG_SEQUENCE + 1).as_slice().to_vec());
+    payload.extend(b"0".repeat(TOO_BIG_SEQUENCE + 1).as_slice().to_vec());
 
     let result = from_bytes(&payload, None);
     let best_guess = result.get_best();
@@ -27,7 +27,7 @@ fn test_large_payload_utf8_sig_basic_entry() {
 
 #[test]
 fn test_large_payload_ascii_sig_basic_entry() {
-    let payload = b"0".repeat(*TOO_BIG_SEQUENCE + 1).as_slice().to_vec();
+    let payload = b"0".repeat(TOO_BIG_SEQUENCE + 1).as_slice().to_vec();
 
     let result = from_bytes(&payload, None);
     let best_guess = result.get_best();
@@ -54,7 +54,7 @@ fn test_large_payload_ascii_sig_basic_entry() {
 #[test]
 fn test_misleading_large_sequence() {
     let mut payload = b"hello simple ascii "
-        .repeat(*TOO_BIG_SEQUENCE)
+        .repeat(TOO_BIG_SEQUENCE)
         .as_slice()
         .to_vec();
     payload.extend("我没有埋怨，磋砣的只是一些时间。 磋砣的只是一些时间。".as_bytes());

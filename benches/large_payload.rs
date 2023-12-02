@@ -5,7 +5,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 pub fn large_payload(c: &mut Criterion) {
     let mut payload = b"hello simple ascii "
-        .repeat(*TOO_BIG_SEQUENCE)
+        .repeat(TOO_BIG_SEQUENCE)
         .as_slice()
         .to_vec();
     payload.extend("我没有埋怨，磋砣的只是一些时间。 磋砣的只是一些时间。".as_bytes());
