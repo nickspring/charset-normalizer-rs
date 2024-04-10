@@ -8,7 +8,7 @@ pub static TOO_BIG_SEQUENCE: usize = 1_000_000; // 10E6
 pub(crate) static MAX_PROCESSED_BYTES: usize = 500_000;
 pub(crate) static TOO_SMALL_SEQUENCE: usize = 32;
 pub(crate) static UTF8_MAXIMAL_ALLOCATION: usize = 1_112_064;
-pub(crate) static COMMON_SAFE_ASCII_CHARACTERS: &'static str = "<>=:/&;{}[],|\"-";
+pub(crate) static COMMON_SAFE_ASCII_CHARACTERS: &str = "<>=:/&;{}[],|\"-";
 
 // Contain for each eligible encoding a list of/item bytes SIG/BOM
 pub(crate) static ENCODING_MARKS: Lazy<HashMap<&'static str, &'static [u8]>> = Lazy::new(|| {
