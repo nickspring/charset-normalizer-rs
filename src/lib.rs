@@ -30,7 +30,7 @@
 //! use charset_normalizer_rs::from_bytes;
 //!
 //! fn test_from_bytes() {
-//!     let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None);
+//!     let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None).unwrap();
 //!     let best_guess = result.get_best();
 //!     assert_eq!(
 //!         best_guess.unwrap().encoding(),
