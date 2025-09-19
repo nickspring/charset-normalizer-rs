@@ -155,21 +155,21 @@ mod md;
 mod tests;
 pub mod utils;
 
-// Given a raw bytes sequence, return the best possibles charset usable to render str objects.
-// If there is no results, it is a strong indicator that the source is binary/not text.
-// By default, the process will extract 5 blocks of 512o each to assess the mess and coherence of a given sequence.
-// And will give up a particular code page after 20% of measured mess. Those criteria are customizable at will.
-//
-// The preemptive behavior DOES NOT replace the traditional detection workflow, it prioritize a particular code page
-// but never take it for granted. Can improve the performance.
-//
-// You may want to focus your attention to some code page or/and not others, use cp_isolation and cp_exclusion for that
-// purpose.
-//
-// This function will strip the SIG in the payload/sequence every time except on UTF-16, UTF-32.
-// By default the library does not setup any handler other than the NullHandler, if you choose to set the 'explain'
-// toggle to True it will alter the logger configuration to add a StreamHandler that is suitable for debugging.
-// Custom logging format and handler can be set manually.
+/// Given a raw bytes sequence, return the best possibles charset usable to render str objects.
+/// If there is no results, it is a strong indicator that the source is binary/not text.
+/// By default, the process will extract 5 blocks of 512o each to assess the mess and coherence of a given sequence.
+/// And will give up a particular code page after 20% of measured mess. Those criteria are customizable at will.
+///
+/// The preemptive behavior DOES NOT replace the traditional detection workflow, it prioritize a particular code page
+/// but never take it for granted. Can improve the performance.
+///
+/// You may want to focus your attention to some code page or/and not others, use cp_isolation and cp_exclusion for that
+/// purpose.
+///
+/// This function will strip the SIG in the payload/sequence every time except on UTF-16, UTF-32.
+/// By default the library does not setup any handler other than the NullHandler, if you choose to set the 'explain'
+/// toggle to True it will alter the logger configuration to add a StreamHandler that is suitable for debugging.
+/// Custom logging format and handler can be set manually.
 pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> CharsetMatches {
     // init settings with default values if it's None and recheck include_encodings and
     // exclude_encodings settings
@@ -577,9 +577,9 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     results
 }
 
-// Same thing than the function from_bytes but with one extra step.
-// Opening and reading given file path in binary mode.
-// Can return Error.
+/// Same thing than the function from_bytes but with one extra step.
+/// Opening and reading given file path in binary mode.
+/// Can return Error.
 pub fn from_path(
     path: &Path,
     settings: Option<NormalizerSettings>,
