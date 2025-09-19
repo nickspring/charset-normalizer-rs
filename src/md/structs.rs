@@ -65,7 +65,7 @@ impl MessDetectorChar {
 }
 
 #[cached(
-    type = "UnboundCache<char, MessDetectorChar>",
+    ty = "UnboundCache<char, MessDetectorChar>",
     create = "{ UnboundCache::with_capacity(UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ character }"#
 )]
