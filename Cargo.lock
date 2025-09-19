@@ -143,9 +143,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.4.0"
+version = "2.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
+checksum = "2261d10cca569e4643e526d8dc2e62e433cc8aba21ab764233731f8d369bf394"
 
 [[package]]
 name = "bstr"
@@ -241,7 +241,7 @@ version = "1.0.6"
 dependencies = [
  "ahash",
  "assert_cmd",
- "bitflags 2.4.0",
+ "bitflags 2.9.4",
  "cached",
  "chardet",
  "chardetng",
@@ -1207,7 +1207,7 @@ version = "0.38.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bdf14a7a466ce88b5eac3da815b53aefc208ce7e74d1c263aabb04d88c4abeb1"
 dependencies = [
- "bitflags 2.4.0",
+ "bitflags 2.9.4",
  "errno",
  "libc",
  "linux-raw-sys",

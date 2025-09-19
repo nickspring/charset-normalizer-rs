@@ -20,7 +20,7 @@ exclude = [
 
 [dependencies]
 ahash = "0.8.3"
-bitflags = "2.4.0"
+bitflags = "2.9.0"
 cached = "0.56.0"
 chardet = { version = "0.2.4", optional = true }
 chardetng = { version = "0.1.17", optional = true }
