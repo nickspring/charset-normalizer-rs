@@ -6,7 +6,7 @@ use encoding::EncoderTrap;
 #[test]
 fn test_empty() {
     let bytes: Vec<u8> = b"".to_vec();
-    let result = from_bytes(&bytes, None);
+    let result = from_bytes(&bytes, None).unwrap();
     let best_guess = result.get_best();
 
     assert!(
@@ -31,7 +31,7 @@ fn test_empty_but_with_bom_or_sig() {
     ];
 
     for (input, expected_encoding) in tests {
-        let result = from_bytes(&input, None);
+        let result = from_bytes(&input, None).unwrap();
         let best_guess = result.get_best();
         assert!(
             best_guess.is_some(),
@@ -97,7 +97,7 @@ fn test_content_with_bom_or_sig() {
     ];
 
     for (input, expected_encoding) in tests {
-        let result = from_bytes(&input, None);
+        let result = from_bytes(&input, None).unwrap();
         let best_guess = result.get_best();
         assert!(
             best_guess.is_some(),
@@ -129,7 +129,7 @@ fn test_obviously_ascii_content() {
     ];
 
     for input in tests {
-        let result = from_bytes(input, None);
+        let result = from_bytes(input, None).unwrap();
         let best_guess = result.get_best();
         assert!(
             best_guess.is_some(),
@@ -161,7 +161,7 @@ fn test_obviously_utf8_content() {
     ];
 
     for input in tests {
-        let result = from_bytes(input.as_bytes(), None);
+        let result = from_bytes(input.as_bytes(), None).unwrap();
         let best_guess = result.get_best();
         assert!(
             best_guess.is_some(),
@@ -180,7 +180,7 @@ fn test_obviously_utf8_content() {
 #[test]
 fn test_unicode_ranges_property() {
     let text = "😀 Hello World! How affairs are going? 😀";
-    let result = from_bytes(text.as_bytes(), None);
+    let result = from_bytes(text.as_bytes(), None).unwrap();
     let best_guess = result.get_best();
     let ur = best_guess.unwrap().unicode_ranges();
     assert!(ur.contains(&"Basic Latin".to_string()));
@@ -192,7 +192,7 @@ fn test_mb_cutting_chk() {
     let payload = b"\xbf\xaa\xbb\xe7\xc0\xfb    \xbf\xb9\xbc\xf6    \xbf\xac\xb1\xb8\xc0\xda\xb5\xe9\xc0\xba  \xba\xb9\xc0\xbd\xbc\xad\xb3\xaa ".repeat(128);
     let mut settings = NormalizerSettings::default();
     settings.include_encodings.push(String::from("euc-kr"));
-    let result = from_bytes(payload.as_slice(), Some(settings));
+    let result = from_bytes(payload.as_slice(), Some(settings)).unwrap();
     let best_guess = result.get_best().unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(best_guess.encoding(), "euc-kr");

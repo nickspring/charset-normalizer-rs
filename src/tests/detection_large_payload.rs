@@ -6,7 +6,7 @@ fn test_large_payload_utf8_sig_basic_entry() {
     let mut payload = b"\xef\xbb\xbf".as_slice().to_vec();
     payload.extend(b"0".repeat(TOO_BIG_SEQUENCE + 1).as_slice().to_vec());
 
-    let result = from_bytes(&payload, None);
+    let result = from_bytes(&payload, None).unwrap();
     let best_guess = result.get_best();
     assert!(
         best_guess.is_some(),
@@ -29,7 +29,7 @@ fn test_large_payload_utf8_sig_basic_entry() {
 fn test_large_payload_ascii_sig_basic_entry() {
     let payload = b"0".repeat(TOO_BIG_SEQUENCE + 1).as_slice().to_vec();
 
-    let result = from_bytes(&payload, None);
+    let result = from_bytes(&payload, None).unwrap();
     let best_guess = result.get_best();
     assert!(
         best_guess.is_some(),
@@ -59,7 +59,7 @@ fn test_misleading_large_sequence() {
         .to_vec();
     payload.extend("我没有埋怨，磋砣的只是一些时间。 磋砣的只是一些时间。".as_bytes());
 
-    let result = from_bytes(&payload, None);
+    let result = from_bytes(&payload, None).unwrap();
     assert!(!result.is_empty(), "No results");
     let best_guess = result.get_best();
     assert!(best_guess.is_some(), "Best guess is exists");
