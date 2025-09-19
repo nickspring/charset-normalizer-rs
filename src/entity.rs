@@ -173,7 +173,7 @@ impl CharsetMatch {
             has_sig_or_bom,
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from).or_else(|| {
-                decode(&*payload, encoding, DecoderTrap::Strict, false, true)
+                decode(&payload, encoding, DecoderTrap::Strict, false, true)
                     .ok()
                     .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
             }),

@@ -347,7 +347,7 @@ pub(crate) fn is_suspiciously_successive_range(
             [range_a, range_b]
                 .iter()
                 .any(|x| x.contains("Punctuation") || x.contains("Forms")), // has_punct_or_forms
-            [range_a, range_b].iter().any(|&x| x == "Basic Latin"),  // is_any_basic_latin
+            [range_a, range_b].contains(&"Basic Latin"),  // is_any_basic_latin
         ) {
             (true, true, _, _, _, _) // both are japanese
             | (true, _, true, _, _, _) | (_, true, true, _, _, _) //either is japanese and either contains CJK
