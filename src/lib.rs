@@ -140,6 +140,7 @@ use crate::utils::{
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
+use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Read;
@@ -286,6 +287,8 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let mut fallback_u8: Option<CharsetMatch> = None;
     let mut fallback_specified: Option<CharsetMatch> = None;
     let mut results: CharsetMatches = CharsetMatches::default();
+
+    let bytes: Cow<'static, [u8]> = Cow::Owned(bytes.to_vec());
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
@@ -471,7 +474,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 && prioritized_encodings.contains(&encoding_iana)
             {
                 let fallback_entry = Some(CharsetMatch::new(
-                    bytes,
+                    bytes.clone(),
                     encoding_iana,
                     f32::from(settings.threshold),
                     false,
@@ -520,7 +523,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
         // process results
         results.append(CharsetMatch::new(
-            bytes,
+            bytes.clone(),
             encoding_iana,
             mean_mess_ratio,
             bom_or_sig_available,

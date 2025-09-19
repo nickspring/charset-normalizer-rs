@@ -8,6 +8,7 @@ use clap::Parser;
 use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
 use serde::Serialize;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -87,7 +88,7 @@ pub type CoherenceMatches = Vec<CoherenceMatch>;
 
 #[derive(Clone)]
 pub struct CharsetMatch {
-    payload: Vec<u8>,
+    payload: Cow<'static, [u8]>,
     encoding: String,
 
     mean_mess_ratio: f32,
@@ -114,7 +115,7 @@ impl Debug for CharsetMatch {
 impl Default for CharsetMatch {
     fn default() -> Self {
         CharsetMatch {
-            payload: vec![],
+            payload: Cow::Borrowed(&[]),
             encoding: "utf-8".to_string(),
             mean_mess_ratio: 0.0,
             coherence_matches: vec![],
@@ -157,7 +158,7 @@ impl PartialOrd<Self> for CharsetMatch {
 impl CharsetMatch {
     // Init function
     pub fn new(
-        payload: &[u8],
+        payload: Cow<'static, [u8]>,
         encoding: &str,
         mean_mess_ratio: f32,
         has_sig_or_bom: bool,
@@ -165,14 +166,14 @@ impl CharsetMatch {
         decoded_payload: Option<&str>,
     ) -> Self {
         CharsetMatch {
-            payload: Vec::from(payload),
+            payload: payload.clone(),
             encoding: String::from(encoding),
             mean_mess_ratio,
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from).or_else(|| {
-                decode(payload, encoding, DecoderTrap::Strict, false, true)
+                decode(&*payload, encoding, DecoderTrap::Strict, false, true)
                     .ok()
                     .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
             }),
@@ -246,7 +247,7 @@ impl CharsetMatch {
         1.0 - (decoded_chars / payload_len)
     }
     // Original untouched bytes
-    pub fn raw(&self) -> &Vec<u8> {
+    pub fn raw(&self) -> &[u8] {
         &self.payload
     }
     // Return chaos in percents with rounding
