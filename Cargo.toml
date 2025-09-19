@@ -55,7 +55,7 @@ harness = false
 
 [features]
 cli = ["clap", "dialoguer", "env_logger"]
-performance = ["chardet", "chardetng"]
+performance = ["chardet", "chardetng", "cli"]
 
 [[bin]]
 name = "performance"

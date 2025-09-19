@@ -97,7 +97,7 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
     tested_functions.insert(
         "A) charset-normalizer-rs",
         Box::new(|bytes: &Vec<u8>| {
-            if let Some(gb) = from_bytes(bytes, None).get_best() {
+            if let Some(gb) = from_bytes(bytes, None).unwrap().get_best() {
                 gb.encoding().to_string()
             } else {
                 String::from("None")

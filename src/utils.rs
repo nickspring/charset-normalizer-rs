@@ -14,7 +14,7 @@ use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
 use std::borrow::Cow;
-#[cfg(test)]
+#[cfg(any(test, feature = "performance"))]
 use std::path::{Path, PathBuf};
 
 // Utils module
@@ -382,7 +382,7 @@ pub(super) fn is_invalid_chunk(
 }
 
 // Get large datasets
-#[cfg(test)]
+#[cfg(any(test, feature = "performance"))]
 fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
@@ -404,7 +404,7 @@ fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
 }
 
 // Get large datasets
-#[cfg(test)]
+#[cfg(any(test, feature = "performance"))]
 pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
