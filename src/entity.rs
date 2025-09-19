@@ -3,6 +3,7 @@
 use crate::cd::{encoding_languages, mb_encoding_languages};
 use crate::consts::{IANA_SUPPORTED_ALIASES, TOO_BIG_SEQUENCE};
 use crate::utils::{decode, iana_name, is_multi_byte_encoding, range_scan};
+#[cfg(feature = "cli")]
 use clap::Parser;
 use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
@@ -432,6 +433,7 @@ impl Default for NormalizerSettings {
 // Performance binary application
 /////////////////////////////////////////////////////////////////////////////////////
 
+#[cfg(feature = "cli")]
 #[derive(Parser, Debug)]
 #[command(name = "Performance check for charset-normalizer-rs vs chardet vs chardetng")]
 #[command(author, version, about, long_about = None)]
@@ -453,6 +455,7 @@ pub struct PerformanceResult {
 // Normalizer CLI application
 /////////////////////////////////////////////////////////////////////////////////////
 
+#[cfg(feature = "cli")]
 #[derive(Parser, Debug)]
 #[command(
     name = "The Real First Universal Charset Detector. Discover originating encoding used on text file. Normalize text to unicode."
