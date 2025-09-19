@@ -32,8 +32,10 @@ pub(crate) fn in_range(range: Option<&str>, ranges_partial: &[&str]) -> bool {
 
 #[inline]
 pub(crate) fn in_description(character: char, patterns: &[&str]) -> bool {
-    name(character)
-        .is_some_and(|ucd_name| patterns.iter().any(|&s| ucd_name.to_string().contains(s)))
+    name(character).is_some_and(|ucd_name| {
+        let ucd_name = ucd_name.to_string();
+        patterns.iter().any(|&s| ucd_name.contains(s))
+    })
 }
 
 pub(crate) fn is_accentuated(character: char) -> bool {
