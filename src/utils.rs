@@ -14,7 +14,7 @@ use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
 use std::borrow::Cow;
-use std::fs;
+#[cfg(test)]
 use std::path::{Path, PathBuf};
 
 // Utils module
@@ -382,11 +382,12 @@ pub(super) fn is_invalid_chunk(
 }
 
 // Get large datasets
+#[cfg(test)]
 fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
     if dir.is_dir() {
-        for entry in fs::read_dir(dir).unwrap() {
+        for entry in std::fs::read_dir(dir).unwrap() {
             let path = entry.unwrap().path();
 
             if path.is_dir() {
@@ -403,10 +404,11 @@ fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
 }
 
 // Get large datasets
+#[cfg(test)]
 pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
-    match fs::metadata(&path) {
+    match std::fs::metadata(&path) {
         Ok(metadata) if metadata.is_dir() => Ok(collect_large_sets(&path)
             .iter()
             .filter_map(|set| {
