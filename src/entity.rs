@@ -350,12 +350,12 @@ impl CharsetMatches {
         items.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
     }
     // iterator
-    pub fn iter_mut(&mut self) -> CharsetMatchesIterMut {
+    pub fn iter_mut(&mut self) -> CharsetMatchesIterMut<'_> {
         CharsetMatchesIterMut {
             items: self.items.iter_mut(),
         }
     }
-    pub fn iter(&self) -> CharsetMatchesIter {
+    pub fn iter(&self) -> CharsetMatchesIter<'_> {
         CharsetMatchesIter {
             items: self.items.iter(),
         }
