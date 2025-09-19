@@ -350,8 +350,8 @@ pub(crate) fn is_suspiciously_successive_range(
             (true, true, _, _, _, _) // both are japanese
             | (true, _, true, _, _, _) | (_, true, true, _, _, _) //either is japanese and either contains CJK
             | (_, _, true, true, _, _) // either has both CJK and Hanguls
-            | (_, _, true, _, true, _) // either has chinese and dedicated punctuation and separators 
-            | (_, _, _, true, _, true) // either has hangul and basic latin 
+            | (_, _, true, _, true, _) // either has chinese and dedicated punctuation and separators
+            | (_, _, _, true, _, true) // either has hangul and basic latin
             => return false,
             _ => {} // All other combinations
         }
