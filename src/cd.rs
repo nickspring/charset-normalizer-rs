@@ -93,7 +93,8 @@ pub(crate) fn alphabet_languages(
     characters: &[char],
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
-    let mut languages: Vec<(&Language, f32)> = Vec::with_capacity(*LANGUAGE_SUPPORTED_COUNT);
+    let mut languages: Vec<(&Language, OrderedFloat<f32>)> =
+        Vec::with_capacity(*LANGUAGE_SUPPORTED_COUNT);
     let source_characters_set: HashSet<char> = characters.iter().copied().collect();
     let source_has_accents = source_characters_set
         .iter()
@@ -114,11 +115,11 @@ pub(crate) fn alphabet_languages(
 
         let ratio: f32 = intersection.len() as f32 / language_characters_set.len() as f32;
         if ratio >= 0.2 {
-            languages.push((language, ratio));
+            languages.push((language, OrderedFloat(ratio)));
         }
     }
     // reverse sort
-    languages.sort_unstable_by(|&a, &b| b.1.partial_cmp(&a.1).unwrap());
+    languages.sort_unstable_by(|&a, &b| b.1.cmp(&a.1));
     languages.iter().map(|&lang| lang.0).collect()
 }
 
@@ -158,7 +159,7 @@ pub(crate) fn characters_popularity_compare(
 // We shall NOT return more than one "English" in CoherenceMatches because it is an alternative
 // of "English" (the same for Japan language). This function only keeps the best match.
 pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> CoherenceMatches {
-    let mut index: HashMap<&Language, f32> = HashMap::with_capacity(results.len());
+    let mut index: HashMap<&Language, OrderedFloat<f32>> = HashMap::with_capacity(results.len());
     for result in results {
         let score = index.entry(result.language).or_default();
         *score = result.score.max(*score);
@@ -172,7 +173,8 @@ pub(crate) fn filter_alt_coherence_matches(results: &CoherenceMatches) -> Cohere
 // This function merge results previously given by the function coherence_ratio.
 // The return type is the same as coherence_ratio.
 pub(crate) fn merge_coherence_ratios(results: &[CoherenceMatches]) -> CoherenceMatches {
-    let mut index: HashMap<&Language, Vec<f32>> = HashMap::with_capacity(results.len());
+    let mut index: HashMap<&Language, Vec<OrderedFloat<f32>>> =
+        HashMap::with_capacity(results.len());
     results
         .iter()
         .flatten()
@@ -182,11 +184,11 @@ pub(crate) fn merge_coherence_ratios(results: &[CoherenceMatches]) -> CoherenceM
         .iter()
         .map(|(&lang, scores)| CoherenceMatch {
             language: lang,
-            score: scores.iter().sum::<f32>() / (scores.len() as f32),
+            score: scores.iter().sum::<OrderedFloat<f32>>() / (scores.len() as f32),
         })
         .collect();
 
-    merge.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+    merge.sort_unstable_by(|a, b| b.score.cmp(&a.score));
     merge
 }
 
@@ -238,7 +240,7 @@ pub(crate) fn coherence_ratio(
 
             results.push(CoherenceMatch {
                 language,
-                score: ratio,
+                score: OrderedFloat(ratio),
             });
 
             if sufficient_match_count >= 3 {
@@ -247,6 +249,6 @@ pub(crate) fn coherence_ratio(
         }
     }
     results = filter_alt_coherence_matches(&results);
-    results.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+    results.sort_unstable_by(|a, b| b.score.cmp(&a.score));
     Ok(results)
 }

@@ -75,12 +75,12 @@ impl Display for Language {
 /////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct CoherenceMatch {
+pub(crate) struct CoherenceMatch {
     pub language: &'static Language,
-    pub score: f32,
+    pub score: OrderedFloat<f32>,
 }
 
-pub type CoherenceMatches = Vec<CoherenceMatch>;
+pub(crate) type CoherenceMatches = Vec<CoherenceMatch>;
 
 /////////////////////////////////////////////////////////////////////////////////////
 // CharsetMatch
@@ -91,7 +91,7 @@ pub struct CharsetMatch {
     payload: Cow<'static, [u8]>,
     encoding: String,
 
-    mean_mess_ratio: f32,
+    mean_mess_ratio: OrderedFloat<f32>,
     coherence_matches: CoherenceMatches,
 
     has_sig_or_bom: bool,
@@ -117,7 +117,7 @@ impl Default for CharsetMatch {
         CharsetMatch {
             payload: Cow::Borrowed(&[]),
             encoding: "utf-8".to_string(),
-            mean_mess_ratio: 0.0,
+            mean_mess_ratio: OrderedFloat(0.0),
             coherence_matches: vec![],
             has_sig_or_bom: false,
             submatch: vec![],
@@ -132,32 +132,40 @@ impl PartialEq<Self> for CharsetMatch {
     }
 }
 
-impl PartialOrd<Self> for CharsetMatch {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl Eq for CharsetMatch {}
+
+impl Ord for CharsetMatch {
+    fn cmp(&self, other: &Self) -> Ordering {
         let mess_difference = (self.mean_mess_ratio - other.mean_mess_ratio).abs();
-        let coherence_a = self.coherence();
-        let coherence_b = other.coherence();
+        let coherence_a = OrderedFloat(self.coherence());
+        let coherence_b = OrderedFloat(other.coherence());
         let coherence_difference = (coherence_a - coherence_b).abs();
 
         // Below 1% difference --> Use Coherence
         if mess_difference < 0.01 {
             if coherence_difference > 0.02 {
-                return coherence_b.partial_cmp(&coherence_a);
+                return coherence_b.cmp(&coherence_a);
             }
-            let multibyte_usage_a = self.multi_byte_usage();
-            let multibyte_usage_b = other.multi_byte_usage();
+            let multibyte_usage_a = OrderedFloat(self.multi_byte_usage());
+            let multibyte_usage_b = OrderedFloat(other.multi_byte_usage());
             let multibyte_usage_delta = (multibyte_usage_a - multibyte_usage_b).abs();
             if multibyte_usage_delta > f32::EPSILON {
-                return multibyte_usage_b.partial_cmp(&multibyte_usage_a);
+                return multibyte_usage_b.cmp(&multibyte_usage_a);
             }
         }
-        self.mean_mess_ratio.partial_cmp(&other.mean_mess_ratio)
+        self.mean_mess_ratio.cmp(&other.mean_mess_ratio)
+    }
+}
+
+impl PartialOrd<Self> for CharsetMatch {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 impl CharsetMatch {
     // Init function
-    pub fn new(
+    pub(crate) fn new(
         payload: Cow<'static, [u8]>,
         encoding: &str,
         mean_mess_ratio: f32,
@@ -168,7 +176,7 @@ impl CharsetMatch {
         CharsetMatch {
             payload: payload.clone(),
             encoding: String::from(encoding),
-            mean_mess_ratio,
+            mean_mess_ratio: OrderedFloat(mean_mess_ratio),
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
@@ -181,7 +189,7 @@ impl CharsetMatch {
     }
 
     // Add submatch
-    pub fn add_submatch(&mut self, submatch: &CharsetMatch) {
+    pub(crate) fn add_submatch(&mut self, submatch: &CharsetMatch) {
         self.submatch.push(submatch.clone());
         //self.decoded_payload = None;
     }
@@ -201,7 +209,7 @@ impl CharsetMatch {
         &self.encoding
     }
     pub fn chaos(&self) -> f32 {
-        self.mean_mess_ratio
+        self.mean_mess_ratio.0
     }
     // Most probable language found in decoded sequence. If none were detected or inferred, the property will return
     // Language::Unknown
@@ -262,7 +270,7 @@ impl CharsetMatch {
     pub fn coherence(&self) -> f32 {
         self.coherence_matches
             .first()
-            .map(|lang| lang.score)
+            .map(|lang| lang.score.0)
             .unwrap_or_default()
     }
 
@@ -349,7 +357,7 @@ impl CharsetMatches {
     }
     // Resort items by relevancy (for internal use)
     fn resort(items: &mut [CharsetMatch]) {
-        items.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+        items.sort_unstable();
     }
     // iterator
     pub fn iter_mut(&mut self) -> CharsetMatchesIterMut<'_> {

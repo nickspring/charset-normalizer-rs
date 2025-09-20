@@ -1,4 +1,5 @@
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatch, Language};
+use ordered_float::OrderedFloat;
 
 #[test]
 fn test_charset_matches() {
@@ -14,11 +15,11 @@ fn test_charset_matches() {
         &vec![
             CoherenceMatch {
                 language: &Language::Russian,
-                score: 0.99,
+                score: OrderedFloat(0.99),
             },
             CoherenceMatch {
                 language: &Language::Ukrainian,
-                score: 0.8,
+                score: OrderedFloat(0.8),
             },
         ],
         None,
@@ -34,11 +35,11 @@ fn test_charset_matches() {
         &vec![
             CoherenceMatch {
                 language: &Language::Russian,
-                score: 0.95,
+                score: OrderedFloat(0.95),
             },
             CoherenceMatch {
                 language: &Language::Kazakh,
-                score: 0.7,
+                score: OrderedFloat(0.7),
             },
         ],
         None,
@@ -92,11 +93,11 @@ fn test_charset_matches() {
             &vec!(
                 CoherenceMatch {
                     language: &Language::Russian,
-                    score: 0.1,
+                    score: OrderedFloat(0.1),
                 },
                 CoherenceMatch {
                     language: &Language::Kazakh,
-                    score: 0.5,
+                    score: OrderedFloat(0.5),
                 },
             ),
             None,
