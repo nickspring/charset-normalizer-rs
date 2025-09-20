@@ -3,19 +3,14 @@
 use crate::cd::{encoding_languages, mb_encoding_languages};
 use crate::consts::{IANA_SUPPORTED_ALIASES, TOO_BIG_SEQUENCE};
 use crate::utils::{decode, iana_name, is_multi_byte_encoding, range_scan};
-#[cfg(feature = "cli")]
-use clap::Parser;
 use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
-use serde::Serialize;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::Index;
-use std::path::PathBuf;
-use std::time::Duration;
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Languages
@@ -436,95 +431,4 @@ impl Default for NormalizerSettings {
             enable_fallback: true,
         }
     }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-// Performance binary application
-/////////////////////////////////////////////////////////////////////////////////////
-
-#[cfg(feature = "cli")]
-#[derive(Parser, Debug)]
-#[command(name = "Performance check for charset-normalizer-rs vs chardet vs chardetng")]
-#[command(author, version, about, long_about = None)]
-pub struct PerformanceArgs {
-    /// Apply artificial size increase to challenge the detection mechanism further
-    #[arg(short, long, default_value_t = 1)]
-    pub size_increase: u8,
-}
-
-// Struct to save result of each test in performance app
-pub struct PerformanceResult {
-    /// Performance test duration
-    pub duration: Duration,
-    /// Is result accurate?
-    pub correct: bool,
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-// Normalizer CLI application
-/////////////////////////////////////////////////////////////////////////////////////
-
-#[cfg(feature = "cli")]
-#[derive(Parser, Debug)]
-#[command(
-    name = "The Real First Universal Charset Detector. Discover originating encoding used on text file. Normalize text to unicode."
-)]
-#[command(author, version, about, long_about = None)]
-pub struct CLINormalizerArgs {
-    /// File(s) to be analysed
-    #[arg(required = true, action = clap::ArgAction::Append)]
-    pub files: Vec<PathBuf>,
-
-    /// Display complementary information about file if any. Stdout will contain logs about the detection process.
-    #[arg(short = 'v', long = "verbose", default_value_t = false)]
-    pub verbose: bool,
-
-    /// Output complementary possibilities if any. Top-level JSON WILL be a list.
-    #[arg(short = 'a', long = "with-alternative", default_value_t = false)]
-    pub alternatives: bool,
-
-    /// Permit to normalize input file. If not set, program does not write anything.
-    #[arg(short, long, default_value_t = false)]
-    pub normalize: bool,
-
-    /// Only output the charset detected to STDOUT. Disabling JSON output.
-    #[arg(short, long, default_value_t = false)]
-    pub minimal: bool,
-
-    /// Replace file when trying to normalize it instead of creating a new one.
-    #[arg(short, long, default_value_t = false)]
-    pub replace: bool,
-
-    /// Replace file without asking if you are sure, use this flag with caution.
-    #[arg(short, long, default_value_t = false)]
-    pub force: bool,
-
-    /// Define a custom maximum amount of chaos allowed in decoded content. 0. <= chaos <= 1.
-    #[arg(short, long, default_value_t = 0.2)]
-    pub threshold: f32,
-}
-
-#[derive(Default, Debug, Serialize)]
-pub struct CLINormalizerResult {
-    /// Path to analysed file
-    pub path: PathBuf,
-    /// Guessed encoding
-    pub encoding: Option<String>,
-    /// Possible aliases of guessed encoding
-    pub encoding_aliases: Vec<String>,
-    /// Alternative possible encodings
-    pub alternative_encodings: Vec<String>,
-    /// Most probably language
-    pub language: String,
-    /// Found alphabets
-    pub alphabets: Vec<String>,
-    /// Does it has SIG or BOM mark?
-    pub has_sig_or_bom: bool,
-    /// Chaos (mess) level
-    pub chaos: String,
-    /// Coherence (language detection) level
-    pub coherence: String,
-    /// Path to decoded data
-    pub unicode_path: Option<PathBuf>,
-    pub is_preferred: bool,
 }
