@@ -1,8 +1,7 @@
-use crate::enc::Encoding;
+use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::NormalizerSettings;
 use crate::tests::FILES_SAMPLES;
 use crate::utils::*;
-use encoding::DecoderTrap;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -205,10 +204,9 @@ fn test_decode_test() {
         (b"\x61\x52\x6f\x64\x20\x5a\x61\x52\x6f\x64\x20\x5a\xaa\xd8".to_vec(), "windows-1251", true),
     ];
     for (input, enc_name, expect_pass) in &tests {
-        let res =
-            Encoding::by_name(enc_name)
-                .unwrap()
-                .decode(input, DecoderTrap::Strict, true, false);
+        let res = Encoding::by_name(enc_name)
+            .unwrap()
+            .decode(input, WantDecode::No, IsChunk::No);
         assert_eq!(res.is_ok(), *expect_pass);
     }
 }
@@ -229,9 +227,11 @@ fn test_decode_wrong_chunks() {
             let mut file = File::open(path.to_str().unwrap()).expect("Cannot open file");
             let mut buffer = Vec::new();
             file.read_to_end(&mut buffer).expect("Cannot read file");
+            eprintln!("Doing {path:?}");
+            let encoding = Encoding::by_name(sample_encoding_names.first().unwrap()).unwrap();
             for chunk in buffer.chunks(settings.chunk_size) {
-                let encoding = Encoding::by_name(sample_encoding_names.first().unwrap()).unwrap();
-                let status = encoding.decode(chunk, DecoderTrap::Strict, true, true);
+                eprintln!("processing chunk of size {}", chunk.len());
+                let status = encoding.decode(chunk, WantDecode::No, IsChunk::Yes);
                 assert!(
                     status.is_ok(),
                     "Decode error for sample {}, {}",

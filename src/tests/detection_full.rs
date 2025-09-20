@@ -63,8 +63,7 @@ fn test_largesets() {
 
         assert!(
             !fail,
-            "Problems with {}. expected encoding={encoding:?}, guess={guess_encoding}",
-            path
+            "Problems with {path}. expected encoding={encoding:?}, guess={guess_encoding}",
         );
     }
 }

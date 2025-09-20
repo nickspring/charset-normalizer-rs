@@ -132,11 +132,10 @@ use crate::cd::{
     coherence_ratio, encoding_languages, mb_encoding_languages, merge_coherence_ratios,
 };
 use crate::consts::{MAX_PROCESSED_BYTES, TOO_BIG_SEQUENCE, TOO_SMALL_SEQUENCE};
-use crate::enc::Encoding;
+use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSettings};
 use crate::md::mess_ratio;
 use crate::utils::{any_specified_encoding, identify_sig_or_bom, is_cp_similar, is_invalid_chunk};
-use encoding::DecoderTrap;
 use log::{debug, trace};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -317,9 +316,12 @@ pub fn from_bytes(
         };
         let decoded_payload: Option<String> = if let Ok(payload) = encoding_iana.decode(
             &bytes[start_idx..end_idx],
-            DecoderTrap::Strict,
-            is_too_large_sequence && !is_multi_byte_decoder,
-            false,
+            if is_too_large_sequence && !is_multi_byte_decoder {
+                WantDecode::No
+            } else {
+                WantDecode::Yes
+            },
+            IsChunk::No,
         ) {
             (!is_too_large_sequence || is_multi_byte_decoder).then_some(payload)
         } else {
@@ -387,9 +389,8 @@ pub fn from_bytes(
                 // Bytes processing
                 None => encoding_iana.decode(
                     &bytes[offset..(offset + settings.chunk_size).min(seq_len)],
-                    DecoderTrap::Strict,
-                    false,
-                    false,
+                    WantDecode::Yes,
+                    IsChunk::No,
                 ),
             };
 
@@ -423,12 +424,8 @@ pub fn from_bytes(
         // We might want to check the remainder of sequence
         // Only if initial MD tests passes
         if !lazy_str_hard_failure && is_too_large_sequence && !is_multi_byte_decoder {
-            let decoded_chunk_result = encoding_iana.decode(
-                &bytes[MAX_PROCESSED_BYTES..],
-                DecoderTrap::Strict,
-                false,
-                false,
-            );
+            let decoded_chunk_result =
+                encoding_iana.decode(&bytes[MAX_PROCESSED_BYTES..], WantDecode::Yes, IsChunk::No);
             if is_invalid_chunk(&decoded_chunk_result, encoding_iana) {
                 trace!(
                     "LazyStr Loading: After final lookup, code page {} does not fit \

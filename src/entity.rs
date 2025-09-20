@@ -2,9 +2,8 @@
 
 use crate::cd::{encoding_languages, mb_encoding_languages};
 use crate::consts::TOO_BIG_SEQUENCE;
-use crate::enc::Encoding;
+use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::utils::range_scan;
-use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
 use std::borrow::Cow;
 use std::cmp::Ordering;
@@ -178,7 +177,7 @@ impl CharsetMatch {
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from).or_else(|| {
                 encoding
-                    .decode(&payload, DecoderTrap::Strict, false, true)
+                    .decode(&payload, WantDecode::Yes, IsChunk::Yes)
                     .ok()
                     .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
             }),
