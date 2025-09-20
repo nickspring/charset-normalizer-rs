@@ -1,8 +1,9 @@
 #![allow(unused_variables)]
 
 use crate::cd::{encoding_languages, mb_encoding_languages};
-use crate::consts::{IANA_SUPPORTED_ALIASES, TOO_BIG_SEQUENCE};
-use crate::utils::{decode, iana_name, is_multi_byte_encoding, range_scan};
+use crate::consts::TOO_BIG_SEQUENCE;
+use crate::enc::Encoding;
+use crate::utils::range_scan;
 use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
 use std::borrow::Cow;
@@ -84,7 +85,7 @@ pub(crate) type CoherenceMatches = Vec<CoherenceMatch>;
 #[derive(Clone)]
 pub struct CharsetMatch {
     payload: Cow<'static, [u8]>,
-    encoding: String,
+    encoding: &'static Encoding,
 
     mean_mess_ratio: OrderedFloat<f32>,
     coherence_matches: CoherenceMatches,
@@ -111,7 +112,7 @@ impl Default for CharsetMatch {
     fn default() -> Self {
         CharsetMatch {
             payload: Cow::Borrowed(&[]),
-            encoding: "utf-8".to_string(),
+            encoding: Encoding::by_name("utf-8").expect("have utf8"),
             mean_mess_ratio: OrderedFloat(0.0),
             coherence_matches: vec![],
             has_sig_or_bom: false,
@@ -162,7 +163,7 @@ impl CharsetMatch {
     // Init function
     pub(crate) fn new(
         payload: Cow<'static, [u8]>,
-        encoding: &str,
+        encoding: &'static Encoding,
         mean_mess_ratio: f32,
         has_sig_or_bom: bool,
         coherence_matches: &CoherenceMatches,
@@ -170,13 +171,14 @@ impl CharsetMatch {
     ) -> Self {
         CharsetMatch {
             payload: payload.clone(),
-            encoding: String::from(encoding),
+            encoding,
             mean_mess_ratio: OrderedFloat(mean_mess_ratio),
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from).or_else(|| {
-                decode(&payload, encoding, DecoderTrap::Strict, false, true)
+                encoding
+                    .decode(&payload, DecoderTrap::Strict, false, true)
                     .ok()
                     .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
             }),
@@ -190,18 +192,15 @@ impl CharsetMatch {
     }
 
     // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
-    pub fn encoding_aliases(&self) -> Vec<&'static str> {
-        IANA_SUPPORTED_ALIASES
-            .get(self.encoding.as_str())
-            .cloned()
-            .expect("Problem with static HashMap IANA_SUPPORTED_ALIASES")
+    pub fn encoding_aliases(&self) -> &'static [&'static str] {
+        self.encoding.aliases()
     }
     // byte_order_mark
     pub fn bom(&self) -> bool {
         self.has_sig_or_bom
     }
     pub fn encoding(&self) -> &str {
-        &self.encoding
+        self.encoding.name()
     }
     pub fn chaos(&self) -> f32 {
         self.mean_mess_ratio.0
@@ -215,10 +214,10 @@ impl CharsetMatch {
                 if self.suitable_encodings().contains(&String::from("ascii")) {
                     &Language::English
                 } else {
-                    let languages = if is_multi_byte_encoding(&self.encoding) {
-                        mb_encoding_languages(&self.encoding)
+                    let languages = if self.encoding.is_multi_byte_encoding() {
+                        mb_encoding_languages(self.encoding.name())
                     } else {
-                        encoding_languages(self.encoding.clone())
+                        encoding_languages(self.encoding.name().to_string())
                     };
                     languages.first().copied().unwrap_or(&Language::Unknown)
                 }
@@ -277,8 +276,8 @@ impl CharsetMatch {
     // The complete list of encodings that output the exact SAME str result and therefore could be the originating
     // encoding. This list does include the encoding available in property 'encoding'.
     pub fn suitable_encodings(&self) -> Vec<String> {
-        std::iter::once(self.encoding.clone())
-            .chain(self.submatch.iter().map(|s| s.encoding.clone()))
+        std::iter::once(self.encoding.name().to_string())
+            .chain(self.submatch.iter().map(|s| s.encoding.name().to_string()))
             .collect()
     }
     // Returns sorted list of unicode ranges (if exists)
@@ -345,10 +344,10 @@ impl CharsetMatches {
     }
     // Retrieve a single item either by its position or encoding name (alias may be used here).
     pub fn get_by_encoding(&self, encoding: &str) -> Option<&CharsetMatch> {
-        let encoding = iana_name(encoding)?;
+        let encoding = Encoding::by_name(encoding)?.name().to_string();
         self.items
             .iter()
-            .find(|&i| i.suitable_encodings().contains(&encoding.to_string()))
+            .find(|&i| i.suitable_encodings().contains(&encoding))
     }
     // Resort items by relevancy (for internal use)
     fn resort(items: &mut [CharsetMatch]) {

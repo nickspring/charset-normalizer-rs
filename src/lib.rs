@@ -131,16 +131,15 @@
 use crate::cd::{
     coherence_ratio, encoding_languages, mb_encoding_languages, merge_coherence_ratios,
 };
-use crate::consts::{IANA_SUPPORTED, MAX_PROCESSED_BYTES, TOO_BIG_SEQUENCE, TOO_SMALL_SEQUENCE};
+use crate::consts::{MAX_PROCESSED_BYTES, TOO_BIG_SEQUENCE, TOO_SMALL_SEQUENCE};
+use crate::enc::Encoding;
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSettings};
 use crate::md::mess_ratio;
-use crate::utils::{
-    any_specified_encoding, decode, iana_name, identify_sig_or_bom, is_cp_similar,
-    is_invalid_chunk, is_multi_byte_encoding,
-};
+use crate::utils::{any_specified_encoding, identify_sig_or_bom, is_cp_similar, is_invalid_chunk};
 use encoding::DecoderTrap;
 use log::{debug, trace};
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Read;
@@ -151,6 +150,7 @@ pub mod assets;
 #[allow(clippy::cast_lossless, clippy::cast_precision_loss)]
 mod cd;
 pub mod consts;
+mod enc;
 pub mod entity;
 mod md;
 mod tests;
@@ -175,47 +175,30 @@ pub fn from_bytes(
     bytes: &[u8],
     settings: Option<NormalizerSettings>,
 ) -> Result<CharsetMatches, String> {
-    // init settings with default values if it's None and recheck include_encodings and
-    // exclude_encodings settings
-    let mut settings = settings.unwrap_or_default();
-    if !settings.include_encodings.is_empty() {
-        let mut normalized = vec![];
-        for enc in &settings.include_encodings {
-            normalized.push(
-                iana_name(enc)
-                    .ok_or_else(|| format!("included {enc} is not a valid encoding name"))?
-                    .to_string(),
-            );
-        }
-        settings.include_encodings = normalized;
-        trace!(
-            "include_encodings is set. Use this flag for debugging purpose. \
-        Limited list of encoding allowed : {}.",
-            settings.include_encodings.join(", ")
-        );
-    }
-    if !settings.exclude_encodings.is_empty() {
-        let mut normalized = vec![];
-        for enc in &settings.exclude_encodings {
-            normalized.push(
-                iana_name(enc)
-                    .ok_or_else(|| format!("excluded encoding {enc} is not a valid encoding name"))?
-                    .to_string(),
-            );
-        }
-        settings.exclude_encodings = normalized;
-        trace!(
-            "exclude_encodings is set. Use this flag for debugging purpose. \
-        Limited list of encoding allowed : {}.",
-            settings.exclude_encodings.join(", ")
-        );
-    }
-
     // check for empty
     let bytes_length = bytes.len();
     if bytes_length == 0 {
         debug!("Encoding detection on empty bytes, assuming utf_8 intention.");
         return Ok(CharsetMatches::from_single(CharsetMatch::default()));
+    }
+
+    // init settings with default values if it's None and recheck include_encodings and
+    // exclude_encodings settings
+    let mut settings = settings.unwrap_or_default();
+
+    let mut include_encodings = HashSet::new();
+    let mut exclude_encodings = HashSet::new();
+    for enc_name in &settings.include_encodings {
+        include_encodings.insert(
+            Encoding::by_name(enc_name)
+                .ok_or_else(|| format!("included {enc_name} is not a valid encoding name"))?,
+        );
+    }
+    for enc_name in &settings.exclude_encodings {
+        exclude_encodings.insert(
+            Encoding::by_name(enc_name)
+                .ok_or_else(|| format!("excluded {enc_name} is not a valid encoding name"))?,
+        );
     }
 
     // check min length
@@ -253,18 +236,18 @@ pub fn from_bytes(
     }
 
     // start to build prioritized encodings array
-    let mut prioritized_encodings: Vec<&str> = vec![];
+    let mut prioritized_encodings: Vec<&Encoding> = vec![];
 
     // search for encoding in the content
-    let mut specified_encoding: String = String::new();
+    let mut specified_encoding: Option<&Encoding> = None;
     if settings.preemptive_behaviour {
-        if let Some(enc) = any_specified_encoding(bytes, 4096) {
-            trace!(
-                "Detected declarative mark in sequence. Priority +1 given for {}.",
-                &enc
-            );
-            specified_encoding = enc.to_string();
-            prioritized_encodings.push(&specified_encoding);
+        if let Some(enc_name) = any_specified_encoding(bytes, 4096) {
+            trace!("Detected declarative mark in sequence. Priority +1 given for {enc_name}.",);
+
+            if let Some(enc) = Encoding::by_name(&enc_name) {
+                specified_encoding.replace(enc);
+                prioritized_encodings.push(enc);
+            }
         }
     }
 
@@ -272,18 +255,18 @@ pub fn from_bytes(
     let (sig_encoding, sig_payload) = identify_sig_or_bom(bytes);
     if let (Some(sig_enc), Some(sig_pay)) = (&sig_encoding, sig_payload) {
         trace!(
-            "Detected a SIG or BOM mark on first {} byte(s). Priority +1 given for {}.",
+            "Detected a SIG or BOM mark on first {} byte(s). Priority +1 given for {sig_enc}.",
             sig_pay.len(),
-            sig_enc,
         );
         prioritized_encodings.push(sig_enc);
     }
 
     // add ascii & utf-8
-    prioritized_encodings.extend(&["ascii", "utf-8"]);
+    prioritized_encodings.push(Encoding::by_name("ascii").expect("valid"));
+    prioritized_encodings.push(Encoding::by_name("utf-8").expect("valid"));
 
     // generate array of encodings for probing with prioritizing
-    let mut iana_encodings: VecDeque<&str> = VecDeque::from(IANA_SUPPORTED.clone());
+    let mut iana_encodings: VecDeque<&Encoding> = crate::enc::ALL.iter().collect();
     for pe in prioritized_encodings.iter().rev() {
         if let Some(index) = iana_encodings.iter().position(|x| x == pe) {
             let value = iana_encodings.remove(index).expect("index found above");
@@ -292,8 +275,8 @@ pub fn from_bytes(
     }
 
     // Main processing loop variables
-    let mut tested_but_hard_failure: Vec<&str> = vec![];
-    let mut tested_but_soft_failure: Vec<&str> = vec![];
+    let mut tested_but_hard_failure: Vec<&Encoding> = vec![];
+    let mut tested_but_soft_failure: Vec<&Encoding> = vec![];
     let mut fallback_ascii: Option<CharsetMatch> = None;
     let mut fallback_u8: Option<CharsetMatch> = None;
     let mut fallback_specified: Option<CharsetMatch> = None;
@@ -303,22 +286,17 @@ pub fn from_bytes(
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
-        if (!settings.include_encodings.is_empty()
-            && !settings
-                .include_encodings
-                .contains(&encoding_iana.to_string()))
-            || settings
-                .exclude_encodings
-                .contains(&encoding_iana.to_string())
+        if (!include_encodings.is_empty() && !include_encodings.contains(&encoding_iana))
+            || exclude_encodings.contains(&encoding_iana)
         {
             continue;
         }
-        let bom_or_sig_available: bool = sig_encoding.as_deref() == Some(encoding_iana);
+        let bom_or_sig_available: bool = sig_encoding == Some(encoding_iana);
         // let strip_sig_or_bom = true // unlike python version this is always true in rust
-        let is_multi_byte_decoder: bool = is_multi_byte_encoding(encoding_iana);
+        let is_multi_byte_decoder: bool = encoding_iana.is_multi_byte_encoding();
 
         // utf-16le & utf-16be cannot be identified without BOM
-        if !bom_or_sig_available && ["utf-16le", "utf-16be"].contains(&encoding_iana) {
+        if !bom_or_sig_available && encoding_iana.requires_bom() {
             trace!(
                 "Encoding {} won't be tested as-is because it require a BOM. Will try some sub-encoder LE/BE",
                 encoding_iana,
@@ -337,9 +315,8 @@ pub fn from_bytes(
             true => MAX_PROCESSED_BYTES,
             false => bytes_length,
         };
-        let decoded_payload: Option<String> = if let Ok(payload) = decode(
+        let decoded_payload: Option<String> = if let Ok(payload) = encoding_iana.decode(
             &bytes[start_idx..end_idx],
-            encoding_iana,
             DecoderTrap::Strict,
             is_too_large_sequence && !is_multi_byte_decoder,
             false,
@@ -357,7 +334,7 @@ pub fn from_bytes(
         // soft failed pre-check
         // important thing! it occurs sometimes fail detection
         for encoding_soft_failed in &tested_but_soft_failure {
-            if is_cp_similar(encoding_iana, encoding_soft_failed) {
+            if is_cp_similar(encoding_iana.name(), encoding_soft_failed.name()) {
                 trace!("{} is deemed too similar to code page {} and was consider unsuited already. Continuing!",
                     encoding_iana,
                     encoding_soft_failed,
@@ -374,9 +351,9 @@ pub fn from_bytes(
 
         // detect target languages
         let target_languages = if is_multi_byte_decoder {
-            mb_encoding_languages(encoding_iana)
+            mb_encoding_languages(encoding_iana.name())
         } else {
-            encoding_languages(encoding_iana.to_string())
+            encoding_languages(encoding_iana.name().to_string())
         };
         trace!(
             "{} should target any language(s) of {:?}",
@@ -408,9 +385,8 @@ pub fn from_bytes(
                     .take(settings.chunk_size)
                     .collect()),
                 // Bytes processing
-                None => decode(
+                None => encoding_iana.decode(
                     &bytes[offset..(offset + settings.chunk_size).min(seq_len)],
-                    encoding_iana,
                     DecoderTrap::Strict,
                     false,
                     false,
@@ -447,9 +423,8 @@ pub fn from_bytes(
         // We might want to check the remainder of sequence
         // Only if initial MD tests passes
         if !lazy_str_hard_failure && is_too_large_sequence && !is_multi_byte_decoder {
-            let decoded_chunk_result = decode(
+            let decoded_chunk_result = encoding_iana.decode(
                 &bytes[MAX_PROCESSED_BYTES..],
-                encoding_iana,
                 DecoderTrap::Strict,
                 false,
                 false,
@@ -495,10 +470,12 @@ pub fn from_bytes(
                     decoded_payload.as_deref(),
                 ));
 
-                match encoding_iana {
-                    e if e == specified_encoding => fallback_specified = fallback_entry,
-                    "ascii" => fallback_ascii = fallback_entry,
-                    _ => fallback_u8 = fallback_entry,
+                if Some(encoding_iana) == specified_encoding {
+                    fallback_specified = fallback_entry;
+                } else if encoding_iana.name() == "ascii" {
+                    fallback_ascii = fallback_entry;
+                } else {
+                    fallback_u8 = fallback_entry;
                 }
             }
             continue 'iana_encodings_loop;
@@ -513,7 +490,7 @@ pub fn from_bytes(
         // We shall skip the CD when its about ASCII
         // Most of the time its not relevant to run "language-detection" on it.
         let mut cd_ratios: Vec<CoherenceMatches> = vec![];
-        if encoding_iana != "ascii" {
+        if encoding_iana.name() != "ascii" {
             cd_ratios.extend(md_chunks.iter().filter_map(|chunk| {
                 coherence_ratio(
                     chunk.clone(),
@@ -545,7 +522,10 @@ pub fn from_bytes(
         ));
 
         if (mean_mess_ratio < 0.1 && prioritized_encodings.contains(&encoding_iana))
-            || encoding_iana == sig_encoding.clone().unwrap_or_default()
+            || sig_encoding
+                .as_ref()
+                .map(|&enc| enc == encoding_iana)
+                .unwrap_or(false)
         {
             debug!(
                 "Encoding detection: {} is most likely the one.",
@@ -553,7 +533,7 @@ pub fn from_bytes(
             );
             return Ok(CharsetMatches::from_single(
                 results
-                    .get_by_encoding(encoding_iana)
+                    .get_by_encoding(encoding_iana.name())
                     .ok_or_else(|| format!("{encoding_iana} entry not present"))?
                     .clone(),
             ));

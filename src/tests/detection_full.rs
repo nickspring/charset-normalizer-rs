@@ -54,12 +54,17 @@ fn test_largesets() {
         if best_guess.is_some() {
             guess_encoding = best_guess.unwrap().encoding();
         }
+
         let fail = !encoding.contains(&guess_encoding.to_string())
             && (guess_encoding == "None"
                 || encoding
                     .iter()
                     .any(|x| is_multi_byte_encoding(guess_encoding) != is_multi_byte_encoding(x)));
 
-        assert!(!fail, "Problems with {}", path);
+        assert!(
+            !fail,
+            "Problems with {}. expected encoding={encoding:?}, guess={guess_encoding}",
+            path
+        );
     }
 }

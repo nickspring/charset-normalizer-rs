@@ -1,6 +1,7 @@
+use crate::enc::Encoding;
 use crate::md::structs::{MessDetectorChar, MessDetectorCharFlags};
 use crate::md::*;
-use crate::utils::{decode, get_large_test_datasets};
+use crate::utils::get_large_test_datasets;
 use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
 use std::fs::File;
@@ -34,7 +35,7 @@ fn test_mess_ratio() {
 
 #[test]
 fn test_datasets_mess_ratio() {
-    for (path, encoding) in &get_large_test_datasets().unwrap() {
+    for (path, encoding_names) in &get_large_test_datasets().unwrap() {
         let file = File::open(path);
         if file.is_err() {
             return;
@@ -43,15 +44,18 @@ fn test_datasets_mess_ratio() {
         if file.unwrap().read_to_end(&mut buffer).is_err() {
             return;
         }
-        if let Ok(decoded_sequence) = decode(
-            &buffer,
-            encoding.first().unwrap(),
-            DecoderTrap::Ignore,
-            false,
-            false,
-        ) {
-            let mr = mess_ratio(decoded_sequence, Some(OrderedFloat(1.0)));
-            assert!(mr < 0.2, "Mess ratio is very high = {} for {}", mr, path);
+        match Encoding::by_name(encoding_names.first().unwrap()) {
+            Some(encoding) => {
+                if let Ok(decoded_sequence) =
+                    encoding.decode(&buffer, DecoderTrap::Ignore, false, false)
+                {
+                    let mr = mess_ratio(decoded_sequence, Some(OrderedFloat(1.0)));
+                    assert!(mr < 0.2, "Mess ratio is very high = {} for {}", mr, path);
+                }
+            }
+            None => {
+                // Ignore invalid names like `None`
+            }
         }
     }
 }
