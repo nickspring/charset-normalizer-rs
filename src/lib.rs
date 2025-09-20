@@ -459,7 +459,7 @@ pub fn from_bytes(
                     "LazyStr Loading: After final lookup, code page {} does not fit \
                     given bytes sequence at ALL. {}",
                     encoding_iana,
-                    decoded_chunk_result.unwrap_err().to_string(),
+                    decoded_chunk_result.unwrap_err()
                 );
                 tested_but_hard_failure.push(encoding_iana);
                 continue 'iana_encodings_loop;
