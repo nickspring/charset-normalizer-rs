@@ -1,11 +1,6 @@
-use encoding::CodecError;
-use encoding::DecoderTrap;
-use encoding::EncodingRef;
-use encoding::StringWriter;
 use encoding_rs::DecoderResult;
 use encoding_rs::Encoding as EncodingImpl;
 use once_cell::sync::Lazy;
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Copy, Clone)]
@@ -16,7 +11,6 @@ pub(crate) struct Encoding {
     /// Acceptable aliases from <https://encoding.spec.whatwg.org/#concept-encoding-get> -> as is + lowercased
     aliases: &'static [&'static str],
 
-    legacy_encoder: EncodingRef,
     encoder_impl: Option<&'static EncodingImpl>,
 }
 
@@ -46,76 +40,6 @@ impl std::hash::Hash for Encoding {
         H: std::hash::Hasher,
     {
         self.name.hash(h)
-    }
-}
-
-// Test Decoding bytes to string with specified encoding without writing result to memory
-// returns true if everything is correctly decoded, otherwise false
-struct DecodeTestResult {
-    only_test: bool,
-    data: String,
-}
-impl StringWriter for DecodeTestResult {
-    fn writer_hint(&mut self, expectedlen: usize) {
-        if self.only_test {
-            return;
-        }
-        let newlen = self.data.len() + expectedlen;
-        self.data.reserve(newlen);
-    }
-    fn write_char(&mut self, c: char) {
-        if self.only_test {
-            return;
-        }
-        self.data.push(c);
-    }
-    fn write_str(&mut self, s: &str) {
-        if self.only_test {
-            return;
-        }
-        self.data.push_str(s);
-    }
-}
-impl DecodeTestResult {
-    pub fn get_buffer(&self) -> &str {
-        &self.data
-    }
-}
-
-// Copied implementation of decode_to from encoder lib
-// (we need index of problematic chars & hacks for chunks)
-fn decode_to(
-    encoder: EncodingRef,
-    input: &[u8],
-    ret: &mut dyn StringWriter,
-) -> Result<(), CodecError> {
-    let mut decoder = encoder.raw_decoder();
-    let mut remaining = 0;
-    let trap = DecoderTrap::Strict;
-    loop {
-        let (offset, err) = decoder.raw_feed(&input[remaining..], ret);
-        let unprocessed = remaining + offset;
-
-        match err {
-            Some(err) => {
-                remaining = remaining.wrapping_add_signed(err.upto);
-                if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
-                    return Err(err);
-                }
-            }
-            None => {
-                remaining = input.len();
-                if let Some(err) = decoder.raw_finish(ret) {
-                    remaining = remaining.wrapping_add_signed(err.upto);
-                    if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
-                        return Err(err);
-                    }
-                }
-                if remaining >= input.len() {
-                    return Ok(());
-                }
-            }
-        }
     }
 }
 
@@ -171,29 +95,6 @@ impl Encoding {
     }
 
     pub fn decode(
-        &self,
-        input: &[u8],
-        want_decode: WantDecode,
-        is_chunk: IsChunk,
-    ) -> Result<String, String> {
-        let result = self.decode_updated(input, want_decode, is_chunk);
-        if false {
-            let legacy = self.decode_legacy(
-                input,
-                want_decode == WantDecode::No,
-                is_chunk == IsChunk::Yes,
-            );
-            assert_eq!(
-                legacy.is_ok(),
-                result.is_ok(),
-                "mismatch: {self} want_decode={want_decode:?} \
-                is_chunk={is_chunk:?} legacy={legacy:#?}\nupdated={result:#?}"
-            );
-        }
-        result
-    }
-
-    fn decode_updated(
         &self,
         input: &[u8],
         want_decode: WantDecode,
@@ -287,50 +188,6 @@ impl Encoding {
             }
         }
     }
-
-    pub(crate) fn decode_legacy(
-        &self,
-        input: &[u8],
-        only_test: bool,
-        is_chunk: bool,
-    ) -> Result<String, String> {
-        let mut buf = DecodeTestResult {
-            only_test,
-            data: String::new(),
-        };
-        let mut err = CodecError {
-            upto: 0,
-            cause: Cow::from(String::new()),
-        };
-        let chunk_len = input.len();
-        let mut begin_offset: usize = 0;
-        let mut end_offset: usize = chunk_len;
-        let mut error_occured: bool;
-        loop {
-            let res = decode_to(
-                self.legacy_encoder,
-                &input[begin_offset..end_offset],
-                &mut buf,
-            );
-            error_occured = res.is_err();
-            if !is_chunk || res.is_ok() || !self.is_multi_byte_encoding {
-                break;
-            }
-            err = res.unwrap_err();
-            if err.cause.contains("invalid sequence") {
-                begin_offset += 1;
-            } else if err.cause.contains("incomplete sequence") {
-                end_offset -= 1;
-            }
-            if end_offset - begin_offset < 1 || begin_offset > 3 || (chunk_len - end_offset) > 3 {
-                break;
-            }
-        }
-        if error_occured {
-            return Err(format!("{} at index {}", err.cause, err.upto));
-        }
-        Ok(String::from(buf.get_buffer()))
-    }
 }
 
 pub(crate) static BY_NAME: Lazy<HashMap<&'static str, &'static Encoding>> = Lazy::new(|| {
@@ -350,14 +207,12 @@ pub(crate) static ALL: &[Encoding] = &[
         name: "ascii",
         is_multi_byte_encoding: false,
         aliases: &["ascii", "us-ascii"],
-        legacy_encoder: encoding::all::ASCII,
         encoder_impl: None,
     },
     Encoding {
         name: "ibm866",
         is_multi_byte_encoding: false,
         aliases: &["866", "cp866", "csibm866", "ibm866"],
-        legacy_encoder: encoding::all::IBM866,
         encoder_impl: Some(encoding_rs::IBM866),
     },
     Encoding {
@@ -374,7 +229,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "l2",
             "latin2",
         ],
-        legacy_encoder: encoding::all::ISO_8859_2,
         encoder_impl: Some(encoding_rs::ISO_8859_2),
     },
     Encoding {
@@ -391,7 +245,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "l3",
             "latin3",
         ],
-        legacy_encoder: encoding::all::ISO_8859_3,
         encoder_impl: Some(encoding_rs::ISO_8859_3),
     },
     Encoding {
@@ -408,7 +261,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "l4",
             "latin4",
         ],
-        legacy_encoder: encoding::all::ISO_8859_4,
         encoder_impl: Some(encoding_rs::ISO_8859_4),
     },
     Encoding {
@@ -424,7 +276,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "iso_8859-5",
             "iso_8859-5:1988",
         ],
-        legacy_encoder: encoding::all::ISO_8859_5,
         encoder_impl: Some(encoding_rs::ISO_8859_5),
     },
     Encoding {
@@ -446,7 +297,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "iso_8859-6",
             "iso_8859-6:1987",
         ],
-        legacy_encoder: encoding::all::ISO_8859_6,
         encoder_impl: Some(encoding_rs::ISO_8859_6),
     },
     Encoding {
@@ -466,7 +316,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "iso_8859-7:1987",
             "sun_eu_greek",
         ],
-        legacy_encoder: encoding::all::ISO_8859_7,
         encoder_impl: Some(encoding_rs::ISO_8859_7),
     },
     Encoding {
@@ -485,7 +334,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "iso_8859-8:1988",
             "visual",
         ],
-        legacy_encoder: encoding::all::ISO_8859_8,
         encoder_impl: Some(encoding_rs::ISO_8859_8),
     },
     Encoding {
@@ -500,21 +348,18 @@ pub(crate) static ALL: &[Encoding] = &[
             "l6",
             "latin6",
         ],
-        legacy_encoder: encoding::all::ISO_8859_10,
         encoder_impl: Some(encoding_rs::ISO_8859_10),
     },
     Encoding {
         name: "iso-8859-13",
         is_multi_byte_encoding: false,
         aliases: &["iso-8859-13", "iso8859-13", "iso885913"],
-        legacy_encoder: encoding::all::ISO_8859_13,
         encoder_impl: Some(encoding_rs::ISO_8859_13),
     },
     Encoding {
         name: "iso-8859-14",
         is_multi_byte_encoding: false,
         aliases: &["iso-8859-14", "iso8859-14", "iso885914"],
-        legacy_encoder: encoding::all::ISO_8859_14,
         encoder_impl: Some(encoding_rs::ISO_8859_14),
     },
     Encoding {
@@ -528,35 +373,30 @@ pub(crate) static ALL: &[Encoding] = &[
             "iso_8859-15",
             "l9",
         ],
-        legacy_encoder: encoding::all::ISO_8859_15,
         encoder_impl: Some(encoding_rs::ISO_8859_15),
     },
     Encoding {
         name: "iso-8859-16",
         is_multi_byte_encoding: false,
         aliases: &["iso-8859-16"],
-        legacy_encoder: encoding::all::ISO_8859_16,
         encoder_impl: Some(encoding_rs::ISO_8859_16),
     },
     Encoding {
         name: "koi8-r",
         is_multi_byte_encoding: false,
         aliases: &["cskoi8r", "koi", "koi8", "koi8-r", "koi8_r"],
-        legacy_encoder: encoding::all::KOI8_R,
         encoder_impl: Some(encoding_rs::KOI8_R),
     },
     Encoding {
         name: "koi8-u",
         is_multi_byte_encoding: false,
         aliases: &["koi8-ru", "koi8-u"],
-        legacy_encoder: encoding::all::KOI8_U,
         encoder_impl: Some(encoding_rs::KOI8_U),
     },
     Encoding {
         name: "macintosh",
         is_multi_byte_encoding: false,
         aliases: &["csmacintosh", "mac", "macintosh", "x-mac-roman"],
-        legacy_encoder: encoding::all::MAC_ROMAN,
         encoder_impl: Some(encoding_rs::MACINTOSH),
     },
     Encoding {
@@ -570,21 +410,18 @@ pub(crate) static ALL: &[Encoding] = &[
             "tis-620",
             "windows-874",
         ],
-        legacy_encoder: encoding::all::WINDOWS_874,
         encoder_impl: Some(encoding_rs::WINDOWS_874),
     },
     Encoding {
         name: "windows-1250",
         is_multi_byte_encoding: false,
         aliases: &["cp1250", "windows-1250", "x-cp1250"],
-        legacy_encoder: encoding::all::WINDOWS_1250,
         encoder_impl: Some(encoding_rs::WINDOWS_1250),
     },
     Encoding {
         name: "windows-1251",
         is_multi_byte_encoding: false,
         aliases: &["cp1251", "windows-1251", "x-cp1251"],
-        legacy_encoder: encoding::all::WINDOWS_1251,
         encoder_impl: Some(encoding_rs::WINDOWS_1251),
     },
     Encoding {
@@ -614,14 +451,12 @@ pub(crate) static ALL: &[Encoding] = &[
             // "ascii",
             // "us-ascii",
         ],
-        legacy_encoder: encoding::all::WINDOWS_1252,
         encoder_impl: Some(encoding_rs::WINDOWS_1252),
     },
     Encoding {
         name: "windows-1253",
         is_multi_byte_encoding: false,
         aliases: &["cp1253", "windows-1253", "x-cp1253"],
-        legacy_encoder: encoding::all::WINDOWS_1253,
         encoder_impl: Some(encoding_rs::WINDOWS_1253),
     },
     Encoding {
@@ -641,42 +476,36 @@ pub(crate) static ALL: &[Encoding] = &[
             "windows-1254",
             "x-cp1254",
         ],
-        legacy_encoder: encoding::all::WINDOWS_1254,
         encoder_impl: Some(encoding_rs::WINDOWS_1254),
     },
     Encoding {
         name: "windows-1255",
         is_multi_byte_encoding: false,
         aliases: &["cp1255", "windows-1255", "x-cp1255"],
-        legacy_encoder: encoding::all::WINDOWS_1255,
         encoder_impl: Some(encoding_rs::WINDOWS_1255),
     },
     Encoding {
         name: "windows-1256",
         is_multi_byte_encoding: false,
         aliases: &["cp1256", "windows-1256", "x-cp1256"],
-        legacy_encoder: encoding::all::WINDOWS_1256,
         encoder_impl: Some(encoding_rs::WINDOWS_1256),
     },
     Encoding {
         name: "windows-1257",
         is_multi_byte_encoding: false,
         aliases: &["cp1257", "windows-1257", "x-cp1257"],
-        legacy_encoder: encoding::all::WINDOWS_1257,
         encoder_impl: Some(encoding_rs::WINDOWS_1257),
     },
     Encoding {
         name: "windows-1258",
         is_multi_byte_encoding: false,
         aliases: &["cp1258", "windows-1258", "x-cp1258"],
-        legacy_encoder: encoding::all::WINDOWS_1258,
         encoder_impl: Some(encoding_rs::WINDOWS_1258),
     },
     Encoding {
         name: "x-mac-cyrillic",
         is_multi_byte_encoding: false,
         aliases: &["x-mac-cyrillic", "x-mac-ukrainian"],
-        legacy_encoder: encoding::all::MAC_CYRILLIC,
         encoder_impl: Some(encoding_rs::X_MAC_CYRILLIC),
     },
     Encoding {
@@ -693,35 +522,30 @@ pub(crate) static ALL: &[Encoding] = &[
             "iso-ir-58",
             "x-gbk",
         ],
-        legacy_encoder: encoding::all::GBK,
         encoder_impl: Some(encoding_rs::GBK),
     },
     Encoding {
         name: "gb18030",
         is_multi_byte_encoding: true,
         aliases: &["gb18030"],
-        legacy_encoder: encoding::all::GB18030,
         encoder_impl: Some(encoding_rs::GB18030),
     },
     Encoding {
         name: "big5",
         is_multi_byte_encoding: true,
         aliases: &["big5", "big5-hkscs", "cn-big5", "csbig5", "x-x-big5"],
-        legacy_encoder: encoding::all::BIG5_2003,
         encoder_impl: Some(encoding_rs::BIG5),
     },
     Encoding {
         name: "euc-jp",
         is_multi_byte_encoding: true,
         aliases: &["cseucpkdfmtjapanese", "euc-jp", "x-euc-jp"],
-        legacy_encoder: encoding::all::EUC_JP,
         encoder_impl: Some(encoding_rs::EUC_JP),
     },
     Encoding {
         name: "iso-2022-jp",
         is_multi_byte_encoding: true,
         aliases: &["csiso2022jp", "iso-2022-jp"],
-        legacy_encoder: encoding::all::ISO_2022_JP,
         encoder_impl: Some(encoding_rs::ISO_2022_JP),
     },
     Encoding {
@@ -737,7 +561,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "windows-31j",
             "x-sjis",
         ],
-        legacy_encoder: encoding::all::WINDOWS_31J,
         encoder_impl: Some(encoding_rs::SHIFT_JIS),
     },
     Encoding {
@@ -755,23 +578,12 @@ pub(crate) static ALL: &[Encoding] = &[
             "ksc_5601",
             "windows-949",
         ],
-        legacy_encoder: encoding::all::WINDOWS_949,
         encoder_impl: Some(encoding_rs::EUC_KR),
     },
-    /* Not supported by encoding_rs
-    Encoding {
-        name: "hz",
-        is_multi_byte_encoding: true,
-        aliases: &["hz"],
-        legacy_encoder: encoding::all::HZ,
-        encoder_impl: None, // No implementation
-    },
-    */
     Encoding {
         name: "utf-16be",
         is_multi_byte_encoding: true,
         aliases: &["unicodefffe", "utf-16be"],
-        legacy_encoder: encoding::all::UTF_16BE,
         encoder_impl: Some(encoding_rs::UTF_16BE),
     },
     Encoding {
@@ -786,7 +598,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "utf-16",
             "utf-16le",
         ],
-        legacy_encoder: encoding::all::UTF_16LE,
         encoder_impl: Some(encoding_rs::UTF_16LE),
     },
     Encoding {
@@ -800,7 +611,6 @@ pub(crate) static ALL: &[Encoding] = &[
             "utf8",
             "x-unicode20utf8",
         ],
-        legacy_encoder: encoding::all::UTF_8,
         encoder_impl: Some(encoding_rs::UTF_8),
     },
 ];
