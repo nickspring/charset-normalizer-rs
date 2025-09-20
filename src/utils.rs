@@ -9,7 +9,7 @@ use crate::entity::Language;
 
 use ahash::{HashSet, HashSetExt};
 use encoding::label::encoding_from_whatwg_label;
-use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
+use encoding::{CodecError, DecoderTrap, EncoderTrap, EncodingRef, StringWriter};
 use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
@@ -130,19 +130,17 @@ pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
 
 // Extract using ASCII-only decoder any specified encoding in the first n-bytes.
 pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Option<String> {
-    encoding::all::ASCII
-        .decode(
-            &sequence[0..search_zone.min(sequence.len())],
-            DecoderTrap::Ignore,
-        )
-        .ok()
-        .and_then(|test_string| {
-            RE_POSSIBLE_ENCODING_INDICATION
-                .captures_iter(&test_string)
-                .map(|c| c.extract())
-                .find_map(|(_, [specified_encoding])| iana_name(specified_encoding))
-                .map(|found_iana| found_iana.to_string())
+    let test_string = &sequence[0..search_zone.min(sequence.len())];
+
+    RE_POSSIBLE_ENCODING_INDICATION
+        .captures_iter(&test_string)
+        .map(|c| c.extract())
+        .find_map(|(_, [specified_encoding])| {
+            std::str::from_utf8(specified_encoding)
+                .ok()
+                .and_then(iana_name)
         })
+        .map(|found_iana| found_iana.to_string())
 }
 
 // Calculate similarity of two single byte encodings

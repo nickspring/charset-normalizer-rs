@@ -2,7 +2,7 @@ use ahash::{HashMap, HashSet};
 use core::ops::RangeInclusive;
 use encoding::all::encodings;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::bytes::Regex;
 
 pub static TOO_BIG_SEQUENCE: usize = 1_000_000; // 10E6
 pub(crate) static MAX_PROCESSED_BYTES: usize = 500_000;
