@@ -1,12 +1,82 @@
-use charset_normalizer_rs::entity::{CLINormalizerArgs, CLINormalizerResult, NormalizerSettings};
+use charset_normalizer_rs::entity::NormalizerSettings;
 use charset_normalizer_rs::from_path;
 use clap::Parser;
 use dialoguer::Confirm;
 use env_logger::Env;
 use ordered_float::OrderedFloat;
+use serde::Serialize;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 use std::{fs, process};
+
+/////////////////////////////////////////////////////////////////////////////////////
+// Normalizer CLI application
+/////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Parser, Debug)]
+#[command(
+    name = "The Real First Universal Charset Detector. Discover originating encoding used on text file. Normalize text to unicode."
+)]
+#[command(author, version, about, long_about = None)]
+struct CLINormalizerArgs {
+    /// File(s) to be analysed
+    #[arg(required = true, action = clap::ArgAction::Append)]
+    pub files: Vec<PathBuf>,
+
+    /// Display complementary information about file if any. Stdout will contain logs about the detection process.
+    #[arg(short = 'v', long = "verbose", default_value_t = false)]
+    pub verbose: bool,
+
+    /// Output complementary possibilities if any. Top-level JSON WILL be a list.
+    #[arg(short = 'a', long = "with-alternative", default_value_t = false)]
+    pub alternatives: bool,
+
+    /// Permit to normalize input file. If not set, program does not write anything.
+    #[arg(short, long, default_value_t = false)]
+    pub normalize: bool,
+
+    /// Only output the charset detected to STDOUT. Disabling JSON output.
+    #[arg(short, long, default_value_t = false)]
+    pub minimal: bool,
+
+    /// Replace file when trying to normalize it instead of creating a new one.
+    #[arg(short, long, default_value_t = false)]
+    pub replace: bool,
+
+    /// Replace file without asking if you are sure, use this flag with caution.
+    #[arg(short, long, default_value_t = false)]
+    pub force: bool,
+
+    /// Define a custom maximum amount of chaos allowed in decoded content. 0. <= chaos <= 1.
+    #[arg(short, long, default_value_t = 0.2)]
+    pub threshold: f32,
+}
+
+#[derive(Default, Debug, Serialize)]
+struct CLINormalizerResult {
+    /// Path to analysed file
+    pub path: PathBuf,
+    /// Guessed encoding
+    pub encoding: Option<String>,
+    /// Possible aliases of guessed encoding
+    pub encoding_aliases: Vec<String>,
+    /// Alternative possible encodings
+    pub alternative_encodings: Vec<String>,
+    /// Most probably language
+    pub language: String,
+    /// Found alphabets
+    pub alphabets: Vec<String>,
+    /// Does it has SIG or BOM mark?
+    pub has_sig_or_bom: bool,
+    /// Chaos (mess) level
+    pub chaos: String,
+    /// Coherence (language detection) level
+    pub coherence: String,
+    /// Path to decoded data
+    pub unicode_path: Option<PathBuf>,
+    pub is_preferred: bool,
+}
 
 fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
     match (args.replace, args.normalize, args.force, args.threshold) {

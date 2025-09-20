@@ -14,7 +14,7 @@ use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
 use std::borrow::Cow;
-use std::fs;
+#[cfg(any(test, feature = "performance"))]
 use std::path::{Path, PathBuf};
 
 // Utils module
@@ -32,8 +32,10 @@ pub(crate) fn in_range(range: Option<&str>, ranges_partial: &[&str]) -> bool {
 
 #[inline]
 pub(crate) fn in_description(character: char, patterns: &[&str]) -> bool {
-    name(character)
-        .is_some_and(|ucd_name| patterns.iter().any(|&s| ucd_name.to_string().contains(s)))
+    name(character).is_some_and(|ucd_name| {
+        let ucd_name = ucd_name.to_string();
+        patterns.iter().any(|&s| ucd_name.contains(s))
+    })
 }
 
 pub(crate) fn is_accentuated(character: char) -> bool {
@@ -345,13 +347,13 @@ pub(crate) fn is_suspiciously_successive_range(
             [range_a, range_b]
                 .iter()
                 .any(|x| x.contains("Punctuation") || x.contains("Forms")), // has_punct_or_forms
-            [range_a, range_b].iter().any(|&x| x == "Basic Latin"),  // is_any_basic_latin
+            [range_a, range_b].contains(&"Basic Latin"),  // is_any_basic_latin
         ) {
             (true, true, _, _, _, _) // both are japanese
             | (true, _, true, _, _, _) | (_, true, true, _, _, _) //either is japanese and either contains CJK
             | (_, _, true, true, _, _) // either has both CJK and Hanguls
-            | (_, _, true, _, true, _) // either has chinese and dedicated punctuation and separators 
-            | (_, _, _, true, _, true) // either has hangul and basic latin 
+            | (_, _, true, _, true, _) // either has chinese and dedicated punctuation and separators
+            | (_, _, _, true, _, true) // either has hangul and basic latin
             => return false,
             _ => {} // All other combinations
         }
@@ -380,11 +382,12 @@ pub(super) fn is_invalid_chunk(
 }
 
 // Get large datasets
+#[cfg(any(test, feature = "performance"))]
 fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
     if dir.is_dir() {
-        for entry in fs::read_dir(dir).unwrap() {
+        for entry in std::fs::read_dir(dir).unwrap() {
             let path = entry.unwrap().path();
 
             if path.is_dir() {
@@ -401,10 +404,11 @@ fn collect_large_sets(dir: &Path) -> Vec<PathBuf> {
 }
 
 // Get large datasets
+#[cfg(any(test, feature = "performance"))]
 pub fn get_large_test_datasets() -> Result<Vec<(String, Vec<String>)>, String> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/data/largesets/");
 
-    match fs::metadata(&path) {
+    match std::fs::metadata(&path) {
         Ok(metadata) if metadata.is_dir() => Ok(collect_large_sets(&path)
             .iter()
             .filter_map(|set| {

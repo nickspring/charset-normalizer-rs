@@ -1,4 +1,5 @@
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatch, Language};
+use ordered_float::OrderedFloat;
 
 #[test]
 fn test_charset_matches() {
@@ -7,18 +8,18 @@ fn test_charset_matches() {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     let mut c_matches = CharsetMatches::new(Some(vec![CharsetMatch::new(
-        &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
+        (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
         "utf-8",
         0.01,
         false,
         &vec![
             CoherenceMatch {
                 language: &Language::Russian,
-                score: 0.99,
+                score: OrderedFloat(0.99),
             },
             CoherenceMatch {
                 language: &Language::Ukrainian,
-                score: 0.8,
+                score: OrderedFloat(0.8),
             },
         ],
         None,
@@ -27,18 +28,18 @@ fn test_charset_matches() {
 
     // append new CharsetMatch
     c_matches.append(CharsetMatch::new(
-        &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
+        (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
         "utf-16le",
         0.011,
         false,
         &vec![
             CoherenceMatch {
                 language: &Language::Russian,
-                score: 0.95,
+                score: OrderedFloat(0.95),
             },
             CoherenceMatch {
                 language: &Language::Kazakh,
-                score: 0.7,
+                score: OrderedFloat(0.7),
             },
         ],
         None,
@@ -85,18 +86,18 @@ fn test_charset_matches() {
     assert_eq!(
         c_matches[1],
         CharsetMatch::new(
-            &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
+            (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
             "utf-16le",
             0.044,
             true,
             &vec!(
                 CoherenceMatch {
                     language: &Language::Russian,
-                    score: 0.1,
+                    score: OrderedFloat(0.1),
                 },
                 CoherenceMatch {
                     language: &Language::Kazakh,
-                    score: 0.5,
+                    score: OrderedFloat(0.5),
                 },
             ),
             None,

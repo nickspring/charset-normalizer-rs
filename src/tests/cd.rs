@@ -1,5 +1,6 @@
 use crate::cd::*;
 use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
+use ordered_float::OrderedFloat;
 
 #[test]
 fn test_encoding_unicode_range() {
@@ -104,16 +105,16 @@ fn test_filter_alt_coherence_matches() {
     let input: CoherenceMatches = vec![
         CoherenceMatch {
             language: &Language::English,
-            score: 7.77,
+            score: OrderedFloat(7.77),
         },
         CoherenceMatch {
             language: &Language::English,
-            score: 4.44,
+            score: OrderedFloat(4.44),
         },
     ];
     let expected_output: CoherenceMatches = vec![CoherenceMatch {
         language: &Language::English,
-        score: 7.77,
+        score: OrderedFloat(7.77),
     }];
     assert_eq!(filter_alt_coherence_matches(&input), expected_output);
 }
@@ -124,45 +125,45 @@ fn test_merge_coherence_ratios() {
         vec![
             CoherenceMatch {
                 language: &Language::English,
-                score: 7.77,
+                score: OrderedFloat(7.77),
             },
             CoherenceMatch {
                 language: &Language::English,
-                score: 4.44,
+                score: OrderedFloat(4.44),
             },
         ],
         vec![
             CoherenceMatch {
                 language: &Language::Ukrainian,
-                score: 5.0,
+                score: OrderedFloat(5.0),
             },
             CoherenceMatch {
                 language: &Language::Ukrainian,
-                score: 10.0,
+                score: OrderedFloat(10.0),
             },
         ],
         vec![CoherenceMatch {
             language: &Language::Bulgarian,
-            score: 12.0,
+            score: OrderedFloat(12.0),
         }],
     ];
     let mut expected_output: CoherenceMatches = vec![
         CoherenceMatch {
             language: &Language::English,
-            score: 6.105,
+            score: OrderedFloat(6.105),
         },
         CoherenceMatch {
             language: &Language::Ukrainian,
-            score: 7.5,
+            score: OrderedFloat(7.5),
         },
         CoherenceMatch {
             language: &Language::Bulgarian,
-            score: 12.0,
+            score: OrderedFloat(12.0),
         },
     ];
     let mut output = merge_coherence_ratios(&input);
-    output.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
-    expected_output.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+    output.sort_unstable_by(|a, b| a.score.cmp(&b.score));
+    expected_output.sort_unstable_by(|a, b| a.score.cmp(&b.score));
     assert_eq!(output, expected_output);
 }
 

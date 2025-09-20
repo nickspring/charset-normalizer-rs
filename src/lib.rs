@@ -30,7 +30,7 @@
 //! use charset_normalizer_rs::from_bytes;
 //!
 //! fn test_from_bytes() {
-//!     let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None);
+//!     let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None).unwrap();
 //!     let best_guess = result.get_best();
 //!     assert_eq!(
 //!         best_guess.unwrap().encoding(),
@@ -140,6 +140,7 @@ use crate::utils::{
 };
 use encoding::DecoderTrap;
 use log::{debug, trace};
+use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Read;
@@ -155,31 +156,38 @@ mod md;
 mod tests;
 pub mod utils;
 
-// Given a raw bytes sequence, return the best possibles charset usable to render str objects.
-// If there is no results, it is a strong indicator that the source is binary/not text.
-// By default, the process will extract 5 blocks of 512o each to assess the mess and coherence of a given sequence.
-// And will give up a particular code page after 20% of measured mess. Those criteria are customizable at will.
-//
-// The preemptive behavior DOES NOT replace the traditional detection workflow, it prioritize a particular code page
-// but never take it for granted. Can improve the performance.
-//
-// You may want to focus your attention to some code page or/and not others, use cp_isolation and cp_exclusion for that
-// purpose.
-//
-// This function will strip the SIG in the payload/sequence every time except on UTF-16, UTF-32.
-// By default the library does not setup any handler other than the NullHandler, if you choose to set the 'explain'
-// toggle to True it will alter the logger configuration to add a StreamHandler that is suitable for debugging.
-// Custom logging format and handler can be set manually.
-pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> CharsetMatches {
+/// Given a raw bytes sequence, return the best possibles charset usable to render str objects.
+/// If there is no results, it is a strong indicator that the source is binary/not text.
+/// By default, the process will extract 5 blocks of 512o each to assess the mess and coherence of a given sequence.
+/// And will give up a particular code page after 20% of measured mess. Those criteria are customizable at will.
+///
+/// The preemptive behavior DOES NOT replace the traditional detection workflow, it prioritize a particular code page
+/// but never take it for granted. Can improve the performance.
+///
+/// You may want to focus your attention to some code page or/and not others, use cp_isolation and cp_exclusion for that
+/// purpose.
+///
+/// This function will strip the SIG in the payload/sequence every time except on UTF-16, UTF-32.
+/// By default the library does not setup any handler other than the NullHandler, if you choose to set the 'explain'
+/// toggle to True it will alter the logger configuration to add a StreamHandler that is suitable for debugging.
+/// Custom logging format and handler can be set manually.
+pub fn from_bytes(
+    bytes: &[u8],
+    settings: Option<NormalizerSettings>,
+) -> Result<CharsetMatches, String> {
     // init settings with default values if it's None and recheck include_encodings and
     // exclude_encodings settings
     let mut settings = settings.unwrap_or_default();
     if !settings.include_encodings.is_empty() {
-        settings.include_encodings = settings
-            .include_encodings
-            .iter()
-            .map(|e| iana_name(e).unwrap().to_string())
-            .collect();
+        let mut normalized = vec![];
+        for enc in &settings.include_encodings {
+            normalized.push(
+                iana_name(enc)
+                    .ok_or_else(|| format!("included {enc} is not a valid encoding name"))?
+                    .to_string(),
+            );
+        }
+        settings.include_encodings = normalized;
         trace!(
             "include_encodings is set. Use this flag for debugging purpose. \
         Limited list of encoding allowed : {}.",
@@ -187,11 +195,15 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         );
     }
     if !settings.exclude_encodings.is_empty() {
-        settings.exclude_encodings = settings
-            .exclude_encodings
-            .iter()
-            .map(|e| iana_name(e).unwrap().to_string())
-            .collect();
+        let mut normalized = vec![];
+        for enc in &settings.exclude_encodings {
+            normalized.push(
+                iana_name(enc)
+                    .ok_or_else(|| format!("excluded encoding {enc} is not a valid encoding name"))?
+                    .to_string(),
+            );
+        }
+        settings.exclude_encodings = normalized;
         trace!(
             "exclude_encodings is set. Use this flag for debugging purpose. \
         Limited list of encoding allowed : {}.",
@@ -203,7 +215,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let bytes_length = bytes.len();
     if bytes_length == 0 {
         debug!("Encoding detection on empty bytes, assuming utf_8 intention.");
-        return CharsetMatches::from_single(CharsetMatch::default());
+        return Ok(CharsetMatches::from_single(CharsetMatch::default()));
     }
 
     // check min length
@@ -274,7 +286,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let mut iana_encodings: VecDeque<&str> = VecDeque::from(IANA_SUPPORTED.clone());
     for pe in prioritized_encodings.iter().rev() {
         if let Some(index) = iana_encodings.iter().position(|x| x == pe) {
-            let value = iana_encodings.remove(index).unwrap();
+            let value = iana_encodings.remove(index).expect("index found above");
             iana_encodings.push_front(value);
         }
     }
@@ -286,6 +298,8 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
     let mut fallback_u8: Option<CharsetMatch> = None;
     let mut fallback_specified: Option<CharsetMatch> = None;
     let mut results: CharsetMatches = CharsetMatches::default();
+
+    let bytes: Cow<'static, [u8]> = Cow::Owned(bytes.to_vec());
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
@@ -314,7 +328,9 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
         // fast pre-check
         let start_idx = match bom_or_sig_available {
-            true => sig_payload.unwrap().len(),
+            true => sig_payload
+                .ok_or_else(|| "sig_payload cannot not be None".to_string())?
+                .len(),
             false => 0,
         };
         let end_idx = match is_too_large_sequence && !is_multi_byte_decoder {
@@ -415,12 +431,12 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 lazy_str_hard_failure = true;
                 break 'chunks_loop;
             }
-            let decoded_chunk = decoded_chunk_result.unwrap();
+            let decoded_chunk = decoded_chunk_result?;
 
             // MD ratios calc
             md_chunks.push(decoded_chunk.clone());
             md_ratios.push(mess_ratio(decoded_chunk, Some(settings.threshold)));
-            if md_ratios.last().unwrap() >= &settings.threshold {
+            if md_ratios.last().expect("never empty") >= &settings.threshold {
                 early_stop_count += 1;
             }
             if early_stop_count >= max_chunk_gave_up {
@@ -443,7 +459,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                     "LazyStr Loading: After final lookup, code page {} does not fit \
                     given bytes sequence at ALL. {}",
                     encoding_iana,
-                    decoded_chunk_result.unwrap_err().to_string(),
+                    decoded_chunk_result.unwrap_err()
                 );
                 tested_but_hard_failure.push(encoding_iana);
                 continue 'iana_encodings_loop;
@@ -471,7 +487,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 && prioritized_encodings.contains(&encoding_iana)
             {
                 let fallback_entry = Some(CharsetMatch::new(
-                    bytes,
+                    bytes.clone(),
                     encoding_iana,
                     f32::from(settings.threshold),
                     false,
@@ -520,7 +536,7 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
 
         // process results
         results.append(CharsetMatch::new(
-            bytes,
+            bytes.clone(),
             encoding_iana,
             mean_mess_ratio,
             bom_or_sig_available,
@@ -535,9 +551,12 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
                 "Encoding detection: {} is most likely the one.",
                 encoding_iana
             );
-            return CharsetMatches::from_single(
-                results.get_by_encoding(encoding_iana).unwrap().clone(),
-            );
+            return Ok(CharsetMatches::from_single(
+                results
+                    .get_by_encoding(encoding_iana)
+                    .ok_or_else(|| format!("{encoding_iana} entry not present"))?
+                    .clone(),
+            ));
         }
     }
 
@@ -570,16 +589,19 @@ pub fn from_bytes(bytes: &[u8], settings: Option<NormalizerSettings>) -> Charset
         debug!(
             "Encoding detection: Found {} as plausible (best-candidate) for content. \
             With {} alternatives.",
-            results.get_best().unwrap().encoding(),
+            results
+                .get_best()
+                .expect("not empty checked above")
+                .encoding(),
             results.len() - 1,
         );
     }
-    results
+    Ok(results)
 }
 
-// Same thing than the function from_bytes but with one extra step.
-// Opening and reading given file path in binary mode.
-// Can return Error.
+/// Same thing than the function from_bytes but with one extra step.
+/// Opening and reading given file path in binary mode.
+/// Can return Error.
 pub fn from_path(
     path: &Path,
     settings: Option<NormalizerSettings>,
@@ -593,5 +615,5 @@ pub fn from_path(
         .map_err(|e| format!("Error reading from file: {e}"))?;
 
     // calculate
-    Ok(from_bytes(&buffer, settings))
+    from_bytes(&buffer, settings)
 }
