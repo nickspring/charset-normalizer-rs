@@ -5,6 +5,7 @@ use crate::consts::{
 };
 use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::Language;
+use std::cmp::Ordering;
 
 use ahash::{HashSet, HashSetExt};
 use icu_normalizer::DecomposingNormalizer;
@@ -55,10 +56,21 @@ pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
 // Retrieve the Unicode range official name from a single character
 pub(crate) fn unicode_range(character: char) -> Option<&'static str> {
     let char_code = character as u32;
+
+    let index = UNICODE_RANGES_COMBINED
+        .binary_search_by(|(_, range)| {
+            if char_code < *range.start() {
+                Ordering::Greater
+            } else if char_code > *range.end() {
+                Ordering::Less
+            } else {
+                Ordering::Equal
+            }
+        })
+        .ok()?;
     UNICODE_RANGES_COMBINED
-        .iter()
-        .find(|&(_, range)| range.contains(&char_code))
-        .map(|(name, _)| *name)
+        .get(index)
+        .map(|(name, _range)| *name)
 }
 
 pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
