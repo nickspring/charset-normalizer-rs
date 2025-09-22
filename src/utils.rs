@@ -3,12 +3,10 @@ use crate::consts::{
     ENCODING_MARKS, IANA_SUPPORTED_SIMILAR, RE_POSSIBLE_ENCODING_INDICATION,
     UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD,
 };
-use crate::enc::Encoding;
+use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::Language;
 
 use ahash::{HashSet, HashSetExt};
-use encoding::label::encoding_from_whatwg_label;
-use encoding::{DecoderTrap, EncoderTrap};
 use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
@@ -134,13 +132,13 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
     }
 
     if let (Some(encoder_a), Some(encoder_b)) = (
-        encoding_from_whatwg_label(iana_name_a),
-        encoding_from_whatwg_label(iana_name_b),
+        Encoding::by_name(iana_name_a),
+        Encoding::by_name(iana_name_b),
     ) {
         let character_match_count = (1..255u8)
             .filter(|&ch| {
-                let res_a = encoder_a.decode(&[ch], DecoderTrap::Ignore).ok();
-                let res_b = encoder_b.decode(&[ch], DecoderTrap::Ignore).ok();
+                let res_a = encoder_a.decode(&[ch], WantDecode::Yes, IsChunk::No).ok();
+                let res_b = encoder_b.decode(&[ch], WantDecode::Yes, IsChunk::No).ok();
                 res_a.is_some() && res_a == res_b //check that they aren't none and equal
             })
             .count();
@@ -149,16 +147,12 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
     0.0 // Return 0.0 if encoders could not be retrieved.
 }
 
-// Encode string to vec of bytes with specified encoding
-pub fn encode(
-    input: &str,
-    to_encoding: &str,
-    how_process_errors: EncoderTrap,
-) -> Result<Vec<u8>, String> {
-    if let Some(encoder) = encoding_from_whatwg_label(to_encoding) {
-        return Ok(encoder.encode(input, how_process_errors)?);
+/// Encode string to vec of bytes with specified encoding
+pub fn encode(input: &str, to_encoding: &str, ignore_errors: bool) -> Result<Vec<u8>, String> {
+    match Encoding::by_name(to_encoding) {
+        Some(enc) => enc.encode(input, ignore_errors),
+        None => Err(format!("Encoding '{}' not found", to_encoding)),
     }
-    Err(format!("Encoding '{}' not found", to_encoding))
 }
 
 // Determine if two Unicode range seen next to each other can be considered as suspicious.

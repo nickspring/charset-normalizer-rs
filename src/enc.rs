@@ -3,8 +3,9 @@ use encoding_rs::Encoding as EncodingImpl;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
+/// Represents a character set encoding scheme
 #[derive(Copy, Clone)]
-pub(crate) struct Encoding {
+pub struct Encoding {
     /// Canonical name
     name: &'static str,
     is_multi_byte_encoding: bool,
@@ -65,6 +66,10 @@ pub(crate) enum WantDecode {
 }
 
 impl Encoding {
+    /// Given a charset encoding name or label, return an `Encoding`
+    /// object that corresponds to the implementation of that scheme.
+    /// Can return None if the name is unknown.  Supports a number
+    /// of standard aliases as well as case insensitive names.
     pub fn by_name(name: &str) -> Option<&'static Encoding> {
         match BY_NAME.get(name) {
             Some(enc) => Some(enc),
@@ -78,23 +83,84 @@ impl Encoding {
         }
     }
 
+    /// Returns the list of aliases by which this encoding instance
+    /// is known
     pub fn aliases(&self) -> &'static [&'static str] {
         self.aliases
     }
 
+    /// Returns the canonical name of this encoding
     pub fn name(&self) -> &str {
         self.name
     }
 
+    /// Returns true if this encoding scheme requires a byte order marker
     pub fn requires_bom(&self) -> bool {
         matches!(self.name, "utf-16le" | "utf-16be")
     }
 
+    /// Returns true if this encoding potentially encodes code points using
+    /// sequences of more than a single byte
     pub fn is_multi_byte_encoding(&self) -> bool {
         self.is_multi_byte_encoding
     }
 
-    pub fn decode(
+    /// Encodes a unicode string into a sequence of bytes
+    /// If ignore_errors is true, returns whatever the underlying
+    /// encoder managed to encode if there was some error processing
+    /// the encode operation.
+    ///
+    /// Note that this is, barring errors, the symmetric operation to
+    /// the decode method.
+    pub fn encode(&self, input: &str, ignore_errors: bool) -> Result<Vec<u8>, String> {
+        match self.encoder_impl {
+            None => Ok(input.as_bytes().to_vec()),
+            Some(enc) => {
+                match self.name() {
+                    // encoding_rs has the slightly surprising behavior
+                    // of encoding utf-16 as utf8 (because that is what
+                    // should be used for the web), so we need to handle
+                    // that encoding case for ourselves here.
+                    "utf-16le" => {
+                        let mut bytes = vec![];
+                        for c in input.encode_utf16() {
+                            for b in c.to_le_bytes() {
+                                bytes.push(b);
+                            }
+                        }
+                        Ok(bytes)
+                    }
+                    "utf-16be" => {
+                        let mut bytes = vec![];
+                        for c in input.encode_utf16() {
+                            for b in c.to_be_bytes() {
+                                bytes.push(b);
+                            }
+                        }
+                        Ok(bytes)
+                    }
+                    _ => {
+                        let (cow, used, ok) = enc.encode(input);
+                        if ok || ignore_errors {
+                            Ok(cow.into())
+                        } else {
+                            Err(format!(
+                                "encoding replaced chars. used={}, {cow:x?}",
+                                used.name()
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Attempts to decode a sequence of bytes using this encoding scheme
+    pub fn decode_simple(&self, input: &[u8]) -> Result<String, String> {
+        self.decode(input, WantDecode::Yes, IsChunk::No)
+    }
+
+    pub(crate) fn decode(
         &self,
         input: &[u8],
         want_decode: WantDecode,
@@ -200,7 +266,8 @@ pub(crate) static BY_NAME: Lazy<HashMap<&'static str, &'static Encoding>> = Lazy
     map
 });
 
-pub(crate) static ALL: &[Encoding] = &[
+/// All known/supported `Encoding`s known to this crate
+pub static ALL: &[Encoding] = &[
     Encoding {
         // See comments in windows-1252 below re: ascii aliasing with cp1252
         // and why that isn't the case here

@@ -132,7 +132,7 @@ use crate::cd::{
     coherence_ratio, encoding_languages, mb_encoding_languages, merge_coherence_ratios,
 };
 use crate::consts::{MAX_PROCESSED_BYTES, TOO_BIG_SEQUENCE, TOO_SMALL_SEQUENCE};
-use crate::enc::{Encoding, IsChunk, WantDecode};
+use crate::enc::{IsChunk, WantDecode};
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSettings};
 use crate::md::mess_ratio;
 use crate::utils::{any_specified_encoding, identify_sig_or_bom, is_cp_similar, is_invalid_chunk};
@@ -154,6 +154,9 @@ pub mod entity;
 mod md;
 mod tests;
 pub mod utils;
+
+pub use enc::Encoding;
+pub use enc::ALL;
 
 /// Given a raw bytes sequence, return the best possibles charset usable to render str objects.
 /// If there is no results, it is a strong indicator that the source is binary/not text.

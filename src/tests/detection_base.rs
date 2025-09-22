@@ -1,7 +1,6 @@
 use crate::entity::NormalizerSettings;
 use crate::from_bytes;
 use crate::utils::encode;
-use encoding::EncoderTrap;
 
 #[test]
 fn test_empty() {
@@ -66,37 +65,12 @@ fn test_empty_but_with_bom_or_sig() {
 
 #[test]
 fn test_content_with_bom_or_sig() {
-    let tests = [
-        (
-            encode(
-                "\u{FEFF}我没有埋怨，磋砣的只是一些时间。",
-                "gb18030",
-                EncoderTrap::Ignore,
-            )
-            .unwrap(),
-            "gb18030",
-        ),
-        (
-            encode(
-                "\u{FEFF}我没有埋怨，磋砣的只是一些时间。",
-                "utf-16le",
-                EncoderTrap::Ignore,
-            )
-            .unwrap(),
-            "utf-16le",
-        ),
-        (
-            encode(
-                "\u{FEFF}我没有埋怨，磋砣的只是一些时间。",
-                "utf-8",
-                EncoderTrap::Ignore,
-            )
-            .unwrap(),
-            "utf-8",
-        ),
-    ];
+    let input_utf8 = "\u{FEFF}我没有埋怨，磋砣的只是一些时间。";
+    let tests = ["gb18030", "utf-16le", "utf-8"];
+    let ignore_errors = true;
 
-    for (input, expected_encoding) in tests {
+    for encoding_name in tests {
+        let input = encode(input_utf8, encoding_name, ignore_errors).unwrap();
         let result = from_bytes(&input, None).unwrap();
         let best_guess = result.get_best();
         assert!(
@@ -106,7 +80,7 @@ fn test_content_with_bom_or_sig() {
         );
         assert_eq!(
             best_guess.unwrap().encoding(),
-            expected_encoding,
+            encoding_name,
             "Detection but with SIG/BOM is wrongly detected! Input: {:?}",
             &input
         );
