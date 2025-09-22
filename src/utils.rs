@@ -1,10 +1,8 @@
-use crate::assets::LANGUAGES;
 use crate::consts::{
     ENCODING_MARKS, IANA_SUPPORTED_SIMILAR, RE_POSSIBLE_ENCODING_INDICATION,
     UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD,
 };
 use crate::enc::{Encoding, IsChunk, WantDecode};
-use crate::entity::Language;
 use std::cmp::Ordering;
 
 use ahash::{HashSet, HashSetExt};
@@ -221,16 +219,6 @@ pub(crate) fn is_suspiciously_successive_range(
         }
     }
     true // if either range is none or edge cases never triggers, return true
-}
-
-// Get data for specified language
-pub(crate) fn get_language_data(language: &Language) -> Result<(&'static str, bool, bool), String> {
-    for (iterated_language, characters, has_accents, pure_latin) in LANGUAGES.iter() {
-        if iterated_language == language {
-            return Ok((characters, *has_accents, *pure_latin));
-        }
-    }
-    Err(String::from("Language wasn't found"))
 }
 
 // ascii in encodings means windows-1252 codepage with supports diacritis

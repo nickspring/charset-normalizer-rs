@@ -1,11 +1,10 @@
 #![allow(unused_variables)]
-use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES, LANGUAGE_SUPPORTED_COUNT};
+use crate::assets::{LanguageEntry, ENCODING_TO_LANGUAGE, LANGUAGES};
 use crate::consts::TOO_SMALL_SEQUENCE;
 use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
 use crate::utils::{
-    get_language_data, is_accentuated, is_suspiciously_successive_range,
-    is_unicode_range_secondary, unicode_range,
+    is_accentuated, is_suspiciously_successive_range, is_unicode_range_secondary, unicode_range,
 };
 use ahash::{HashMap, HashMapExt, HashSet};
 use cached::proc_macro::cached;
@@ -55,11 +54,12 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
 pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Language> {
     LANGUAGES
         .iter()
-        .filter_map(|(language, characters, _, _)| {
-            characters
+        .filter_map(|entry| {
+            entry
+                .alphabet
                 .chars()
                 .find(|char| unicode_range(*char).unwrap_or_default() == primary_range)
-                .map(|_| language)
+                .map(|_| &entry.language)
         })
         .collect::<Vec<&Language>>()
 }
@@ -92,29 +92,25 @@ pub(crate) fn alphabet_languages(
     characters: &[char],
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
-    let mut languages: Vec<(&Language, OrderedFloat<f32>)> =
-        Vec::with_capacity(*LANGUAGE_SUPPORTED_COUNT);
+    let mut languages: Vec<(&Language, OrderedFloat<f32>)> = Vec::with_capacity(LANGUAGES.len());
     let source_characters_set: HashSet<char> = characters.iter().copied().collect();
     let source_has_accents = source_characters_set
         .iter()
         .any(|&char| is_accentuated(char));
 
-    for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
-    {
-        if (ignore_non_latin && !target_pure_latin) || (!target_have_accents && source_has_accents)
-        {
+    for entry in LANGUAGES.iter() {
+        if (ignore_non_latin && !entry.pure_latin) || (!entry.have_accents && source_has_accents) {
             continue;
         }
 
-        let language_characters_set: HashSet<char> = language_characters.chars().collect();
-        let intersection: HashSet<char> = language_characters_set
+        let intersection_size = entry
+            .alphabet_set
             .intersection(&source_characters_set)
-            .copied()
-            .collect();
+            .count();
 
-        let ratio: f32 = intersection.len() as f32 / language_characters_set.len() as f32;
+        let ratio: f32 = intersection_size as f32 / entry.alphabet_set.len() as f32;
         if ratio >= 0.2 {
-            languages.push((language, OrderedFloat(ratio)));
+            languages.push((&entry.language, OrderedFloat(ratio)));
         }
     }
     // reverse sort
@@ -151,8 +147,8 @@ pub(crate) fn characters_popularity_compare(
     language: &Language,
     ordered_characters: &str,
 ) -> Result<f32, String> {
-    let language_data = get_language_data(language)?;
-    Ok(jaro(ordered_characters, language_data.0) as f32)
+    let language_data = LanguageEntry::get(language)?;
+    Ok(jaro(ordered_characters, language_data.alphabet) as f32)
 }
 
 // We shall NOT return more than one "English" in CoherenceMatches because it is an alternative
