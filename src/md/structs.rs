@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use cached::proc_macro::cached;
-use cached::UnboundCache;
+use cached::SizedCache;
 use icu_properties::{maps, sets, GeneralCategory, GeneralCategoryGroup, Script};
 
 use crate::consts::{COMMON_SAFE_ASCII_CHARACTERS, UTF8_MAXIMAL_ALLOCATION};
@@ -65,8 +65,8 @@ impl MessDetectorChar {
 }
 
 #[cached(
-    ty = "UnboundCache<char, MessDetectorChar>",
-    create = "{ UnboundCache::with_capacity(UTF8_MAXIMAL_ALLOCATION) }",
+    ty = "SizedCache<char, MessDetectorChar>",
+    create = "{ SizedCache::with_size(UTF8_MAXIMAL_ALLOCATION) }",
     convert = r#"{ character }"#
 )]
 fn new_mess_detector_character(character: char) -> MessDetectorChar {
