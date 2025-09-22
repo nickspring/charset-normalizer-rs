@@ -190,22 +190,25 @@ impl CharsetMatch {
         //self.decoded_payload = None;
     }
 
-    // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
+    /// Get encoding aliases according to <https://encoding.spec.whatwg.org/encodings.json>
     pub fn encoding_aliases(&self) -> &'static [&'static str] {
         self.encoding.aliases()
     }
-    // byte_order_mark
+
+    /// Did this match have a byte order mark?
     pub fn bom(&self) -> bool {
         self.has_sig_or_bom
     }
+
     pub fn encoding(&self) -> &str {
         self.encoding.name()
     }
     pub fn chaos(&self) -> f32 {
         self.mean_mess_ratio.0
     }
-    // Most probable language found in decoded sequence. If none were detected or inferred, the property will return
-    // Language::Unknown
+
+    /// Most probable language found in decoded sequence. If none were detected or inferred, the property will return
+    /// Language::Unknown
     pub fn most_probably_language(&self) -> &'static Language {
         self.coherence_matches.first().map_or_else(
             // Default case: Trying to infer the language based on the given encoding
@@ -224,42 +227,50 @@ impl CharsetMatch {
             |lang| lang.language,
         )
     }
-    // Return the complete list of possible languages found in decoded sequence.
-    // Usually not really useful. Returned list may be empty even if 'language' property return something != 'Unknown'.
+
+    /// Return the complete list of possible languages found in decoded sequence.
+    /// Usually not really useful. Returned list may be empty even if 'language' property return something != 'Unknown'.
     pub fn languages(&self) -> Vec<&'static Language> {
         self.coherence_matches
             .iter()
             .map(|cm| cm.language)
             .collect()
     }
-    // Has submatch
+
+    /// Has submatch
     pub fn has_submatch(&self) -> bool {
         !self.submatch.is_empty()
     }
-    // Return submatch list
+
+    /// Return submatch list
     pub fn submatch(&self) -> &Vec<CharsetMatch> {
         &self.submatch
     }
-    // Multibyte usage ratio
+
+    /// Multibyte usage ratio
     pub fn multi_byte_usage(&self) -> f32 {
         let decoded_chars = self.decoded_payload().unwrap_or_default().chars().count() as f32;
         let payload_len = self.payload.len() as f32;
 
         1.0 - (decoded_chars / payload_len)
     }
-    // Original untouched bytes
+
+    /// Original untouched bytes
     pub fn raw(&self) -> &[u8] {
         &self.payload
     }
-    // Return chaos in percents with rounding
+
+    /// Return chaos in percents with rounding
     pub fn chaos_percents(&self) -> f32 {
         self.chaos() * 100.0
     }
-    // Return coherence in percents with rounding
+
+    /// Return coherence in percents with rounding
     pub fn coherence_percents(&self) -> f32 {
         self.coherence() * 100.0
     }
-    // Most relevant language coherence
+
+    /// Most relevant language coherence
     pub fn coherence(&self) -> f32 {
         self.coherence_matches
             .first()
@@ -267,19 +278,20 @@ impl CharsetMatch {
             .unwrap_or_default()
     }
 
-    // To recalc decoded_payload field
+    /// Returns the payload decoded into a string
     pub fn decoded_payload(&self) -> Option<&str> {
         self.decoded_payload.as_deref()
     }
 
-    // The complete list of encodings that output the exact SAME str result and therefore could be the originating
-    // encoding. This list does include the encoding available in property 'encoding'.
+    /// The complete list of encodings that output the exact SAME str result and therefore could be the originating
+    /// encoding. This list does include the encoding available in property 'encoding'.
     pub fn suitable_encodings(&self) -> Vec<String> {
         std::iter::once(self.encoding.name().to_string())
             .chain(self.submatch.iter().map(|s| s.encoding.name().to_string()))
             .collect()
     }
-    // Returns sorted list of unicode ranges (if exists)
+
+    /// Returns sorted list of unicode ranges (if exists)
     pub fn unicode_ranges(&self) -> Vec<String> {
         let mut ranges: Vec<String> = range_scan(self.decoded_payload().unwrap_or_default())
             .iter()
