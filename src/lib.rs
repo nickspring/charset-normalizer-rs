@@ -128,9 +128,7 @@
 //!     "is_preferred": true
 //! }
 //! ```
-use crate::cd::{
-    coherence_ratio, encoding_languages, mb_encoding_languages, merge_coherence_ratios,
-};
+use crate::cd::{coherence_ratio, encoding_languages, merge_coherence_ratios};
 use crate::consts::{MAX_PROCESSED_BYTES, TOO_BIG_SEQUENCE, TOO_SMALL_SEQUENCE};
 use crate::enc::{IsChunk, WantDecode};
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSettings};
@@ -356,7 +354,10 @@ pub fn from_bytes(
 
         // detect target languages
         let target_languages = if is_multi_byte_decoder {
-            mb_encoding_languages(encoding_iana.name())
+            encoding_iana
+                .language()
+                .map(|lang| vec![lang])
+                .unwrap_or_default()
         } else {
             encoding_languages(encoding_iana.name().to_string())
         };

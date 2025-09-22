@@ -1,5 +1,5 @@
 #![allow(unused_variables)]
-use crate::assets::{LanguageEntry, ENCODING_TO_LANGUAGE, LANGUAGES};
+use crate::assets::{LanguageEntry, LANGUAGES};
 use crate::consts::TOO_SMALL_SEQUENCE;
 use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
@@ -77,14 +77,6 @@ pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
         Some(&range) => unicode_range_languages(range),
         None => vec![&Language::Unknown],
     }
-}
-
-// Multi-byte encoding language association. Some code page are heavily linked to particular language(s).
-// This function does the correspondence.
-pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
-    ENCODING_TO_LANGUAGE
-        .get(iana_name)
-        .map_or(vec![], |found| vec![found])
 }
 
 // Return associated languages associated to given characters

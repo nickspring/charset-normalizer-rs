@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use crate::cd::{encoding_languages, mb_encoding_languages};
+use crate::cd::encoding_languages;
 use crate::consts::TOO_BIG_SEQUENCE;
 use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::utils::range_scan;
@@ -16,7 +16,7 @@ use std::ops::Index;
 // Languages
 /////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Language {
     English,
     German,
@@ -216,12 +216,14 @@ impl CharsetMatch {
                 if self.suitable_encodings().contains(&String::from("ascii")) {
                     &Language::English
                 } else {
-                    let languages = if self.encoding.is_multi_byte_encoding() {
-                        mb_encoding_languages(self.encoding.name())
+                    let language = if self.encoding.is_multi_byte_encoding() {
+                        self.encoding.language()
                     } else {
                         encoding_languages(self.encoding.name().to_string())
+                            .first()
+                            .copied()
                     };
-                    languages.first().copied().unwrap_or(&Language::Unknown)
+                    language.unwrap_or(&Language::Unknown)
                 }
             },
             |lang| lang.language,

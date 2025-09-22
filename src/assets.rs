@@ -1,8 +1,7 @@
 use crate::entity::Language;
-use ahash::{HashMap, HashSet};
+use ahash::HashSet;
 
 use once_cell::sync::Lazy;
-use std::iter::FromIterator;
 
 pub(crate) struct LanguageEntry {
     pub language: Language,
@@ -83,17 +82,4 @@ pub(crate) static LANGUAGES: Lazy<Vec<LanguageEntry>> = Lazy::new(|| {
     LanguageEntry::new(Language::Tamil, "கதபடரமலனவறயளசநஇணஅஆழஙஎஉஒஸ", false, false, ),
     LanguageEntry::new(Language::Kazakh, "аыентрлідсмқкобиуғжңзшйпгө", false, false, ),
   ]
-});
-
-pub(crate) static ENCODING_TO_LANGUAGE: Lazy<HashMap<&'static str, Language>> = Lazy::new(|| {
-    HashMap::from_iter([
-        ("euc-kr", Language::Korean),
-        ("big5", Language::Chinese),
-        ("hz", Language::Chinese),
-        ("gbk", Language::Chinese),
-        ("gb18030", Language::Chinese),
-        ("euc-jp", Language::Japanese),
-        ("iso-2022-jp", Language::Japanese),
-        ("shift_jis", Language::Japanese),
-    ])
 });

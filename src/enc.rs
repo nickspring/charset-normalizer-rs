@@ -1,3 +1,4 @@
+use crate::entity::Language;
 use encoding_rs::DecoderResult;
 use encoding_rs::Encoding as EncodingImpl;
 use once_cell::sync::Lazy;
@@ -13,6 +14,7 @@ pub struct Encoding {
     aliases: &'static [&'static str],
 
     encoder_impl: Option<&'static EncodingImpl>,
+    language: Option<Language>,
 }
 
 impl std::fmt::Display for Encoding {
@@ -103,6 +105,12 @@ impl Encoding {
     /// sequences of more than a single byte
     pub fn is_multi_byte_encoding(&self) -> bool {
         self.is_multi_byte_encoding
+    }
+
+    /// Multi-byte encoding language association.
+    /// Some code page are heavily linked to particular language(s).
+    pub fn language(&self) -> Option<&Language> {
+        self.language.as_ref()
     }
 
     /// Encodes a unicode string into a sequence of bytes
@@ -275,12 +283,14 @@ pub static ALL: &[Encoding] = &[
         is_multi_byte_encoding: false,
         aliases: &["ascii", "us-ascii"],
         encoder_impl: None,
+        language: None,
     },
     Encoding {
         name: "ibm866",
         is_multi_byte_encoding: false,
         aliases: &["866", "cp866", "csibm866", "ibm866"],
         encoder_impl: Some(encoding_rs::IBM866),
+        language: None,
     },
     Encoding {
         name: "iso-8859-2",
@@ -297,6 +307,7 @@ pub static ALL: &[Encoding] = &[
             "latin2",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_2),
+        language: None,
     },
     Encoding {
         name: "iso-8859-3",
@@ -313,6 +324,7 @@ pub static ALL: &[Encoding] = &[
             "latin3",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_3),
+        language: None,
     },
     Encoding {
         name: "iso-8859-4",
@@ -329,6 +341,7 @@ pub static ALL: &[Encoding] = &[
             "latin4",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_4),
+        language: None,
     },
     Encoding {
         name: "iso-8859-5",
@@ -344,6 +357,7 @@ pub static ALL: &[Encoding] = &[
             "iso_8859-5:1988",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_5),
+        language: None,
     },
     Encoding {
         name: "iso-8859-6",
@@ -365,6 +379,7 @@ pub static ALL: &[Encoding] = &[
             "iso_8859-6:1987",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_6),
+        language: None,
     },
     Encoding {
         name: "iso-8859-7",
@@ -384,6 +399,7 @@ pub static ALL: &[Encoding] = &[
             "sun_eu_greek",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_7),
+        language: None,
     },
     Encoding {
         name: "iso-8859-8",
@@ -402,6 +418,7 @@ pub static ALL: &[Encoding] = &[
             "visual",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_8),
+        language: None,
     },
     Encoding {
         name: "iso-8859-10",
@@ -416,18 +433,21 @@ pub static ALL: &[Encoding] = &[
             "latin6",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_10),
+        language: None,
     },
     Encoding {
         name: "iso-8859-13",
         is_multi_byte_encoding: false,
         aliases: &["iso-8859-13", "iso8859-13", "iso885913"],
         encoder_impl: Some(encoding_rs::ISO_8859_13),
+        language: None,
     },
     Encoding {
         name: "iso-8859-14",
         is_multi_byte_encoding: false,
         aliases: &["iso-8859-14", "iso8859-14", "iso885914"],
         encoder_impl: Some(encoding_rs::ISO_8859_14),
+        language: None,
     },
     Encoding {
         name: "iso-8859-15",
@@ -441,30 +461,35 @@ pub static ALL: &[Encoding] = &[
             "l9",
         ],
         encoder_impl: Some(encoding_rs::ISO_8859_15),
+        language: None,
     },
     Encoding {
         name: "iso-8859-16",
         is_multi_byte_encoding: false,
         aliases: &["iso-8859-16"],
         encoder_impl: Some(encoding_rs::ISO_8859_16),
+        language: None,
     },
     Encoding {
         name: "koi8-r",
         is_multi_byte_encoding: false,
         aliases: &["cskoi8r", "koi", "koi8", "koi8-r", "koi8_r"],
         encoder_impl: Some(encoding_rs::KOI8_R),
+        language: None,
     },
     Encoding {
         name: "koi8-u",
         is_multi_byte_encoding: false,
         aliases: &["koi8-ru", "koi8-u"],
         encoder_impl: Some(encoding_rs::KOI8_U),
+        language: None,
     },
     Encoding {
         name: "macintosh",
         is_multi_byte_encoding: false,
         aliases: &["csmacintosh", "mac", "macintosh", "x-mac-roman"],
         encoder_impl: Some(encoding_rs::MACINTOSH),
+        language: None,
     },
     Encoding {
         name: "windows-874",
@@ -478,18 +503,21 @@ pub static ALL: &[Encoding] = &[
             "windows-874",
         ],
         encoder_impl: Some(encoding_rs::WINDOWS_874),
+        language: None,
     },
     Encoding {
         name: "windows-1250",
         is_multi_byte_encoding: false,
         aliases: &["cp1250", "windows-1250", "x-cp1250"],
         encoder_impl: Some(encoding_rs::WINDOWS_1250),
+        language: None,
     },
     Encoding {
         name: "windows-1251",
         is_multi_byte_encoding: false,
         aliases: &["cp1251", "windows-1251", "x-cp1251"],
         encoder_impl: Some(encoding_rs::WINDOWS_1251),
+        language: None,
     },
     Encoding {
         name: "windows-1252",
@@ -519,12 +547,14 @@ pub static ALL: &[Encoding] = &[
             // "us-ascii",
         ],
         encoder_impl: Some(encoding_rs::WINDOWS_1252),
+        language: None,
     },
     Encoding {
         name: "windows-1253",
         is_multi_byte_encoding: false,
         aliases: &["cp1253", "windows-1253", "x-cp1253"],
         encoder_impl: Some(encoding_rs::WINDOWS_1253),
+        language: None,
     },
     Encoding {
         name: "windows-1254",
@@ -544,36 +574,42 @@ pub static ALL: &[Encoding] = &[
             "x-cp1254",
         ],
         encoder_impl: Some(encoding_rs::WINDOWS_1254),
+        language: None,
     },
     Encoding {
         name: "windows-1255",
         is_multi_byte_encoding: false,
         aliases: &["cp1255", "windows-1255", "x-cp1255"],
         encoder_impl: Some(encoding_rs::WINDOWS_1255),
+        language: None,
     },
     Encoding {
         name: "windows-1256",
         is_multi_byte_encoding: false,
         aliases: &["cp1256", "windows-1256", "x-cp1256"],
         encoder_impl: Some(encoding_rs::WINDOWS_1256),
+        language: None,
     },
     Encoding {
         name: "windows-1257",
         is_multi_byte_encoding: false,
         aliases: &["cp1257", "windows-1257", "x-cp1257"],
         encoder_impl: Some(encoding_rs::WINDOWS_1257),
+        language: None,
     },
     Encoding {
         name: "windows-1258",
         is_multi_byte_encoding: false,
         aliases: &["cp1258", "windows-1258", "x-cp1258"],
         encoder_impl: Some(encoding_rs::WINDOWS_1258),
+        language: None,
     },
     Encoding {
         name: "x-mac-cyrillic",
         is_multi_byte_encoding: false,
         aliases: &["x-mac-cyrillic", "x-mac-ukrainian"],
         encoder_impl: Some(encoding_rs::X_MAC_CYRILLIC),
+        language: None,
     },
     Encoding {
         name: "gbk",
@@ -590,30 +626,35 @@ pub static ALL: &[Encoding] = &[
             "x-gbk",
         ],
         encoder_impl: Some(encoding_rs::GBK),
+        language: Some(Language::Chinese),
     },
     Encoding {
         name: "gb18030",
         is_multi_byte_encoding: true,
         aliases: &["gb18030"],
         encoder_impl: Some(encoding_rs::GB18030),
+        language: Some(Language::Chinese),
     },
     Encoding {
         name: "big5",
         is_multi_byte_encoding: true,
         aliases: &["big5", "big5-hkscs", "cn-big5", "csbig5", "x-x-big5"],
         encoder_impl: Some(encoding_rs::BIG5),
+        language: Some(Language::Chinese),
     },
     Encoding {
         name: "euc-jp",
         is_multi_byte_encoding: true,
         aliases: &["cseucpkdfmtjapanese", "euc-jp", "x-euc-jp"],
         encoder_impl: Some(encoding_rs::EUC_JP),
+        language: Some(Language::Japanese),
     },
     Encoding {
         name: "iso-2022-jp",
         is_multi_byte_encoding: true,
         aliases: &["csiso2022jp", "iso-2022-jp"],
         encoder_impl: Some(encoding_rs::ISO_2022_JP),
+        language: Some(Language::Japanese),
     },
     Encoding {
         name: "shift_jis",
@@ -629,6 +670,7 @@ pub static ALL: &[Encoding] = &[
             "x-sjis",
         ],
         encoder_impl: Some(encoding_rs::SHIFT_JIS),
+        language: Some(Language::Japanese),
     },
     Encoding {
         name: "euc-kr",
@@ -646,12 +688,14 @@ pub static ALL: &[Encoding] = &[
             "windows-949",
         ],
         encoder_impl: Some(encoding_rs::EUC_KR),
+        language: Some(Language::Korean),
     },
     Encoding {
         name: "utf-16be",
         is_multi_byte_encoding: true,
         aliases: &["unicodefffe", "utf-16be"],
         encoder_impl: Some(encoding_rs::UTF_16BE),
+        language: None,
     },
     Encoding {
         name: "utf-16le",
@@ -666,6 +710,7 @@ pub static ALL: &[Encoding] = &[
             "utf-16le",
         ],
         encoder_impl: Some(encoding_rs::UTF_16LE),
+        language: None,
     },
     Encoding {
         name: "utf-8",
@@ -679,5 +724,6 @@ pub static ALL: &[Encoding] = &[
             "x-unicode20utf8",
         ],
         encoder_impl: Some(encoding_rs::UTF_8),
+        language: None,
     },
 ];
