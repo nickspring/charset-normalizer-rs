@@ -88,7 +88,6 @@ pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
 }
 
 // Return associated languages associated to given characters
-#[allow(clippy::ptr_arg)]
 pub(crate) fn alphabet_languages(
     characters: &[char],
     ignore_non_latin: bool,
