@@ -13,7 +13,7 @@ fn test_large_payload_utf8_sig_basic_entry() {
         "Large U8 payload case detection completely failed"
     );
     assert_eq!(
-        best_guess.unwrap().encoding(),
+        best_guess.unwrap().encoding().name(),
         "utf-8",
         "Large U8 payload case detection wrongly detected!"
     );
@@ -36,7 +36,7 @@ fn test_large_payload_ascii_sig_basic_entry() {
         "Large ASCII payload case detection completely failed"
     );
     assert_eq!(
-        best_guess.unwrap().encoding(),
+        best_guess.unwrap().encoding().name(),
         "ascii",
         "Large ASCII payload case detection wrongly detected!"
     );
@@ -64,7 +64,7 @@ fn test_misleading_large_sequence() {
     let best_guess = result.get_best();
     assert!(best_guess.is_some(), "Best guess is exists");
     assert_eq!(
-        best_guess.unwrap().encoding(),
+        best_guess.unwrap().encoding().name(),
         "utf-8",
         "Best guess is not utf-8"
     );

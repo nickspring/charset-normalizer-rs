@@ -132,8 +132,8 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
                         alternative_encodings: m
                             .suitable_encodings()
                             .iter()
-                            .filter(|&e| e != m.encoding())
-                            .cloned()
+                            .filter(|&&e| e != m.encoding())
+                            .map(|e| e.name().to_string())
                             .collect(),
                         language: format!("{}", m.most_probably_language()),
                         alphabets: m.unicode_ranges(),
@@ -154,7 +154,7 @@ fn normalizer(args: &CLINormalizerArgs) -> Result<i32, String> {
 
                 // normalizing if need
                 if args.normalize {
-                    if best_guess.encoding().starts_with("utf") {
+                    if best_guess.encoding().name().starts_with("utf") {
                         eprintln!(
                             "{:?} file does not need to be normalized, as it already came from unicode.",
                             full_path,

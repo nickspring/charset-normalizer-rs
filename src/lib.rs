@@ -359,7 +359,7 @@ pub fn from_bytes(
                 .map(|lang| vec![lang])
                 .unwrap_or_default()
         } else {
-            encoding_languages(encoding_iana.name().to_string())
+            encoding_languages(encoding_iana.name())
         };
         trace!(
             "{} should target any language(s) of {:?}",

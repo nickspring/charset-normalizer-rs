@@ -68,8 +68,8 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // Some code page are heavily linked to particular language(s).
 // This function does the correspondence.
 #[cached(size = 128)]
-pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
-    match encoding_unicode_range(&iana_name)
+pub(crate) fn encoding_languages(iana_name: &'static str) -> Vec<&'static Language> {
+    match encoding_unicode_range(iana_name)
         .unwrap_or_default()
         .iter()
         .find(|&&range| !range.contains("Latin"))

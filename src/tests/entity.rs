@@ -49,7 +49,7 @@ fn test_charset_matches() {
 
     // check best match
     assert!(c_matches.get_best().is_some());
-    assert_eq!(c_matches.get_best().unwrap().encoding(), "utf-8");
+    assert_eq!(c_matches.get_best().unwrap().encoding().name(), "utf-8");
 
     // check get by encoding
     assert!(c_matches.get_by_encoding("utf-8").is_some());
@@ -63,7 +63,7 @@ fn test_charset_matches() {
     );
 
     // test indexation impl
-    assert_eq!(c_matches[0].encoding(), "utf-8");
+    assert_eq!(c_matches[0].encoding().name(), "utf-8");
 
     // test iteration
     let mut i = 0;
@@ -126,7 +126,7 @@ fn test_charset_matches() {
 
     // unicode_ranges
     for m in c_matches.iter_mut() {
-        if m.encoding() == "utf-8" {
+        if m.encoding().name() == "utf-8" {
             assert!(m.unicode_ranges().contains(&String::from("Cyrillic")));
         } else {
             assert!(m

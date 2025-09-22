@@ -200,8 +200,8 @@ impl CharsetMatch {
         self.has_sig_or_bom
     }
 
-    pub fn encoding(&self) -> &str {
-        self.encoding.name()
+    pub fn encoding(&self) -> &'static Encoding {
+        self.encoding
     }
     pub fn chaos(&self) -> f32 {
         self.mean_mess_ratio.0
@@ -213,15 +213,17 @@ impl CharsetMatch {
         self.coherence_matches.first().map_or_else(
             // Default case: Trying to infer the language based on the given encoding
             || {
-                if self.suitable_encodings().contains(&String::from("ascii")) {
+                if self
+                    .suitable_encodings()
+                    .iter()
+                    .any(|enc| enc.name() == "ascii")
+                {
                     &Language::English
                 } else {
                     let language = if self.encoding.is_multi_byte_encoding() {
                         self.encoding.language()
                     } else {
-                        encoding_languages(self.encoding.name().to_string())
-                            .first()
-                            .copied()
+                        encoding_languages(self.encoding.name()).first().copied()
                     };
                     language.unwrap_or(&Language::Unknown)
                 }
@@ -287,9 +289,9 @@ impl CharsetMatch {
 
     /// The complete list of encodings that output the exact SAME str result and therefore could be the originating
     /// encoding. This list does include the encoding available in property 'encoding'.
-    pub fn suitable_encodings(&self) -> Vec<String> {
-        std::iter::once(self.encoding.name().to_string())
-            .chain(self.submatch.iter().map(|s| s.encoding.name().to_string()))
+    pub fn suitable_encodings(&self) -> Vec<&'static Encoding> {
+        std::iter::once(self.encoding)
+            .chain(self.submatch.iter().map(|s| s.encoding))
             .collect()
     }
 
@@ -357,7 +359,7 @@ impl CharsetMatches {
     }
     // Retrieve a single item either by its position or encoding name (alias may be used here).
     pub fn get_by_encoding(&self, encoding: &str) -> Option<&CharsetMatch> {
-        let encoding = Encoding::by_name(encoding)?.name().to_string();
+        let encoding = Encoding::by_name(encoding)?;
         self.items
             .iter()
             .find(|&i| i.suitable_encodings().contains(&encoding))

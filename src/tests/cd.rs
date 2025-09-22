@@ -44,7 +44,7 @@ fn test_encoding_languages() {
         ("windows-1255", Language::Hebrew),
     ];
     for (input, lang) in tests {
-        let languages = encoding_languages(input.to_string());
+        let languages = encoding_languages(input);
         assert!(languages.contains(&&lang));
     }
 }
