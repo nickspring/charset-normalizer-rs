@@ -1,7 +1,7 @@
+use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::NormalizerSettings;
 use crate::tests::FILES_SAMPLES;
 use crate::utils::*;
-use encoding::DecoderTrap;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -72,14 +72,11 @@ fn test_is_multi_byte_encoding() {
 #[test]
 fn test_identify_sig_or_bom() {
     let tests = [
-        (
-            b"\xef\xbb\xbf lol kek".as_slice(),
-            Some("utf-8".to_string()),
-        ),
+        (b"\xef\xbb\xbf lol kek".as_slice(), Some("utf-8")),
         (b"lol kek".as_slice(), None),
     ];
     for test in &tests {
-        assert_eq!(identify_sig_or_bom(test.0).0, test.1);
+        assert_eq!(identify_sig_or_bom(test.0).0.map(|enc| enc.name()), test.1);
     }
 }
 
@@ -92,7 +89,7 @@ fn test_iana_name() {
         ("korean", Some("euc-kr")),
     ];
     for test in &tests {
-        assert_eq!(iana_name(test.0), test.1);
+        assert_eq!(Encoding::by_name(test.0).map(|e| e.name()), test.1);
     }
 }
 
@@ -121,12 +118,17 @@ fn test_any_specified_encoding() {
         (b"<html><head><meta charset=\"utf-57\"></head></html>", None),
         (b"# coding: utf-8", Some("utf-8".to_string())),
         (b"<?xml version=\"1.0\" encoding=\"UTF-8\"?>", Some("utf-8".to_string())),
-        (b"<?xml version=\"1.0\" encoding=\"US-ASCII\"?>", Some("windows-1252".to_string())),
+        (b"<?xml version=\"1.0\" encoding=\"US-ASCII\"?>", Some("ascii".to_string())),
         (b"<html><head><meta charset=WINDOWS-1252></head></html>", Some("windows-1252".to_string())),
         (b"<html><head><meta charset=\"WINDOWS-1256\"></head></html>", Some("windows-1256".to_string())),
     ];
-    for test in &tests {
-        assert_eq!(any_specified_encoding(test.0, 4096), test.1);
+    for (input, enc_name) in &tests {
+        assert_eq!(
+            any_specified_encoding(input, 4096),
+            *enc_name,
+            "input={}",
+            String::from_utf8_lossy(input)
+        );
     }
 }
 
@@ -201,9 +203,11 @@ fn test_decode_test() {
         (b"\x61\x52\x6f\x64\x20\x5a\x61\x52\x6f\x64\x20\x5a\xaa\xd8\x80\xd9\x80\xd9\x80\xd9\xb9\xd8\x80\xd9\x80\xd9\x80\xd9\x80\xd9\xaf\xd8\x8a\xd9\x80\xd9\x80\xd9\x84\xd9\xd8\x20\xd9\xa7\xd9\x84\xd9\x80\xd9\x80\xd8\x80\xd9\xaa\xd9\x80\xd9\x80\xd9\x80\xd9\x80\xd9\x88\xd9\x82\xd9\x80\xd9\x80\xd9\x8a\xd9\x80\xd9\x80\xd9\x80\xd8\x80\x20\xaa\x85\xd9\x80\xd9\x80\xd9\x80\xd9\x86\xd9\xd9\x20\xd9\x82\xd9\x80\xd8\x80\xd9\xa8\xd9\x80\xd9\x80\x00\x84".to_vec(), "euc-jp", false),
         (b"\x61\x52\x6f\x64\x20\x5a\x61\x52\x6f\x64\x20\x5a\xaa\xd8".to_vec(), "windows-1251", true),
     ];
-    for test in &tests {
-        let res = decode(&test.0, test.1, DecoderTrap::Strict, true, false);
-        assert_eq!(res.is_ok(), test.2);
+    for (input, enc_name, expect_pass) in &tests {
+        let res = Encoding::by_name(enc_name)
+            .unwrap()
+            .decode(input, WantDecode::No, IsChunk::No);
+        assert_eq!(res.is_ok(), *expect_pass);
     }
 }
 
@@ -213,25 +217,25 @@ fn test_decode_wrong_chunks() {
     // and decode it without fail
     // The idea is that decode function should ignore errors in the beginning and ending of chunk
     let settings = NormalizerSettings::default();
-    for sample in &*FILES_SAMPLES {
-        if sample.1.iter().any(|e| is_multi_byte_encoding(e)) {
+    for (sample_file_name, sample_encoding_names, _sample_language) in &*FILES_SAMPLES {
+        if sample_encoding_names
+            .iter()
+            .any(|e| is_multi_byte_encoding(e))
+        {
             let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-            path.push(format!("src/tests/data/samples/{}", sample.0));
+            path.push(format!("src/tests/data/samples/{sample_file_name}"));
             let mut file = File::open(path.to_str().unwrap()).expect("Cannot open file");
             let mut buffer = Vec::new();
             file.read_to_end(&mut buffer).expect("Cannot read file");
+            eprintln!("Doing {path:?}");
+            let encoding = Encoding::by_name(sample_encoding_names.first().unwrap()).unwrap();
             for chunk in buffer.chunks(settings.chunk_size) {
-                let status = decode(
-                    chunk,
-                    sample.1.first().unwrap(),
-                    DecoderTrap::Strict,
-                    true,
-                    true,
-                );
+                eprintln!("processing chunk of size {}", chunk.len());
+                let status = encoding.decode(chunk, WantDecode::No, IsChunk::Yes);
                 assert!(
                     status.is_ok(),
                     "Decode error for sample {}, {}",
-                    sample.0,
+                    sample_file_name,
                     status.unwrap_err()
                 );
             }

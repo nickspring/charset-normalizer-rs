@@ -1,3 +1,4 @@
+use crate::enc::Encoding;
 use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatch, Language};
 use ordered_float::OrderedFloat;
 
@@ -8,8 +9,8 @@ fn test_charset_matches() {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     let mut c_matches = CharsetMatches::new(Some(vec![CharsetMatch::new(
-        (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
-        "utf-8",
+        &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
+        Encoding::by_name("utf-8").unwrap(),
         0.01,
         false,
         &vec![
@@ -28,8 +29,8 @@ fn test_charset_matches() {
 
     // append new CharsetMatch
     c_matches.append(CharsetMatch::new(
-        (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
-        "utf-16le",
+        &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
+        Encoding::by_name("utf-16le").unwrap(),
         0.011,
         false,
         &vec![
@@ -48,7 +49,7 @@ fn test_charset_matches() {
 
     // check best match
     assert!(c_matches.get_best().is_some());
-    assert_eq!(c_matches.get_best().unwrap().encoding(), "utf-8");
+    assert_eq!(c_matches.get_best().unwrap().encoding().name(), "utf-8");
 
     // check get by encoding
     assert!(c_matches.get_by_encoding("utf-8").is_some());
@@ -62,7 +63,7 @@ fn test_charset_matches() {
     );
 
     // test indexation impl
-    assert_eq!(c_matches[0].encoding(), "utf-8");
+    assert_eq!(c_matches[0].encoding().name(), "utf-8");
 
     // test iteration
     let mut i = 0;
@@ -86,8 +87,8 @@ fn test_charset_matches() {
     assert_eq!(
         c_matches[1],
         CharsetMatch::new(
-            (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
-            "utf-16le",
+            &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
+            Encoding::by_name("utf-16le").unwrap(),
             0.044,
             true,
             &vec!(
@@ -125,7 +126,7 @@ fn test_charset_matches() {
 
     // unicode_ranges
     for m in c_matches.iter_mut() {
-        if m.encoding() == "utf-8" {
+        if m.encoding().name() == "utf-8" {
             assert!(m.unicode_ranges().contains(&String::from("Cyrillic")));
         } else {
             assert!(m

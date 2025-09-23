@@ -1,11 +1,10 @@
 #![allow(unused_variables)]
 
-use crate::cd::{encoding_languages, mb_encoding_languages};
-use crate::consts::{IANA_SUPPORTED_ALIASES, TOO_BIG_SEQUENCE};
-use crate::utils::{decode, iana_name, is_multi_byte_encoding, range_scan};
-use encoding::DecoderTrap;
+use crate::cd::encoding_languages;
+use crate::consts::TOO_BIG_SEQUENCE;
+use crate::enc::{Encoding, IsChunk, WantDecode};
+use crate::utils::range_scan;
 use ordered_float::OrderedFloat;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -16,7 +15,7 @@ use std::ops::Index;
 // Languages
 /////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Language {
     English,
     German,
@@ -83,8 +82,8 @@ pub(crate) type CoherenceMatches = Vec<CoherenceMatch>;
 
 #[derive(Clone)]
 pub struct CharsetMatch {
-    payload: Cow<'static, [u8]>,
-    encoding: String,
+    encoding: &'static Encoding,
+    payload_len: usize,
 
     mean_mess_ratio: OrderedFloat<f32>,
     coherence_matches: CoherenceMatches,
@@ -97,21 +96,21 @@ pub struct CharsetMatch {
 
 impl Display for CharsetMatch {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({})", self.payload, self.encoding)
+        write!(f, "{:?} ({})", self.decoded_payload, self.encoding)
     }
 }
 
 impl Debug for CharsetMatch {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({})", self.payload, self.encoding)
+        write!(f, "{:?} ({})", self.decoded_payload, self.encoding)
     }
 }
 
 impl Default for CharsetMatch {
     fn default() -> Self {
         CharsetMatch {
-            payload: Cow::Borrowed(&[]),
-            encoding: "utf-8".to_string(),
+            encoding: Encoding::by_name("utf-8").expect("have utf8"),
+            payload_len: 0,
             mean_mess_ratio: OrderedFloat(0.0),
             coherence_matches: vec![],
             has_sig_or_bom: false,
@@ -161,22 +160,23 @@ impl PartialOrd<Self> for CharsetMatch {
 impl CharsetMatch {
     // Init function
     pub(crate) fn new(
-        payload: Cow<'static, [u8]>,
-        encoding: &str,
+        payload: &[u8],
+        encoding: &'static Encoding,
         mean_mess_ratio: f32,
         has_sig_or_bom: bool,
         coherence_matches: &CoherenceMatches,
         decoded_payload: Option<&str>,
     ) -> Self {
         CharsetMatch {
-            payload: payload.clone(),
-            encoding: String::from(encoding),
+            encoding,
+            payload_len: payload.len(),
             mean_mess_ratio: OrderedFloat(mean_mess_ratio),
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from).or_else(|| {
-                decode(&payload, encoding, DecoderTrap::Strict, false, true)
+                encoding
+                    .decode(payload, WantDecode::Yes, IsChunk::Yes)
                     .ok()
                     .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
             }),
@@ -189,79 +189,86 @@ impl CharsetMatch {
         //self.decoded_payload = None;
     }
 
-    // Get encoding aliases according to https://encoding.spec.whatwg.org/encodings.json
-    pub fn encoding_aliases(&self) -> Vec<&'static str> {
-        IANA_SUPPORTED_ALIASES
-            .get(self.encoding.as_str())
-            .cloned()
-            .expect("Problem with static HashMap IANA_SUPPORTED_ALIASES")
+    /// Get encoding aliases according to <https://encoding.spec.whatwg.org/encodings.json>
+    pub fn encoding_aliases(&self) -> &'static [&'static str] {
+        self.encoding.aliases()
     }
-    // byte_order_mark
+
+    /// Did this match have a byte order mark?
     pub fn bom(&self) -> bool {
         self.has_sig_or_bom
     }
-    pub fn encoding(&self) -> &str {
-        &self.encoding
+
+    pub fn encoding(&self) -> &'static Encoding {
+        self.encoding
     }
     pub fn chaos(&self) -> f32 {
         self.mean_mess_ratio.0
     }
-    // Most probable language found in decoded sequence. If none were detected or inferred, the property will return
-    // Language::Unknown
+
+    /// Most probable language found in decoded sequence. If none were detected or inferred, the property will return
+    /// Language::Unknown
     pub fn most_probably_language(&self) -> &'static Language {
         self.coherence_matches.first().map_or_else(
             // Default case: Trying to infer the language based on the given encoding
             || {
-                if self.suitable_encodings().contains(&String::from("ascii")) {
+                if self
+                    .suitable_encodings()
+                    .iter()
+                    .any(|enc| enc.name() == "ascii")
+                {
                     &Language::English
                 } else {
-                    let languages = if is_multi_byte_encoding(&self.encoding) {
-                        mb_encoding_languages(&self.encoding)
+                    let language = if self.encoding.is_multi_byte_encoding() {
+                        self.encoding.language()
                     } else {
-                        encoding_languages(self.encoding.clone())
+                        encoding_languages(self.encoding.name()).first().copied()
                     };
-                    languages.first().copied().unwrap_or(&Language::Unknown)
+                    language.unwrap_or(&Language::Unknown)
                 }
             },
             |lang| lang.language,
         )
     }
-    // Return the complete list of possible languages found in decoded sequence.
-    // Usually not really useful. Returned list may be empty even if 'language' property return something != 'Unknown'.
+
+    /// Return the complete list of possible languages found in decoded sequence.
+    /// Usually not really useful. Returned list may be empty even if 'language' property return something != 'Unknown'.
     pub fn languages(&self) -> Vec<&'static Language> {
         self.coherence_matches
             .iter()
             .map(|cm| cm.language)
             .collect()
     }
-    // Has submatch
+
+    /// Has submatch
     pub fn has_submatch(&self) -> bool {
         !self.submatch.is_empty()
     }
-    // Return submatch list
+
+    /// Return submatch list
     pub fn submatch(&self) -> &Vec<CharsetMatch> {
         &self.submatch
     }
-    // Multibyte usage ratio
+
+    /// Multibyte usage ratio
     pub fn multi_byte_usage(&self) -> f32 {
         let decoded_chars = self.decoded_payload().unwrap_or_default().chars().count() as f32;
-        let payload_len = self.payload.len() as f32;
+        let payload_len = self.payload_len as f32;
 
         1.0 - (decoded_chars / payload_len)
     }
-    // Original untouched bytes
-    pub fn raw(&self) -> &[u8] {
-        &self.payload
-    }
-    // Return chaos in percents with rounding
+
+    /// Return chaos in percents with rounding
     pub fn chaos_percents(&self) -> f32 {
         self.chaos() * 100.0
     }
-    // Return coherence in percents with rounding
+
+    /// Return coherence in percents with rounding
     pub fn coherence_percents(&self) -> f32 {
         self.coherence() * 100.0
     }
-    // Most relevant language coherence
+
+    /// Most relevant language coherence
     pub fn coherence(&self) -> f32 {
         self.coherence_matches
             .first()
@@ -269,19 +276,20 @@ impl CharsetMatch {
             .unwrap_or_default()
     }
 
-    // To recalc decoded_payload field
+    /// Returns the payload decoded into a string
     pub fn decoded_payload(&self) -> Option<&str> {
         self.decoded_payload.as_deref()
     }
 
-    // The complete list of encodings that output the exact SAME str result and therefore could be the originating
-    // encoding. This list does include the encoding available in property 'encoding'.
-    pub fn suitable_encodings(&self) -> Vec<String> {
-        std::iter::once(self.encoding.clone())
-            .chain(self.submatch.iter().map(|s| s.encoding.clone()))
+    /// The complete list of encodings that output the exact SAME str result and therefore could be the originating
+    /// encoding. This list does include the encoding available in property 'encoding'.
+    pub fn suitable_encodings(&self) -> Vec<&'static Encoding> {
+        std::iter::once(self.encoding)
+            .chain(self.submatch.iter().map(|s| s.encoding))
             .collect()
     }
-    // Returns sorted list of unicode ranges (if exists)
+
+    /// Returns sorted list of unicode ranges (if exists)
     pub fn unicode_ranges(&self) -> Vec<String> {
         let mut ranges: Vec<String> = range_scan(self.decoded_payload().unwrap_or_default())
             .iter()
@@ -326,7 +334,7 @@ impl CharsetMatches {
     pub fn append(&mut self, item: CharsetMatch) {
         // We should disable the submatch factoring when the input file is too heavy
         // (conserve RAM usage)
-        if item.payload.len() <= TOO_BIG_SEQUENCE {
+        if item.payload_len <= TOO_BIG_SEQUENCE {
             for m in &mut self.items {
                 if m.decoded_payload() == item.decoded_payload()
                     && (m.mean_mess_ratio - item.mean_mess_ratio).abs() < f32::EPSILON
@@ -345,10 +353,10 @@ impl CharsetMatches {
     }
     // Retrieve a single item either by its position or encoding name (alias may be used here).
     pub fn get_by_encoding(&self, encoding: &str) -> Option<&CharsetMatch> {
-        let encoding = iana_name(encoding)?;
+        let encoding = Encoding::by_name(encoding)?;
         self.items
             .iter()
-            .find(|&i| i.suitable_encodings().contains(&encoding.to_string()))
+            .find(|&i| i.suitable_encodings().contains(&encoding))
     }
     // Resort items by relevancy (for internal use)
     fn resort(items: &mut [CharsetMatch]) {

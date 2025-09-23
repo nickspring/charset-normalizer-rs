@@ -1,7 +1,6 @@
 use crate::entity::NormalizerSettings;
 use crate::from_bytes;
 use crate::utils::encode;
-use encoding::EncoderTrap;
 
 #[test]
 fn test_empty() {
@@ -14,7 +13,7 @@ fn test_empty() {
         "Empty bytes payload SHOULD NOT return None"
     );
     assert_eq!(
-        best_guess.unwrap().encoding(),
+        best_guess.unwrap().encoding().name(),
         "utf-8",
         "Empty bytes payload SHOULD be guessed as UTF-8 (arbitrary)"
     );
@@ -39,15 +38,9 @@ fn test_empty_but_with_bom_or_sig() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().encoding(),
+            best_guess.unwrap().encoding().name(),
             expected_encoding,
             "Empty detection but with SIG/BOM is wrongly detected! Input: {:?}",
-            &input
-        );
-        assert_eq!(
-            best_guess.unwrap().raw(),
-            &input,
-            "The RAW property should contain the original payload given for detection. Input: {:?}",
             &input
         );
         assert!(
@@ -66,37 +59,12 @@ fn test_empty_but_with_bom_or_sig() {
 
 #[test]
 fn test_content_with_bom_or_sig() {
-    let tests = [
-        (
-            encode(
-                "\u{FEFF}我没有埋怨，磋砣的只是一些时间。",
-                "gb18030",
-                EncoderTrap::Ignore,
-            )
-            .unwrap(),
-            "gb18030",
-        ),
-        (
-            encode(
-                "\u{FEFF}我没有埋怨，磋砣的只是一些时间。",
-                "utf-16le",
-                EncoderTrap::Ignore,
-            )
-            .unwrap(),
-            "utf-16le",
-        ),
-        (
-            encode(
-                "\u{FEFF}我没有埋怨，磋砣的只是一些时间。",
-                "utf-8",
-                EncoderTrap::Ignore,
-            )
-            .unwrap(),
-            "utf-8",
-        ),
-    ];
+    let input_utf8 = "\u{FEFF}我没有埋怨，磋砣的只是一些时间。";
+    let tests = ["gb18030", "utf-16le", "utf-8"];
+    let ignore_errors = true;
 
-    for (input, expected_encoding) in tests {
+    for encoding_name in tests {
+        let input = encode(input_utf8, encoding_name, ignore_errors).unwrap();
         let result = from_bytes(&input, None).unwrap();
         let best_guess = result.get_best();
         assert!(
@@ -105,8 +73,8 @@ fn test_content_with_bom_or_sig() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().encoding(),
-            expected_encoding,
+            best_guess.unwrap().encoding().name(),
+            encoding_name,
             "Detection but with SIG/BOM is wrongly detected! Input: {:?}",
             &input
         );
@@ -137,7 +105,7 @@ fn test_obviously_ascii_content() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().encoding(),
+            best_guess.unwrap().encoding().name(),
             "ascii",
             "Dead-simple ASCII detection is wrongly detected! Input: {:?}",
             &input
@@ -169,7 +137,7 @@ fn test_obviously_utf8_content() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().encoding(),
+            best_guess.unwrap().encoding().name(),
             "utf-8",
             "Dead-simple UTF-8 detection is wrongly detected! Input: {:?}",
             &input
@@ -195,5 +163,5 @@ fn test_mb_cutting_chk() {
     let result = from_bytes(payload.as_slice(), Some(settings)).unwrap();
     let best_guess = result.get_best().unwrap();
     assert_eq!(result.len(), 1);
-    assert_eq!(best_guess.encoding(), "euc-kr");
+    assert_eq!(best_guess.encoding().name(), "euc-kr");
 }
