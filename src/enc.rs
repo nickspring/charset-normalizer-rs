@@ -197,45 +197,21 @@ impl Encoding {
                 loop {
                     let chunk = &input[begin_offset..end_offset];
 
-                    let mut decoder = enc.new_decoder();
-
-                    // TODO: it should be technically possible to cap the buffer
-                    // size when WantDecode::No, but it means using a slightly
-                    // more complex decoder method and state tracking than we
-                    // are currently
-                    let mut result_string = String::with_capacity(
-                        decoder
-                            .max_utf8_buffer_length_without_replacement(input.len())
-                            .unwrap_or(0),
-                    );
-
-                    let is_last = true;
-                    let (result, consumed) = decoder.decode_to_string_without_replacement(
-                        chunk,
-                        &mut result_string,
-                        is_last,
-                    );
-
-                    match result {
-                        DecoderResult::InputEmpty if is_last => {
-                            return match want_decode {
-                                WantDecode::Yes => Ok(result_string),
-                                WantDecode::No => Ok(String::new()),
-                            }
-                        }
-                        DecoderResult::InputEmpty => return Err("more input needed".to_string()),
-                        DecoderResult::OutputFull => {
-                            return Err("result buffer not big enough".to_string())
-                        }
-                        DecoderResult::Malformed(len, consumed_after) => {
+                    match decode_buffer(enc, chunk, want_decode) {
+                        BufferResult::Decoded(result) => return Ok(result),
+                        BufferResult::Adjust {
+                            begin,
+                            end,
+                            consumed,
+                        } => {
                             let mut terminate = false;
                             match is_chunk {
                                 IsChunk::Yes => {
                                     if consumed <= 1 {
                                         // Bad sequence at the start
-                                        begin_offset += (len + consumed_after).max(1) as usize;
+                                        begin_offset += begin;
                                     } else {
-                                        end_offset = end_offset.saturating_sub(1);
+                                        end_offset = end_offset.saturating_sub(end);
                                     }
 
                                     if end_offset - begin_offset < 1
@@ -262,6 +238,124 @@ impl Encoding {
             }
         }
     }
+}
+
+enum BufferResult {
+    Decoded(String),
+    Adjust {
+        consumed: usize,
+        begin: usize,
+        end: usize,
+    },
+}
+
+/// Decode or, if WantDecode::No, validate the decode of, buffer.
+/// If the decode is successful, returns either the decoded buffer
+/// or an empty string depending on WantDecode.
+/// If the decode fails, returns an Adjust variant indicating
+/// how much was consumed and where to adjust the buffer if IsChunk
+/// is being used.
+fn decode_buffer(
+    encoding: &'static encoding_rs::Encoding,
+    mut chunk: &[u8],
+    want_decode: WantDecode,
+) -> BufferResult {
+    let mut decoder = encoding.new_decoder();
+
+    const CHUNK_SIZE: usize = 2048;
+    let mut buffer_bytes = [0u8; CHUNK_SIZE];
+    let buffer: &mut str = std::str::from_utf8_mut(&mut buffer_bytes[..]).unwrap();
+    let mut bytes_in_buffer = 0usize;
+    let mut result_string = String::new();
+    let mut consumed = 0usize;
+
+    loop {
+        let (result, read, written) =
+            decoder.decode_to_str_without_replacement(chunk, &mut buffer[bytes_in_buffer..], false);
+
+        consumed += read;
+        bytes_in_buffer += written;
+
+        match result {
+            DecoderResult::InputEmpty => {
+                break;
+            }
+            DecoderResult::OutputFull => {
+                match want_decode {
+                    WantDecode::Yes => {
+                        result_string.push_str(&buffer[..bytes_in_buffer]);
+                    }
+                    WantDecode::No => {}
+                }
+                bytes_in_buffer = 0;
+                chunk = &chunk[read..];
+                continue;
+            }
+            DecoderResult::Malformed(len, consumed_after) => {
+                if consumed <= 1 {
+                    // Bad sequence at the start
+                    return BufferResult::Adjust {
+                        begin: (len + consumed_after).max(1) as usize,
+                        end: 0,
+                        consumed,
+                    };
+                } else {
+                    return BufferResult::Adjust {
+                        begin: 0,
+                        end: 1,
+                        consumed,
+                    };
+                }
+            }
+        }
+    }
+    // Flush any buffered output if needed
+    match want_decode {
+        WantDecode::Yes => {
+            loop {
+                let (result, _, written) = decoder.decode_to_str_without_replacement(
+                    b"",
+                    &mut buffer[bytes_in_buffer..],
+                    true,
+                );
+                bytes_in_buffer += written;
+                // Write the current buffer out and consider the buffer empty.
+                // Need to do this here for both `match` arms, because we exit the
+                // loop on `DecoderResult::InputEmpty`.
+                result_string.push_str(&buffer[..bytes_in_buffer]);
+                bytes_in_buffer = 0usize;
+
+                match result {
+                    DecoderResult::InputEmpty => {
+                        // Done!
+                        break;
+                    }
+                    DecoderResult::OutputFull => {
+                        continue;
+                    }
+                    DecoderResult::Malformed(len, consumed_after) => {
+                        if consumed <= 1 {
+                            // Bad sequence at the start
+                            return BufferResult::Adjust {
+                                begin: (len + consumed_after).max(1) as usize,
+                                end: 0,
+                                consumed,
+                            };
+                        } else {
+                            return BufferResult::Adjust {
+                                begin: 0,
+                                end: 1,
+                                consumed,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        WantDecode::No => {}
+    }
+
+    BufferResult::Decoded(result_string)
 }
 
 pub(crate) static BY_NAME: Lazy<HashMap<&'static str, &'static Encoding>> = Lazy::new(|| {
