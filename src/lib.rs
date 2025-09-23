@@ -33,7 +33,7 @@
 //!     let result = from_bytes(&vec![0x84, 0x31, 0x95, 0x33], None).unwrap();
 //!     let best_guess = result.get_best();
 //!     assert_eq!(
-//!         best_guess.unwrap().encoding(),
+//!         best_guess.unwrap().encoding().name(),
 //!         "gb18030",
 //!     );
 //! }
@@ -48,7 +48,7 @@
 //!     let result = from_path(Path::new("src/tests/data/samples/sample-chinese.txt"), None).unwrap();
 //!     let best_guess = result.get_best();
 //!     assert_eq!(
-//!         best_guess.unwrap().encoding(),
+//!         best_guess.unwrap().encoding().name(),
 //!         "big5",
 //!     );
 //! }
