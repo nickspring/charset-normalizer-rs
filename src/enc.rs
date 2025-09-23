@@ -180,7 +180,7 @@ impl Encoding {
                 let len = input.len();
                 let valid_to = encoding_rs::Encoding::ascii_valid_up_to(input);
                 if valid_to != len {
-                    Err(format!("8-bit input detected as index {valid_to}"))
+                    Err(format!("8-bit input detected at index {valid_to}"))
                 } else {
                     match want_decode {
                         WantDecode::Yes => Ok(std::str::from_utf8(input)
