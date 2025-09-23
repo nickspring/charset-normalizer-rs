@@ -18,11 +18,6 @@ fn test_large_payload_utf8_sig_basic_entry() {
         "Large U8 payload case detection wrongly detected!"
     );
     assert!(best_guess.unwrap().bom(), "SIG/BOM property should be True");
-    assert_eq!(
-        best_guess.unwrap().raw().len(),
-        payload.len(),
-        "Large payload should remain untouched when accessed through .raw"
-    );
 }
 
 #[test]
@@ -43,11 +38,6 @@ fn test_large_payload_ascii_sig_basic_entry() {
     assert!(
         !best_guess.unwrap().bom(),
         "SIG/BOM property should be False"
-    );
-    assert_eq!(
-        best_guess.unwrap().raw().len(),
-        payload.len(),
-        "Large payload should remain untouched when accessed through .raw"
     );
 }
 

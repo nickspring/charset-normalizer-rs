@@ -135,7 +135,6 @@ use crate::entity::{CharsetMatch, CharsetMatches, CoherenceMatches, NormalizerSe
 use crate::md::mess_ratio;
 use crate::utils::{any_specified_encoding, identify_sig_or_bom, is_cp_similar, is_invalid_chunk};
 use log::{debug, trace};
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::fs::File;
@@ -281,8 +280,6 @@ pub fn from_bytes(
     let mut fallback_u8: Option<CharsetMatch> = None;
     let mut fallback_specified: Option<CharsetMatch> = None;
     let mut results: CharsetMatches = CharsetMatches::default();
-
-    let bytes: Cow<'static, [u8]> = Cow::Owned(bytes.to_vec());
 
     // Iterate and probe our encodings
     'iana_encodings_loop: for encoding_iana in iana_encodings {
@@ -463,7 +460,7 @@ pub fn from_bytes(
                 && prioritized_encodings.contains(&encoding_iana)
             {
                 let fallback_entry = Some(CharsetMatch::new(
-                    bytes.clone(),
+                    bytes,
                     encoding_iana,
                     f32::from(settings.threshold),
                     false,
@@ -514,7 +511,7 @@ pub fn from_bytes(
 
         // process results
         results.append(CharsetMatch::new(
-            bytes.clone(),
+            bytes,
             encoding_iana,
             mean_mess_ratio,
             bom_or_sig_available,

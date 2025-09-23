@@ -43,12 +43,6 @@ fn test_empty_but_with_bom_or_sig() {
             "Empty detection but with SIG/BOM is wrongly detected! Input: {:?}",
             &input
         );
-        assert_eq!(
-            best_guess.unwrap().raw(),
-            &input,
-            "The RAW property should contain the original payload given for detection. Input: {:?}",
-            &input
-        );
         assert!(
             best_guess.unwrap().bom(),
             "The BOM/SIG property should return True. Input: {:?}",

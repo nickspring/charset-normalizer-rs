@@ -5,7 +5,6 @@ use crate::consts::TOO_BIG_SEQUENCE;
 use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::utils::range_scan;
 use ordered_float::OrderedFloat;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -83,8 +82,8 @@ pub(crate) type CoherenceMatches = Vec<CoherenceMatch>;
 
 #[derive(Clone)]
 pub struct CharsetMatch {
-    payload: Cow<'static, [u8]>,
     encoding: &'static Encoding,
+    payload_len: usize,
 
     mean_mess_ratio: OrderedFloat<f32>,
     coherence_matches: CoherenceMatches,
@@ -97,21 +96,21 @@ pub struct CharsetMatch {
 
 impl Display for CharsetMatch {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({})", self.payload, self.encoding)
+        write!(f, "{:?} ({})", self.decoded_payload, self.encoding)
     }
 }
 
 impl Debug for CharsetMatch {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({})", self.payload, self.encoding)
+        write!(f, "{:?} ({})", self.decoded_payload, self.encoding)
     }
 }
 
 impl Default for CharsetMatch {
     fn default() -> Self {
         CharsetMatch {
-            payload: Cow::Borrowed(&[]),
             encoding: Encoding::by_name("utf-8").expect("have utf8"),
+            payload_len: 0,
             mean_mess_ratio: OrderedFloat(0.0),
             coherence_matches: vec![],
             has_sig_or_bom: false,
@@ -161,7 +160,7 @@ impl PartialOrd<Self> for CharsetMatch {
 impl CharsetMatch {
     // Init function
     pub(crate) fn new(
-        payload: Cow<'static, [u8]>,
+        payload: &[u8],
         encoding: &'static Encoding,
         mean_mess_ratio: f32,
         has_sig_or_bom: bool,
@@ -169,15 +168,15 @@ impl CharsetMatch {
         decoded_payload: Option<&str>,
     ) -> Self {
         CharsetMatch {
-            payload: payload.clone(),
             encoding,
+            payload_len: payload.len(),
             mean_mess_ratio: OrderedFloat(mean_mess_ratio),
             coherence_matches: coherence_matches.clone(),
             has_sig_or_bom,
             submatch: vec![],
             decoded_payload: decoded_payload.map(String::from).or_else(|| {
                 encoding
-                    .decode(&payload, WantDecode::Yes, IsChunk::Yes)
+                    .decode(payload, WantDecode::Yes, IsChunk::Yes)
                     .ok()
                     .map(|res| res.strip_prefix('\u{feff}').unwrap_or(&res).to_string())
             }),
@@ -254,14 +253,9 @@ impl CharsetMatch {
     /// Multibyte usage ratio
     pub fn multi_byte_usage(&self) -> f32 {
         let decoded_chars = self.decoded_payload().unwrap_or_default().chars().count() as f32;
-        let payload_len = self.payload.len() as f32;
+        let payload_len = self.payload_len as f32;
 
         1.0 - (decoded_chars / payload_len)
-    }
-
-    /// Original untouched bytes
-    pub fn raw(&self) -> &[u8] {
-        &self.payload
     }
 
     /// Return chaos in percents with rounding
@@ -340,7 +334,7 @@ impl CharsetMatches {
     pub fn append(&mut self, item: CharsetMatch) {
         // We should disable the submatch factoring when the input file is too heavy
         // (conserve RAM usage)
-        if item.payload.len() <= TOO_BIG_SEQUENCE {
+        if item.payload_len <= TOO_BIG_SEQUENCE {
             for m in &mut self.items {
                 if m.decoded_payload() == item.decoded_payload()
                     && (m.mean_mess_ratio - item.mean_mess_ratio).abs() < f32::EPSILON

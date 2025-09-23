@@ -9,7 +9,7 @@ fn test_charset_matches() {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     let mut c_matches = CharsetMatches::new(Some(vec![CharsetMatch::new(
-        (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
+        &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
         Encoding::by_name("utf-8").unwrap(),
         0.01,
         false,
@@ -29,7 +29,7 @@ fn test_charset_matches() {
 
     // append new CharsetMatch
     c_matches.append(CharsetMatch::new(
-        (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
+        &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
         Encoding::by_name("utf-16le").unwrap(),
         0.011,
         false,
@@ -87,7 +87,7 @@ fn test_charset_matches() {
     assert_eq!(
         c_matches[1],
         CharsetMatch::new(
-            (&[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82]).into(),
+            &[0xD0, 0xA2, 0xD0, 0xB5, 0xD1, 0x81, 0xD1, 0x82],
             Encoding::by_name("utf-16le").unwrap(),
             0.044,
             true,
