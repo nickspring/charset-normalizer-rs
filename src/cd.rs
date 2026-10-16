@@ -1,16 +1,14 @@
 #![allow(unused_variables)]
-use crate::assets::{ENCODING_TO_LANGUAGE, LANGUAGES, LANGUAGE_SUPPORTED_COUNT};
+use crate::assets::{LanguageEntry, LANGUAGES};
 use crate::consts::TOO_SMALL_SEQUENCE;
+use crate::enc::{Encoding, IsChunk, WantDecode};
 use crate::entity::{CoherenceMatch, CoherenceMatches, Language};
 use crate::utils::{
-    get_language_data, is_accentuated, is_multi_byte_encoding, is_suspiciously_successive_range,
-    is_unicode_range_secondary, unicode_range,
+    is_accentuated, is_suspiciously_successive_range, is_unicode_range_secondary, unicode_range,
 };
 use ahash::{HashMap, HashMapExt, HashSet};
 use cached::proc_macro::cached;
 use counter::Counter;
-use encoding::label::encoding_from_whatwg_label;
-use encoding::DecoderTrap;
 use ordered_float::OrderedFloat;
 use strsim::jaro;
 
@@ -20,18 +18,19 @@ use strsim::jaro;
 
 // Return associated unicode ranges in a single byte code page.
 pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, String> {
-    if is_multi_byte_encoding(iana_name) {
+    let encoder =
+        Encoding::by_name(iana_name).ok_or("No decoder found for this encoding".to_string())?;
+
+    if encoder.is_multi_byte_encoding() {
         return Err("Function not supported on multi-byte code page".to_string());
     }
-    let encoder = encoding_from_whatwg_label(iana_name)
-        .ok_or("No decoder found for this encoding".to_string())?;
 
     let byte_range = 0x40..0xFF; // utf8 range. range.len()==191
     let mut result: HashMap<&str, u8> = HashMap::with_capacity(byte_range.len());
 
     byte_range.for_each(|i| {
         if let Some(range) = encoder
-            .decode(&[i], DecoderTrap::Ignore)
+            .decode(&[i], WantDecode::Yes, IsChunk::No)
             .ok()
             .and_then(|chunk| chunk.chars().next())
             .and_then(unicode_range)
@@ -55,11 +54,12 @@ pub(crate) fn encoding_unicode_range(iana_name: &str) -> Result<Vec<&str>, Strin
 pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Language> {
     LANGUAGES
         .iter()
-        .filter_map(|(language, characters, _, _)| {
-            characters
+        .filter_map(|entry| {
+            entry
+                .alphabet
                 .chars()
                 .find(|char| unicode_range(*char).unwrap_or_default() == primary_range)
-                .map(|_| language)
+                .map(|_| &entry.language)
         })
         .collect::<Vec<&Language>>()
 }
@@ -68,8 +68,8 @@ pub(crate) fn unicode_range_languages(primary_range: &str) -> Vec<&'static Langu
 // Some code page are heavily linked to particular language(s).
 // This function does the correspondence.
 #[cached(size = 128)]
-pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
-    match encoding_unicode_range(&iana_name)
+pub(crate) fn encoding_languages(iana_name: &'static str) -> Vec<&'static Language> {
+    match encoding_unicode_range(iana_name)
         .unwrap_or_default()
         .iter()
         .find(|&&range| !range.contains("Latin"))
@@ -79,43 +79,30 @@ pub(crate) fn encoding_languages(iana_name: String) -> Vec<&'static Language> {
     }
 }
 
-// Multi-byte encoding language association. Some code page are heavily linked to particular language(s).
-// This function does the correspondence.
-pub(crate) fn mb_encoding_languages(iana_name: &str) -> Vec<&'static Language> {
-    ENCODING_TO_LANGUAGE
-        .get(iana_name)
-        .map_or(vec![], |found| vec![found])
-}
-
 // Return associated languages associated to given characters
-#[allow(clippy::ptr_arg)]
 pub(crate) fn alphabet_languages(
     characters: &[char],
     ignore_non_latin: bool,
 ) -> Vec<&'static Language> {
-    let mut languages: Vec<(&Language, OrderedFloat<f32>)> =
-        Vec::with_capacity(*LANGUAGE_SUPPORTED_COUNT);
+    let mut languages: Vec<(&Language, OrderedFloat<f32>)> = Vec::with_capacity(LANGUAGES.len());
     let source_characters_set: HashSet<char> = characters.iter().copied().collect();
     let source_has_accents = source_characters_set
         .iter()
         .any(|&char| is_accentuated(char));
 
-    for (language, language_characters, target_have_accents, target_pure_latin) in LANGUAGES.iter()
-    {
-        if (ignore_non_latin && !target_pure_latin) || (!target_have_accents && source_has_accents)
-        {
+    for entry in LANGUAGES.iter() {
+        if (ignore_non_latin && !entry.pure_latin) || (!entry.have_accents && source_has_accents) {
             continue;
         }
 
-        let language_characters_set: HashSet<char> = language_characters.chars().collect();
-        let intersection: HashSet<char> = language_characters_set
+        let intersection_size = entry
+            .alphabet_set
             .intersection(&source_characters_set)
-            .copied()
-            .collect();
+            .count();
 
-        let ratio: f32 = intersection.len() as f32 / language_characters_set.len() as f32;
+        let ratio: f32 = intersection_size as f32 / entry.alphabet_set.len() as f32;
         if ratio >= 0.2 {
-            languages.push((language, OrderedFloat(ratio)));
+            languages.push((&entry.language, OrderedFloat(ratio)));
         }
     }
     // reverse sort
@@ -152,8 +139,8 @@ pub(crate) fn characters_popularity_compare(
     language: &Language,
     ordered_characters: &str,
 ) -> Result<f32, String> {
-    let language_data = get_language_data(language)?;
-    Ok(jaro(ordered_characters, language_data.0) as f32)
+    let language_data = LanguageEntry::get(language)?;
+    Ok(jaro(ordered_characters, language_data.alphabet) as f32)
 }
 
 // We shall NOT return more than one "English" in CoherenceMatches because it is an alternative

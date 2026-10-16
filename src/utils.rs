@@ -1,19 +1,14 @@
-#![allow(dead_code)]
-
-use crate::assets::LANGUAGES;
 use crate::consts::{
-    ENCODING_MARKS, IANA_SUPPORTED, IANA_SUPPORTED_SIMILAR, RE_POSSIBLE_ENCODING_INDICATION,
+    ENCODING_MARKS, IANA_SUPPORTED_SIMILAR, RE_POSSIBLE_ENCODING_INDICATION,
     UNICODE_RANGES_COMBINED, UNICODE_SECONDARY_RANGE_KEYWORD,
 };
-use crate::entity::Language;
+use crate::enc::{Encoding, IsChunk, WantDecode};
+use std::cmp::Ordering;
 
 use ahash::{HashSet, HashSetExt};
-use encoding::label::encoding_from_whatwg_label;
-use encoding::{CodecError, DecoderTrap, EncoderTrap, Encoding, EncodingRef, StringWriter};
 use icu_normalizer::DecomposingNormalizer;
 use unicode_names2::name;
 
-use std::borrow::Cow;
 #[cfg(any(test, feature = "performance"))]
 use std::path::{Path, PathBuf};
 
@@ -59,10 +54,21 @@ pub(crate) fn is_unicode_range_secondary(range_name: &str) -> bool {
 // Retrieve the Unicode range official name from a single character
 pub(crate) fn unicode_range(character: char) -> Option<&'static str> {
     let char_code = character as u32;
+
+    let index = UNICODE_RANGES_COMBINED
+        .binary_search_by(|(_, range)| {
+            if char_code < *range.start() {
+                Ordering::Greater
+            } else if char_code > *range.end() {
+                Ordering::Less
+            } else {
+                Ordering::Equal
+            }
+        })
+        .ok()?;
     UNICODE_RANGES_COMBINED
-        .iter()
-        .find(|&(_, range)| range.contains(&char_code))
-        .map(|(name, _)| *name)
+        .get(index)
+        .map(|(name, _range)| *name)
 }
 
 pub(crate) fn range_scan(decoded_sequence: &str) -> HashSet<String> {
@@ -86,66 +92,49 @@ pub(crate) fn remove_accent(ch: char) -> char {
 
 // Verify is a specific encoding is a multi byte one based on it IANA name
 pub fn is_multi_byte_encoding(name: &str) -> bool {
-    [
-        "utf-8",
-        "utf-16le",
-        "utf-16be",
-        "euc-jp",
-        "euc-kr",
-        "iso-2022-jp",
-        "gbk",
-        "gb18030",
-        "hz",
-        "big5",
-        "shift_jis",
-    ]
-    .contains(&name)
+    Encoding::by_name(name)
+        .map(|enc| enc.is_multi_byte_encoding())
+        .unwrap_or(false)
 }
 
 // Try to detect multibyte encoding by signature
-pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<String>, Option<&[u8]>) {
+pub(crate) fn identify_sig_or_bom(sequence: &[u8]) -> (Option<&Encoding>, Option<&[u8]>) {
     ENCODING_MARKS
         .iter()
         .find(|&(_, enc_sig)| sequence.starts_with(enc_sig))
-        .map_or((None, None), |(enc_name, enc_sig)| {
-            (Some((*enc_name).to_string()), Some(*enc_sig))
-        })
-}
-
-// Try to get standard name by alternative labels
-pub fn iana_name(cp_name: &str) -> Option<&str> {
-    IANA_SUPPORTED
-        .contains(&cp_name) // first just try to search it in our list
-        .then_some(cp_name)
-        .or_else(|| {
-            // if not found, try to use alternative way
-            encoding_from_whatwg_label(cp_name).map(|enc| enc.whatwg_name().unwrap_or(enc.name()))
-        })
+        .map_or(
+            (None, None),
+            |(enc_name, enc_sig)| match Encoding::by_name(enc_name) {
+                Some(enc) => (Some(enc), Some(*enc_sig)),
+                None => (None, Some(*enc_sig)),
+            },
+        )
 }
 
 pub(crate) fn is_cp_similar(iana_name_a: &str, iana_name_b: &str) -> bool {
-    IANA_SUPPORTED_SIMILAR.contains_key(iana_name_a)
-        && IANA_SUPPORTED_SIMILAR[iana_name_a].contains(&iana_name_b)
+    IANA_SUPPORTED_SIMILAR
+        .get(iana_name_a)
+        .map(|candidates| candidates.contains(&iana_name_b))
+        .unwrap_or(false)
 }
 
 // Extract using ASCII-only decoder any specified encoding in the first n-bytes.
 pub(crate) fn any_specified_encoding(sequence: &[u8], search_zone: usize) -> Option<String> {
-    encoding::all::ASCII
-        .decode(
-            &sequence[0..search_zone.min(sequence.len())],
-            DecoderTrap::Ignore,
-        )
-        .ok()
-        .and_then(|test_string| {
-            RE_POSSIBLE_ENCODING_INDICATION
-                .captures_iter(&test_string)
-                .map(|c| c.extract())
-                .find_map(|(_, [specified_encoding])| iana_name(specified_encoding))
-                .map(|found_iana| found_iana.to_string())
+    let test_string = &sequence[0..search_zone.min(sequence.len())];
+
+    RE_POSSIBLE_ENCODING_INDICATION
+        .captures_iter(test_string)
+        .map(|c| c.extract())
+        .find_map(|(_, [specified_encoding])| {
+            std::str::from_utf8(specified_encoding)
+                .ok()
+                .and_then(Encoding::by_name)
         })
+        .map(|found_iana| found_iana.to_string())
 }
 
 // Calculate similarity of two single byte encodings
+#[allow(dead_code)]
 pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
     // we don't want to compare multi-byte encodings
     if is_multi_byte_encoding(iana_name_a) || is_multi_byte_encoding(iana_name_b) {
@@ -153,13 +142,13 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
     }
 
     if let (Some(encoder_a), Some(encoder_b)) = (
-        encoding_from_whatwg_label(iana_name_a),
-        encoding_from_whatwg_label(iana_name_b),
+        Encoding::by_name(iana_name_a),
+        Encoding::by_name(iana_name_b),
     ) {
         let character_match_count = (1..255u8)
             .filter(|&ch| {
-                let res_a = encoder_a.decode(&[ch], DecoderTrap::Ignore).ok();
-                let res_b = encoder_b.decode(&[ch], DecoderTrap::Ignore).ok();
+                let res_a = encoder_a.decode(&[ch], WantDecode::Yes, IsChunk::No).ok();
+                let res_b = encoder_b.decode(&[ch], WantDecode::Yes, IsChunk::No).ok();
                 res_a.is_some() && res_a == res_b //check that they aren't none and equal
             })
             .count();
@@ -168,141 +157,12 @@ pub(crate) fn cp_similarity(iana_name_a: &str, iana_name_b: &str) -> f32 {
     0.0 // Return 0.0 if encoders could not be retrieved.
 }
 
-// Test Decoding bytes to string with specified encoding without writing result to memory
-// returns true if everything is correctly decoded, otherwise false
-struct DecodeTestResult {
-    only_test: bool,
-    data: String,
-}
-impl StringWriter for DecodeTestResult {
-    fn writer_hint(&mut self, expectedlen: usize) {
-        if self.only_test {
-            return;
-        }
-        let newlen = self.data.len() + expectedlen;
-        self.data.reserve(newlen);
+/// Encode string to vec of bytes with specified encoding
+pub fn encode(input: &str, to_encoding: &str, ignore_errors: bool) -> Result<Vec<u8>, String> {
+    match Encoding::by_name(to_encoding) {
+        Some(enc) => enc.encode(input, ignore_errors),
+        None => Err(format!("Encoding '{}' not found", to_encoding)),
     }
-    fn write_char(&mut self, c: char) {
-        if self.only_test {
-            return;
-        }
-        self.data.push(c);
-    }
-    fn write_str(&mut self, s: &str) {
-        if self.only_test {
-            return;
-        }
-        self.data.push_str(s);
-    }
-}
-impl DecodeTestResult {
-    pub fn get_buffer(&self) -> &str {
-        &self.data
-    }
-}
-
-// Decode bytes to string with specified encoding
-// if is_chunk = true it will try to fix first and end bytes for multibyte encodings
-pub fn decode(
-    input: &[u8],
-    from_encoding: &str,
-    how_process_errors: DecoderTrap,
-    only_test: bool,
-    is_chunk: bool,
-) -> Result<String, String> {
-    let encoder = encoding_from_whatwg_label(from_encoding)
-        .ok_or(format!("Encoding '{}' not found", from_encoding))?;
-
-    let mut buf = DecodeTestResult {
-        only_test,
-        data: String::new(),
-    };
-    let mut err = CodecError {
-        upto: 0,
-        cause: Cow::from(String::new()),
-    };
-    let chunk_len = input.len();
-    let mut begin_offset: usize = 0;
-    let mut end_offset: usize = chunk_len;
-    let mut error_occured: bool;
-    loop {
-        let res = decode_to(
-            encoder,
-            &input[begin_offset..end_offset],
-            how_process_errors,
-            &mut buf,
-        );
-        error_occured = res.is_err();
-        if let DecoderTrap::Strict = how_process_errors {
-            if !is_chunk || res.is_ok() || !is_multi_byte_encoding(from_encoding) {
-                break;
-            }
-            err = res.unwrap_err();
-            if err.cause.contains("invalid sequence") {
-                begin_offset += 1;
-            } else if err.cause.contains("incomplete sequence") {
-                end_offset -= 1;
-            }
-            if end_offset - begin_offset < 1 || begin_offset > 3 || (chunk_len - end_offset) > 3 {
-                break;
-            }
-        } else {
-            break;
-        }
-    }
-    if error_occured {
-        return Err(format!("{} at index {}", err.cause, err.upto));
-    }
-    Ok(String::from(buf.get_buffer()))
-}
-
-// Copied implementation of decode_to from encoder lib
-// (we need index of problematic chars & hacks for chunks)
-fn decode_to(
-    encoder: EncodingRef,
-    input: &[u8],
-    trap: DecoderTrap,
-    ret: &mut dyn StringWriter,
-) -> Result<(), CodecError> {
-    let mut decoder = encoder.raw_decoder();
-    let mut remaining = 0;
-    loop {
-        let (offset, err) = decoder.raw_feed(&input[remaining..], ret);
-        let unprocessed = remaining + offset;
-
-        match err {
-            Some(err) => {
-                remaining = remaining.wrapping_add_signed(err.upto);
-                if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
-                    return Err(err);
-                }
-            }
-            None => {
-                remaining = input.len();
-                if let Some(err) = decoder.raw_finish(ret) {
-                    remaining = remaining.wrapping_add_signed(err.upto);
-                    if !trap.trap(&mut *decoder, &input[unprocessed..remaining], ret) {
-                        return Err(err);
-                    }
-                }
-                if remaining >= input.len() {
-                    return Ok(());
-                }
-            }
-        }
-    }
-}
-
-// Encode string to vec of bytes with specified encoding
-pub fn encode(
-    input: &str,
-    to_encoding: &str,
-    how_process_errors: EncoderTrap,
-) -> Result<Vec<u8>, String> {
-    if let Some(encoder) = encoding_from_whatwg_label(to_encoding) {
-        return Ok(encoder.encode(input, how_process_errors)?);
-    }
-    Err(format!("Encoding '{}' not found", to_encoding))
 }
 
 // Determine if two Unicode range seen next to each other can be considered as suspicious.
@@ -361,24 +221,15 @@ pub(crate) fn is_suspiciously_successive_range(
     true // if either range is none or edge cases never triggers, return true
 }
 
-// Get data for specified language
-pub(crate) fn get_language_data(language: &Language) -> Result<(&'static str, bool, bool), String> {
-    for (iterated_language, characters, has_accents, pure_latin) in LANGUAGES.iter() {
-        if iterated_language == language {
-            return Ok((characters, *has_accents, *pure_latin));
-        }
-    }
-    Err(String::from("Language wasn't found"))
-}
-
 // ascii in encodings means windows-1252 codepage with supports diacritis
 // because of this we will check additionally it with is_ascii method
 pub(super) fn is_invalid_chunk(
     decoded_chunk_result: &Result<String, String>,
-    encoding_iana: &str,
+    encoding_iana: &Encoding,
 ) -> bool {
     decoded_chunk_result.is_err()
-        || (encoding_iana == "ascii" && !decoded_chunk_result.as_ref().is_ok_and(|s| s.is_ascii()))
+        || (encoding_iana.name() == "ascii"
+            && !decoded_chunk_result.as_ref().is_ok_and(|s| s.is_ascii()))
 }
 
 // Get large datasets

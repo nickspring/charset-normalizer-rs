@@ -1,10 +1,8 @@
 use chardetng::EncodingDetector;
-use charset_normalizer_rs::consts::CHARDET_CORRESPONDENCE;
 use charset_normalizer_rs::from_bytes;
 use charset_normalizer_rs::utils::get_large_test_datasets;
+use charset_normalizer_rs::Encoding;
 use clap::Parser;
-use encoding::label::encoding_from_whatwg_label;
-use encoding::DecoderTrap;
 use log::trace;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
@@ -47,12 +45,12 @@ fn check_result(
     // if correct encoding wasn't found we will try to decode and compare results
     let whatwg_correct_encoding = correct_encodings
         .first()
-        .and_then(|enc| encoding_from_whatwg_label(enc));
-    let whatwg_guessed_encoding = encoding_from_whatwg_label(guessed_encoding);
+        .and_then(|enc| Encoding::by_name(enc));
+    let whatwg_guessed_encoding = Encoding::by_name(guessed_encoding);
     match (whatwg_correct_encoding, whatwg_guessed_encoding) {
         (Some(correct_encoding), Some(guessed_encoding)) => {
-            let correct_decoded = correct_encoding.decode(buffer.as_slice(), DecoderTrap::Strict);
-            let guessed_decoded = guessed_encoding.decode(buffer.as_slice(), DecoderTrap::Strict);
+            let correct_decoded = correct_encoding.decode_simple(buffer.as_slice());
+            let guessed_decoded = guessed_encoding.decode_simple(buffer.as_slice());
             match (correct_decoded, guessed_decoded) {
                 (Ok(correct_result), Ok(guessed_result)) => correct_result == guessed_result,
                 _ => false,
@@ -130,11 +128,8 @@ fn performance_compare(args: &PerformanceArgs) -> i32 {
         "B) chardet",
         Box::new(|bytes: &Vec<u8>| {
             let detected = &chardet::detect(bytes).0.to_ascii_lowercase();
-            let alternative = CHARDET_CORRESPONDENCE.get(&detected.as_str());
-            if let Some(r) = encoding_from_whatwg_label(&detected) {
-                r.whatwg_name()
-                    .unwrap_or(alternative.unwrap_or(&r.name()))
-                    .to_string()
+            if let Some(r) = Encoding::by_name(&detected) {
+                r.name().to_string()
             } else {
                 String::from("None")
             }

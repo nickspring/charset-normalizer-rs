@@ -17,7 +17,7 @@ fn test_elementary_detection() {
         assert!(result.is_ok());
         let result = result.unwrap();
         let best_guess = result.get_best();
-        let enc = best_guess.unwrap().encoding();
+        let enc = best_guess.unwrap().encoding().name();
         let languages = best_guess.unwrap().languages();
 
         assert!(
@@ -52,14 +52,18 @@ fn test_largesets() {
         let best_guess = result.get_best();
         let mut guess_encoding = "None";
         if best_guess.is_some() {
-            guess_encoding = best_guess.unwrap().encoding();
+            guess_encoding = best_guess.unwrap().encoding().name();
         }
+
         let fail = !encoding.contains(&guess_encoding.to_string())
             && (guess_encoding == "None"
                 || encoding
                     .iter()
                     .any(|x| is_multi_byte_encoding(guess_encoding) != is_multi_byte_encoding(x)));
 
-        assert!(!fail, "Problems with {}", path);
+        assert!(
+            !fail,
+            "Problems with {path}. expected encoding={encoding:?}, guess={guess_encoding}",
+        );
     }
 }

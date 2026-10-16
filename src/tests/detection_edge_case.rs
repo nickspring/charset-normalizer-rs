@@ -13,7 +13,7 @@ fn test_undefined_unicode_ranges() {
             &input
         );
         assert_eq!(
-            best_guess.unwrap().encoding(),
+            best_guess.unwrap().encoding().name(),
             "utf-8",
             "UTF-8 payload wrongly detected! Input: {:?}",
             &input
